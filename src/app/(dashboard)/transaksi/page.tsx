@@ -28,11 +28,13 @@ import {
   Search,
   UserCheck,
   UserPlus,
+  UserRound,
   X,
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { catatGalat, pesanGalat } from "@/lib/pesan-galat";
+import { bukanNamaOrang, labelPencatat } from "@/lib/jejak-pencatat";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -88,6 +90,9 @@ interface Transaksi {
   external_ref: string | null;
   created_at: string;
   pelanggan: { nama: string } | null;
+  // Jejak pencatat, diisi otomatis oleh database dari sesi yang menyimpan.
+  dicatat_oleh: string | null;
+  dicatat_oleh_nama: string | null;
 }
 
 /** 2026-09-14T11:26 -> "14 Sep, 18.26" */
@@ -150,7 +155,7 @@ export default function TransaksiPage() {
     const { data, error } = await supabase
       .from("transaksi")
       .select(
-        "id, total, diskon, poin_dipakai, poin_didapat, external_ref, created_at, pelanggan(nama)",
+        "id, total, diskon, poin_dipakai, poin_didapat, external_ref, created_at, dicatat_oleh, dicatat_oleh_nama, pelanggan(nama)",
       )
       .order("created_at", { ascending: false })
       .limit(10);
@@ -684,6 +689,26 @@ export default function TransaksiPage() {
                             +{t.poin_didapat} poin
                           </Badge>
                         )}
+                      </div>
+                      {/* Jejak pencatat: jawaban untuk "ini siapa yang input". */}
+                      <div className="mt-1.5 flex items-center gap-1.5 border-t border-border/60 pt-1.5">
+                        <UserRound
+                          className={`h-3 w-3 shrink-0 ${
+                            bukanNamaOrang(t.dicatat_oleh_nama)
+                              ? "text-muted-foreground/50"
+                              : "text-muted-foreground"
+                          }`}
+                          aria-hidden
+                        />
+                        <p
+                          className={`truncate text-[11px] ${
+                            bukanNamaOrang(t.dicatat_oleh_nama)
+                              ? "text-muted-foreground/70 italic"
+                              : "font-medium text-muted-foreground"
+                          }`}
+                        >
+                          {labelPencatat(t.dicatat_oleh_nama)}
+                        </p>
                       </div>
                     </li>
                   ))}
