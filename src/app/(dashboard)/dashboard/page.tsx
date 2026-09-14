@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import { NILAI_POIN } from "@/lib/poin";
 import { Loader2, RefreshCw, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,13 +72,25 @@ export default function DashboardPage() {
   // Ambil semua transaksi + tanggal daftar pelanggan. SetState hanya
   // terjadi setelah await, jadi aman terhadap aturan set-state-in-effect.
   const ambilData = useCallback(async () => {
+    // Wajib berhalaman. `.limit(2000)` TIDAK menembus batas 1000 milik
+    // PostgREST: server tetap hanya mengirim 1000 baris pertama tanpa
+    // error. Akibatnya omzet pada rentang "Semua" terhitung kurang dari
+    // yang sebenarnya. ambilSemua() memecahnya jadi beberapa permintaan.
     const [t, p] = await Promise.all([
-      supabase
-        .from("transaksi")
-        .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, pelanggan_id")
-        .order("created_at", { ascending: false })
-        .limit(2000),
-      supabase.from("pelanggan").select("id, created_at").limit(5000),
+      ambilSemua<Transaksi>((dari, sampai) =>
+        supabase
+          .from("transaksi")
+          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, pelanggan_id")
+          .order("created_at", { ascending: false })
+          .range(dari, sampai),
+      ),
+      ambilSemua<PelangganRingkas>((dari, sampai) =>
+        supabase
+          .from("pelanggan")
+          .select("id, created_at")
+          .order("created_at", { ascending: false })
+          .range(dari, sampai),
+      ),
     ]);
     return { t, p };
   }, [supabase]);
@@ -93,8 +106,8 @@ export default function DashboardPage() {
         setPelanggan([]);
       } else {
         setGalat(null);
-        setTransaksi((t.data ?? []) as Transaksi[]);
-        setPelanggan((p.data ?? []) as PelangganRingkas[]);
+        setTransaksi(t.data);
+        setPelanggan(p.data);
       }
       setMemuat(false);
     })();
@@ -110,8 +123,8 @@ export default function DashboardPage() {
       setGalat("Gagal memuat data dashboard.");
     } else {
       setGalat(null);
-      setTransaksi((t.data ?? []) as Transaksi[]);
-      setPelanggan((p.data ?? []) as PelangganRingkas[]);
+      setTransaksi(t.data);
+      setPelanggan(p.data);
     }
     setMemuat(false);
   }

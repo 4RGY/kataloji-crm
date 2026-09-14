@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { createClient } from "@/lib/supabase/client";
+import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import {
   cocokCari,
   formatWhatsapp,
@@ -72,6 +73,7 @@ export default function PelangganPage() {
   const [daftar, setDaftar] = useState<Pelanggan[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
+  const [terpotong, setTerpotong] = useState(false);
   const [query, setQuery] = useState("");
 
   // Form tambah pelanggan
@@ -83,17 +85,24 @@ export default function PelangganPage() {
   // di body effect, jadi tidak melanggar aturan set-state-in-effect.
   // Flag `aktif` mencegah setState setelah komponen dilepas.
   const ambilDaftar = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("pelanggan")
-      .select("id, nama, whatsapp, tgl_lahir, poin, created_at")
-      .order("nama", { ascending: true });
-    return { data: (data ?? []) as Pelanggan[], error };
+    // Wajib berhalaman: PostgREST memotong respons di 1000 baris tanpa
+    // memberi error, jadi tanpa ini daftar pelanggan akan tampak
+    // lengkap padahal sebagian tidak terkirim.
+    const { data, error, terpotong } = await ambilSemua<Pelanggan>(
+      (dari, sampai) =>
+        supabase
+          .from("pelanggan")
+          .select("id, nama, whatsapp, tgl_lahir, poin, created_at")
+          .order("nama", { ascending: true })
+          .range(dari, sampai),
+    );
+    return { data, error, terpotong };
   }, [supabase]);
 
   useEffect(() => {
     let aktif = true;
     (async () => {
-      const { data, error } = await ambilDaftar();
+      const { data, error, terpotong: tp } = await ambilDaftar();
       if (!aktif) return;
       if (error) {
         setGalat("Gagal memuat daftar pelanggan. Coba muat ulang.");
@@ -102,6 +111,7 @@ export default function PelangganPage() {
         setGalat(null);
         setDaftar(data);
       }
+      setTerpotong(tp);
       setMemuat(false);
     })();
     return () => {
@@ -111,7 +121,7 @@ export default function PelangganPage() {
 
   async function muatUlang() {
     setMemuat(true);
-    const { data, error } = await ambilDaftar();
+    const { data, error, terpotong: tp } = await ambilDaftar();
     if (error) {
       setGalat("Gagal memuat daftar pelanggan. Coba muat ulang.");
       setDaftar([]);
@@ -119,6 +129,7 @@ export default function PelangganPage() {
       setGalat(null);
       setDaftar(data);
     }
+    setTerpotong(tp);
     setMemuat(false);
   }
 
@@ -310,6 +321,15 @@ export default function PelangganPage() {
           {query.trim()
             ? `Menampilkan ${hasil.length} dari ${daftar.length} pelanggan.`
             : `Total pelanggan: ${daftar.length}`}
+        </p>
+      )}
+
+      {/* Kalau data mentok batas aman, katakan terus terang. Lebih baik
+          staf tahu angkanya belum lengkap daripada mengira sudah semua. */}
+      {terpotong && (
+        <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2 text-xs text-destructive">
+          Data belum tampil seluruhnya. Hubungi admin untuk memuat data
+          secara bertahap.
         </p>
       )}
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -42,15 +43,15 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
       {/* Panel brand kiri, kaya & hangat */}
-      <section className="texture-grain relative hidden overflow-hidden bg-[oklch(0.244_0.026_55.8)] lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <section className="texture-grain relative hidden overflow-hidden bg-sidebar lg:flex lg:flex-col lg:justify-between lg:p-12">
         {/* cincin terracotta dekoratif */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full border-[28px] border-[oklch(0.701_0.076_40.2/0.35)]"
+          className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full border-[28px] border-primary/30"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-[oklch(0.655_0.078_127.8/0.18)] blur-2xl"
+          className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-chart-2/15 blur-2xl"
         />
 
         <div className="relative">
@@ -65,26 +66,38 @@ export default function LoginPage() {
         </div>
 
         <div className="relative max-w-md">
-          <p className="text-4xl font-extrabold leading-tight tracking-tight text-[oklch(0.972_0.011_76.6)]">
+          <p className="text-4xl font-extrabold leading-tight tracking-tight text-sidebar-foreground">
             Setiap pelanggan,
             <br />
-            <span className="text-[oklch(0.701_0.076_40.2)]">cerita tersendiri.</span>
+            <span className="text-sidebar-primary">cerita tersendiri.</span>
           </p>
-          <p className="mt-4 text-sm leading-relaxed text-[oklch(0.88_0.02_80/0.75)]">
+          <p className="mt-4 text-sm leading-relaxed text-sidebar-foreground/70">
             Poin loyalitas, segmentasi RFM, dan campaign WhatsApp, semua
             rasa pelanggan Kataloji, dalam satu tempat.
           </p>
         </div>
 
-        <div className="relative flex items-center gap-3 text-xs text-[oklch(0.88_0.02_80/0.5)]">
+        <div className="relative flex items-center gap-3 text-xs text-sidebar-foreground/45">
           <span className="h-px w-10 bg-current" />
           <span>Kataloji Coffee and Eatery</span>
         </div>
       </section>
 
       {/* Panel form kanan, background gradient polos biar form bersih */}
-      <section className="flex items-center justify-center bg-gradient-to-b from-background to-[oklch(0.955 0.018_78)] p-6 sm:p-12">
-        <div className="w-full max-w-sm rounded-2xl border border-[oklch(0.894_0.025_78)] bg-card p-8 shadow-sm">
+      <section className="relative flex items-center justify-center bg-background p-6 sm:p-12">
+        {/* Garis hangat tipis di tepi kiri, memisahkan panel brand dan form */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 hidden w-px bg-gradient-to-b from-transparent via-border to-transparent lg:block"
+        />
+
+        {/* Toggle tema di pojok kanan atas, biar staf bisa pilih tampilan
+            sejak halaman masuk tanpa harus login dulu */}
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
+
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <Image
               src="/brand/logo-typograph-removebg.png"
@@ -117,7 +130,7 @@ export default function LoginPage() {
                 <Label htmlFor="password">Kata sandi</Label>
                 <button
                   type="button"
-                  className="text-xs font-medium text-[oklch(0.662_0.131_108)] underline-offset-4 hover:underline"
+                  className="text-xs font-medium text-primary underline-offset-4 hover:underline"
                   onClick={() => toast.info("Hubungi Admin untuk reset kata sandi.")}
                 >
                   Lupa kata sandi?
