@@ -18,12 +18,6 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const NAV = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pelanggan", label: "Pelanggan", icon: Users },
   { href: "/transaksi", label: "Transaksi", icon: ReceiptText },
   { href: "/loyalitas", label: "Loyalitas", icon: Gift },
@@ -54,11 +48,10 @@ export function SidebarNav() {
   }
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <aside
-        className="texture-grain fixed inset-y-4 left-4 z-40 flex w-16 flex-col rounded-2xl border border-[oklch(0.357_0.033_57.2)] bg-[oklch(0.244_0.026_55.8)] shadow-xl lg:w-60"
-        aria-label="Navigasi utama"
-      >
+    <aside
+      className="texture-grain fixed inset-y-4 left-4 z-40 flex w-16 flex-col rounded-2xl border border-[oklch(0.357_0.033_57.2)] bg-[oklch(0.244_0.026_55.8)] shadow-xl lg:w-60"
+      aria-label="Navigasi utama"
+    >
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-4 lg:px-5">
           <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[oklch(0.701_0.076_40.2)]">
@@ -82,9 +75,9 @@ export function SidebarNav() {
           {NAV.map((item) => {
             const active =
               pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+              (item.href !== "/dashboard" && pathname.startsWith(item.href));
             const Icon = item.icon;
-            const link = (
+            return (
               <Link
                 key={item.href}
                 href={item.href}
@@ -92,7 +85,7 @@ export function SidebarNav() {
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
                   active
                     ? "text-[oklch(0.972_0.011_76.6)]"
-                    : "text-[oklch(0.88_0.02_80/0.6)] hover:bg-[oklch(0.323_0.03_57)] hover:text-[oklch(0.972_0.011_76.6)]"
+                    : "text-[oklch(0.88_0.02_80/0.6)] hover:bg-[oklch(0.323_0.03_57)] hover:text-[oklch(0.972_0.011_76.6)]",
                 )}
               >
                 {active && (
@@ -101,17 +94,6 @@ export function SidebarNav() {
                 <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                 <span className="hidden lg:inline">{item.label}</span>
               </Link>
-            );
-            // di mode collapsed (mobile/tablet), bungkus tooltip
-            return (
-              <span key={item.href} className="lg:hidden">
-                <Tooltip>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={12}>
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              </span>
             );
           })}
         </nav>
@@ -159,6 +141,5 @@ export function SidebarNav() {
           </DropdownMenu>
         </div>
       </aside>
-    </TooltipProvider>
   );
 }
