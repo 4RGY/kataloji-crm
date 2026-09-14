@@ -32,7 +32,14 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname !== "/") {
+  // Jalur API TIDAK ikut ditendang ke halaman login. Kalau ditendang,
+  // pemanggil yang mengharapkan JSON akan menerima HTML halaman login
+  // dengan status 200 dan bingung kenapa datanya tidak ada. Biarkan
+  // route handler yang menjawab, karena dia tahu cara mengembalikan
+  // {"error": ...} dengan status 401 yang benar.
+  const jalurApi = pathname.startsWith("/api/");
+
+  if (!user && pathname !== "/" && !jalurApi) {
     // belum login → ke halaman login
     const url = request.nextUrl.clone();
     url.pathname = "/";

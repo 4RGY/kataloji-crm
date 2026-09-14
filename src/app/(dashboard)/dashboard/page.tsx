@@ -6,36 +6,11 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import { NILAI_POIN } from "@/lib/poin";
-import { Loader2, RefreshCw, TrendingUp } from "lucide-react";
+import { namaPanggilan } from "@/lib/staf";
+import { Loader2, RefreshCw, ShieldAlert, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type RangeKey = "today" | "3d" | "7d" | "30d" | "all" | "custom";
-
-/**
- * Ambil nama panggilan dari identitas yang sedang login.
- * Urutan prioritas: kolom `profile.nama` (nama staf asli), lalu bagian
- * sebelum `@` dari email, terakhir "Staf". Dipakai supaya sapaan di
- * dashboard tidak menampilkan nama orang lain.
- */
-function namaPanggilan(nama: string | null, email: string | null): string {
-  const bersih = (nama ?? "").trim();
-  // `profile.nama` diisi email saat trigger pendaftaran berjalan, jadi
-  // nilai yang mengandung "@" tidak lebih baik daripada emailnya sendiri.
-  const pilih = (t: string) => {
-    const kata = t.split(/\s+/)[0] ?? "";
-    // Nama yang diambil dari email biasanya huruf kecil semua
-    // ("wahyu@kataloji.id"), jadi huruf pertamanya dibesarkan supaya
-    // sapaan tidak terlihat seperti nama pengguna mentah.
-    return kata ? kata.charAt(0).toUpperCase() + kata.slice(1) : "";
-  };
-
-  if (bersih && !bersih.includes("@")) return pilih(bersih);
-  // Diambil dari email: buang bagian domain dulu, kalau tidak sapaan
-  // akan berbunyi "wahyu@kataloji.id" alih-alih "Wahyu".
-  const surel = (email ?? "").trim();
-  const dariEmail = surel.includes("@") ? surel.split("@")[0] : surel;
-  return pilih(dariEmail) || pilih(bersih) || "Staf";
-}
 
 const RANGES: { key: RangeKey; label: string; hari: number | null }[] = [
   { key: "today", label: "Hari ini", hari: 1 },
@@ -97,6 +72,13 @@ export default function DashboardPage() {
   // Nama untuk sapaan, diambil dari sesi yang sedang login. Sebelumnya
   // ditulis tetap "Wahyu" sehingga staf lain disapa dengan nama orang lain.
   const [namaStaf, setNamaStaf] = useState<string | null>(null);
+  // Peran dibaca sekaligus di sini. Selain untuk sapaan, nilainya dipakai
+  // membedakan "akun belum punya data staf" dari "data masih kosong".
+  // Tanpa pembedaan itu, akun tanpa baris profile hanya melihat dashboard
+  // kosong tanpa penjelasan dan tampak seperti data hilang.
+  const [peranStaf, setPeranStaf] = useState<string | null | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     let aktif = true;
@@ -108,12 +90,13 @@ export default function DashboardPage() {
 
       const { data } = await supabase
         .from("profile")
-        .select("nama")
+        .select("nama, role")
         .eq("id", user.id)
         .maybeSingle();
 
       if (!aktif) return;
       setNamaStaf(namaPanggilan(data?.nama ?? null, user.email ?? null));
+      setPeranStaf((data?.role as string | null) ?? null);
     })();
     return () => {
       aktif = false;
@@ -399,6 +382,24 @@ export default function DashboardPage() {
           <Button variant="outline" size="sm" onClick={muatUlang}>
             Coba lagi
           </Button>
+        </div>
+      ) : peranStaf === null ? (
+        /* Akun berhasil masuk tetapi tidak punya baris di tabel profile.
+           Akibatnya staff_role() bernilai kosong dan SEMUA policy RLS
+           menolak, sehingga tiap halaman tampak kosong tanpa pesan error.
+           Keadaan ini dijelaskan di sini supaya tidak terbaca sebagai
+           "data hilang", karena datanya ada dan lengkap. */
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-20 text-center">
+          <ShieldAlert className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm font-semibold">
+            Akun Anda belum terdaftar sebagai staf
+          </p>
+          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+            Login berhasil, tetapi peran Anda belum dikenali sehingga seluruh
+            data sengaja dikunci. Data di sistem tidak hilang. Minta admin
+            menambahkan akun ini lewat menu Staf, atau menjalankan berkas
+            backfill-profile.sql di Supabase untuk akun lama.
+          </p>
         </div>
       ) : (
         <>

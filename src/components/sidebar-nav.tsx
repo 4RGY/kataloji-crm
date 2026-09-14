@@ -14,6 +14,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -36,6 +37,13 @@ const NAV = [
   { href: "/campaign", label: "Campaign", icon: Megaphone },
   { href: "/analitik", label: "Analitik", icon: BarChart3 },
   { href: "/pengaturan", label: "Pengaturan", icon: Settings },
+];
+
+// Menu yang hanya boleh dilihat admin. Disembunyikan dari peran lain
+// supaya kasir tidak diarahkan ke halaman yang akan menolaknya. Ini
+// hanya soal tampilan; penolakan sebenarnya ada di route /api/staf.
+const NAV_ADMIN = [
+  { href: "/staf", label: "Staf", icon: UserCog },
 ];
 
 const LABEL_ROLE: Record<string, string> = {
@@ -133,7 +141,7 @@ export function SidebarNav() {
 
       {/* Nav utama */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 lg:px-4">
-        {NAV.map((item) => {
+        {[...NAV, ...(profil?.role === "admin" ? NAV_ADMIN : [])].map((item) => {
           const active =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
