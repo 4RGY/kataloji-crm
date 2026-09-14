@@ -22,7 +22,7 @@ import {
 import { Loader2, RefreshCw, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
-const COLUMNS = ["Nama", "WhatsApp", "Tanggal lahir", "Poin"];
+const COLUMNS = ["Nama", "WhatsApp", "Tanggal lahir", "Poin", "Terdaftar"];
 
 interface Pelanggan {
   id: string;
@@ -30,6 +30,7 @@ interface Pelanggan {
   whatsapp: string;
   tgl_lahir: string | null;
   poin: number;
+  created_at: string;
 }
 
 const KOSONG = { nama: "", whatsapp: "", tgl_lahir: "" };
@@ -44,6 +45,25 @@ function tanggalIndonesia(iso: string | null): string {
     month: "long",
     year: "numeric",
   }).format(d);
+}
+
+/** timestamp ISO -> "14 Sep 2026"; dipakai kolom "Terdaftar" */
+function tanggalSingkat(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(d);
+}
+
+/** "Budi Santoso" -> "BS"; satu kata -> dua huruf pertama */
+function inisialPelanggan(nama: string): string {
+  const bagian = nama.trim().split(/\s+/).filter(Boolean);
+  if (bagian.length === 0) return "?";
+  if (bagian.length === 1) return bagian[0].slice(0, 2).toUpperCase();
+  return (bagian[0][0] + bagian[bagian.length - 1][0]).toUpperCase();
 }
 
 export default function PelangganPage() {
@@ -65,7 +85,7 @@ export default function PelangganPage() {
   const ambilDaftar = useCallback(async () => {
     const { data, error } = await supabase
       .from("pelanggan")
-      .select("id, nama, whatsapp, tgl_lahir, poin")
+      .select("id, nama, whatsapp, tgl_lahir, poin, created_at")
       .order("nama", { ascending: true });
     return { data: (data ?? []) as Pelanggan[], error };
   }, [supabase]);
@@ -154,7 +174,7 @@ export default function PelangganPage() {
   }
 
   return (
-    <div className="max-w-6xl px-6 pb-10 pt-4 lg:px-8">
+    <div className="px-6 pb-10 pt-4 lg:px-8">
       {/* Header */}
       <header className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight">Pelanggan</h1>
@@ -199,11 +219,14 @@ export default function PelangganPage() {
       {/* Tabel pelanggan */}
       <div className="overflow-hidden rounded-xl border border-border">
         {/* Header tabel */}
-        <div className="hidden grid-cols-[2fr_1.5fr_1.2fr_0.7fr] gap-4 border-b border-border bg-muted/40 px-6 py-3 sm:grid">
+        <div className="hidden grid-cols-[minmax(0,2fr)_1.4fr_1.2fr_0.6fr_1fr] gap-4 border-b border-border bg-muted/40 px-6 py-3 sm:grid">
           {COLUMNS.map((c) => (
             <p
               key={c}
-              className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground"
+              className={
+                "text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground " +
+                (c === "Poin" || c === "Terdaftar" ? "text-right" : "")
+              }
             >
               {c}
             </p>
@@ -250,19 +273,30 @@ export default function PelangganPage() {
             {hasil.map((p) => (
               <li
                 key={p.id}
-                className="grid grid-cols-1 gap-1 px-6 py-4 transition-colors hover:bg-muted/40 sm:grid-cols-[2fr_1.5fr_1.2fr_0.7fr] sm:items-center sm:gap-4"
+                className="grid grid-cols-1 gap-2 px-6 py-4 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,2fr)_1.4fr_1.2fr_0.6fr_1fr] sm:items-center sm:gap-4"
               >
-                <p className="text-sm font-semibold text-foreground">
-                  {p.nama}
-                </p>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    aria-hidden
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/12 text-[11px] font-bold text-primary"
+                  >
+                    {inisialPelanggan(p.nama)}
+                  </span>
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {p.nama}
+                  </p>
+                </div>
                 <p className="text-sm tabular-nums text-muted-foreground">
                   {formatWhatsapp(p.whatsapp)}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {tanggalIndonesia(p.tgl_lahir)}
                 </p>
-                <p className="text-sm font-bold tabular-nums text-primary">
+                <p className="text-sm font-bold tabular-nums text-primary sm:text-right">
                   {p.poin}
+                </p>
+                <p className="text-xs text-muted-foreground sm:text-right">
+                  {tanggalSingkat(p.created_at)}
                 </p>
               </li>
             ))}
