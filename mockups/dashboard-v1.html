@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup Dashboard Kataloji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --cream: #FAF5EE;
+    --paper: #FFFDF9;
+    --ink: #2A1D14;
+    --ink-soft: #5C4A3D;
+    --ink-mute: #9A8A7D;
+    --terra: #C88F7B;
+    --terra-deep: #B0715A;
+    --sage: #839A66;
+    --hair: rgba(42, 29, 20, 0.12);
+    --hair-soft: rgba(42, 29, 20, 0.07);
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .frame { min-height: 100vh; padding: 24px; display: flex; gap: 24px; }
+
+  /* ============ SIDEBAR (sama kayak app) ============ */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: var(--ink);
+    border-radius: 20px;
+    padding: 24px 16px;
+    display: flex; flex-direction: column;
+    color: #EFE6DC;
+    position: sticky; top: 24px; height: calc(100vh - 48px);
+  }
+  .sidebar .logo { padding: 4px 8px 20px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; }
+  .sidebar .logo span { color: var(--terra); }
+  .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(239,230,220,0.4); padding: 16px 12px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px;
+    color: rgba(239,230,220,0.66); font-size: 13.5px; font-weight: 500;
+    position: relative; margin-bottom: 2px;
+  }
+  .nav-item svg { width: 17px; height: 17px; opacity: 0.8; }
+  .nav-item.active { background: rgba(200,143,123,0.14); color: #F5EDE4; }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: -16px; top: 8px; bottom: 8px;
+    width: 3px; border-radius: 3px; background: var(--terra);
+  }
+  .sidebar .foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 8px 4px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--terra); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+  .sidebar .foot .who { font-size: 13px; font-weight: 600; }
+  .sidebar .foot .role { font-size: 11px; color: rgba(239,230,220,0.45); }
+
+  /* ============ CONTENT ============ */
+  .content { flex: 1; min-width: 0; }
+  .variant-tag {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--terra-deep);
+    background: rgba(200,143,123,0.14); border-radius: 999px; padding: 6px 14px; margin-bottom: 14px;
+  }
+  .variant-block { margin-bottom: 72px; }
+  .variant-block + .variant-block { padding-top: 56px; border-top: 2px dashed var(--hair); }
+
+  .page-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 40px; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .page-head .date { font-size: 13px; color: var(--ink-mute); font-weight: 500; }
+
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 4px; }
+  .rule { border: none; border-top: 1px solid var(--hair); }
+
+  /* ---------- VARIAN A: tipografi + hairline ---------- */
+  .today-empty { padding: 44px 0 48px; }
+  .today-empty p.big { font-size: 19px; font-weight: 600; margin-bottom: 6px; }
+  .today-empty p.sub { font-size: 14px; color: var(--ink-soft); margin-bottom: 20px; }
+  .cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: var(--cream);
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    padding: 12px 22px; border-radius: 12px; border: none; cursor: pointer;
+  }
+  .cta svg { width: 16px; height: 16px; }
+  .cta:hover { background: #3A2A1E; }
+
+  .stat-rows { width: 100%; border-collapse: collapse; }
+  .stat-rows th {
+    text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-mute);
+    padding: 14px 0 10px; border-bottom: 1px solid var(--hair);
+  }
+  .stat-rows td { padding: 16px 0; border-bottom: 1px solid var(--hair-soft); font-size: 15px; }
+  .stat-rows td.num { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 16px; color: var(--ink-mute); }
+  .stat-rows td.metric { font-weight: 600; }
+
+  /* ---------- VARIAN B: kartu polos ala Square ---------- */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--hair); }
+  .stat-card { padding: 22px 24px 26px 0; border-bottom: 1px solid var(--hair); }
+  .stat-card + .stat-card { padding-left: 24px; border-left: 1px solid var(--hair-soft); }
+  .stat-card .label { font-size: 12px; font-weight: 600; color: var(--ink-mute); margin-bottom: 10px; }
+  .stat-card .value { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .stat-card .value.zero { color: var(--ink-mute); font-weight: 600; }
+
+  .panel-note { margin-top: 40px; padding: 28px; background: var(--paper); border: 1px solid var(--hair-soft); border-radius: 16px; }
+  .panel-note h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .panel-note p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+
+  .compare-note { font-size: 12.5px; color: var(--ink-mute); margin-top: 10px; max-width: 640px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">Kataloji<span>.</span></div>
+    <div class="nav-label">Menu</div>
+    <a class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pelanggan
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Transaksi
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      Poin
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Laporan
+    </a>
+    <div class="nav-label">Lainnya</div>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Pengaturan
+    </a>
+    <div class="foot">
+      <div class="avatar">W</div>
+      <div>
+        <div class="who">Wahyu</div>
+        <div class="role">Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ====== VARAN A ====== -->
+    <div class="variant-block">
+      <div class="variant-tag">Varian A · Tipografi + hairline (Basecamp style)</div>
+      <div class="page-head">
+        <h1>Dashboard</h1>
+        <span class="date">Selasa, 17 Februari 2026</span>
+      </div>
+
+      <div class="section-label">Hari ini</div>
+      <hr class="rule">
+      <div class="today-empty">
+        <p class="big">Belum ada transaksi tercatat hari ini.</p>
+        <p class="sub">Transaksi pertama bisa dicatat dalam 30 detik.</p>
+        <button class="cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Catat Transaksi
+        </button>
+      </div>
+
+      <div class="section-label">Ringkasan 30 hari</div>
+      <hr class="rule">
+      <table class="stat-rows">
+        <tr><th>Metrik</th><th style="text-align:right">Nilai</th></tr>
+        <tr><td class="metric">Omzet</td><td class="num">Rp 0</td></tr>
+        <tr><td class="metric">Transaksi</td><td class="num">0</td></tr>
+        <tr><td class="metric">Pelanggan baru</td><td class="num">0</td></tr>
+        <tr><td class="metric">Poin diberikan</td><td class="num">0</td></tr>
+      </table>
+    </div>
+
+    <!-- ====== VARIAN B ====== -->
+    <div class="variant-block">
+      <div class="variant-tag">Varian B · Kartu polos (Square style)</div>
+      <div class="page-head">
+        <h1>Dashboard</h1>
+        <span class="date">Selasa, 17 Februari 2026</span>
+      </div>
+
+      <div class="section-label">Ringkasan 30 hari</div>
+      <div class="cards">
+        <div class="stat-card">
+          <div class="label">Omzet</div>
+          <div class="value zero">Rp 0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Transaksi</div>
+          <div class="value zero">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Pelanggan baru</div>
+          <div class="value zero">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Poin diberikan</div>
+          <div class="value zero">0</div>
+        </div>
+      </div>
+
+      <div class="panel-note">
+        <h3>Belum ada transaksi tercatat hari ini.</h3>
+        <p>Setiap transaksi yang dicatat di sini akan muncul di ringkasan. Yang perlu diisi cuma total tagihan dan nomor struk majoo, sisanya opsional.</p>
+      </div>
+    </div>
+
+    <p class="compare-note">
+      Catatan: dua varian di atas sama-sama pakai data kosong, tanpa ikon dekoratif, tanpa badge, tanpa animasi. Bedanya cuma cara menyajikan angka: Varian A seperti daftar menu / struk, Varian B seperti dashboard Square yang datar.
+    </p>
+
+  </main>
+</div>
+</body>
+</html>
