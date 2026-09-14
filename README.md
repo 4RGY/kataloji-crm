@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kataloji CRM
 
-## Getting Started
+Sistem CRM berbasis web untuk **Kataloji Coffee and Eatery**: pencatatan transaksi, manajemen pelanggan, poin loyalitas, dan voucher dalam satu tempat.
 
-First, run the development server:
+> Proyek Kerja Praktek — *Perancangan dan Implementasi Company Profile dan Sistem CRM Berbasis Web Menggunakan Metode Scrum*.
+
+## Fitur Saat Ini
+
+| Fitur | Status | Keterangan |
+| --- | --- | --- |
+| Autentikasi | Selesai | Login Supabase Auth (SSR), middleware guard, logout |
+| Dashboard | Tampilan | Empty-state design, data nyata menyusul setelah schema DB |
+| Transaksi | Direncanakan | Quick entry ala kasir, sinkron paralel dengan POS majoo |
+| Pelanggan | Direncanakan | Nama, nomor WhatsApp, tanggal lahir |
+| Poin & Voucher | Direncanakan | 1 poin per Rp 20.000, voucher 12 bulan |
+| Laporan | Direncanakan | Omzet harian/mingguan/bulanan |
+
+## Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org) (App Router, Turbopack)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com)
+- **Database & Auth**: [Supabase](https://supabase.com) (PostgreSQL, RLS)
+- **Font**: Plus Jakarta Sans
+- **Bahasa UI**: Indonesia
+
+## Menjalankan Secara Lokal
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Siapkan environment variables (lihat bagian di bawah)
+cp .env.local.example .env.local
+
+# 3. Jalankan development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka <http://localhost:3000> di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Buat file `.env.local` di root project:
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=<url-project-supabase>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
 
-To learn more about Next.js, take a look at the following resources:
+Nilainya bisa diambil dari **Project Settings → API** di dashboard Supabase. File ini tidak ikut ter-commit (sudah di `.gitignore`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Struktur Proyek
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+kataloji-crm/
+├── mockups/              # Mockup HTML statis untuk diskusi desain
+├── public/brand/         # Aset brand (logo, tipografi)
+└── src/
+    ├── app/
+    │   ├── (dashboard)/  # Route group dengan sidebar (protected)
+    │   │   └── dashboard/
+    │   ├── globals.css   # Design tokens oklch + texture
+    │   ├── layout.tsx    # Root layout, font, Toaster
+    │   └── page.tsx      # Halaman login
+    ├── components/
+    │   ├── ui/           # Komponen shadcn/ui
+    │   └── sidebar-nav.tsx
+    ├── lib/supabase/     # Client & server Supabase (SSR)
+    └── middleware.ts     # Auth guard
+```
 
-## Deploy on Vercel
+## Konvensi Commit
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Menggunakan [Conventional Commits](https://www.conventionalcommits.org):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `feat:` fitur baru
+- `fix:` perbaikan bug
+- `chore:` setup, dependency, aset
+- `refactor:` perubahan kode tanpa perubahan perilaku
+
+## Laporan Bug & Kontribusi
+
+Ini proyek KP internal. Untuk bug atau usulan perubahan, hubungi tim pengembang melalui issue di repo ini.
+
+---
+
+**Kataloji Coffee and Eatery** · Dibuat dengan Next.js dan Supabase
