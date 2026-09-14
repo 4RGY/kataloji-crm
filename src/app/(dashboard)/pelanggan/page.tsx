@@ -22,6 +22,7 @@ import {
 } from "@/lib/pelanggan";
 import { Loader2, RefreshCw, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { catatGalat, pesanGalat } from "@/lib/pesan-galat";
 
 const COLUMNS = ["Nama", "WhatsApp", "Tanggal lahir", "Poin", "Terdaftar"];
 
@@ -172,7 +173,8 @@ export default function PelangganPage() {
     });
 
     if (error) {
-      toast.error("Gagal menyimpan pelanggan.", { description: error.message });
+      catatGalat("simpan pelanggan", error);
+      toast.error(pesanGalat(error, "Gagal menyimpan pelanggan. Coba lagi."));
       setMenyimpan(false);
       return;
     }

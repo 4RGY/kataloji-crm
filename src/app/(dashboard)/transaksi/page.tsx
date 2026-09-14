@@ -32,6 +32,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { catatGalat, pesanGalat } from "@/lib/pesan-galat";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -260,7 +261,8 @@ export default function TransaksiPage() {
     });
 
     if (error) {
-      toast.error("Gagal menyimpan transaksi.", { description: error.message });
+      catatGalat("simpan transaksi", error);
+      toast.error(pesanGalat(error, "Gagal menyimpan transaksi. Coba lagi."));
       setMenyimpan(false);
       return;
     }
@@ -317,9 +319,10 @@ export default function TransaksiPage() {
       .single();
 
     if (error || !data) {
-      toast.error("Gagal menyimpan pelanggan.", {
-        description: error?.message ?? "Data tidak kembali dari server.",
-      });
+      catatGalat("simpan pelanggan baru", error);
+      toast.error(
+        pesanGalat(error, "Data pelanggan tidak kembali dari server. Coba lagi."),
+      );
       setMenyimpanBaru(false);
       return;
     }

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { catatGalat, pesanGalat } from "@/lib/pesan-galat";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -30,9 +31,8 @@ export default function LoginPage() {
       password,
     });
     if (error) {
-      toast.error("Email atau kata sandi salah.", {
-        description: error.message,
-      });
+      catatGalat("masuk", error);
+      toast.error(pesanGalat(error, "Email atau kata sandi tidak cocok."));
       setLoading(false);
     } else {
       router.replace("/dashboard");

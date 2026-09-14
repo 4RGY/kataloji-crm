@@ -23,6 +23,8 @@
  * permintaan.
  */
 
+import { pesanGalat } from "@/lib/pesan-galat";
+
 /** Ukuran satu halaman permintaan. 1000 adalah batas maksimum PostgREST. */
 export const UKURAN_HALAMAN = 1000;
 
@@ -61,9 +63,13 @@ export async function ambilSemua<T>(
     const { data, error } = await buatQuery(dari, sampai);
 
     if (error) {
+      // Pesan teknis dari PostgREST dicatat ke konsol untuk pengembang,
+      // sedangkan yang dikembalikan ke pemanggil selalu berbahasa Indonesia.
+      // Pemanggil tetap boleh menimpanya dengan pesan yang lebih spesifik.
+      console.error("[ambil semua]", error.message);
       return {
         data: kumpulan,
-        error: error.message || "Gagal memuat data.",
+        error: pesanGalat(error, "Gagal memuat data dari server."),
         terpotong: false,
       };
     }

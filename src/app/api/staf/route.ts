@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { wajibAdmin } from "@/lib/supabase/izin-admin";
 import { getKlienAdmin } from "@/lib/supabase/admin";
+import { pesanGalat, teksGalat } from "@/lib/pesan-galat";
 import {
   isRole,
   validasiStafBaru,
@@ -124,11 +125,14 @@ export async function POST(request: Request) {
   });
 
   if (galatBuat || !dibuat?.user) {
+    // Pesan asli dicatat ke log server, yang dikirim ke klien versi Indonesia.
+    console.error("[buat akun staf]", teksGalat(galatBuat));
     return NextResponse.json(
       {
-        error:
-          "Akun gagal dibuat: " +
-          (galatBuat?.message ?? "penyebab tidak diketahui"),
+        error: pesanGalat(
+          galatBuat,
+          "Akun gagal dibuat karena sebab di server. Coba lagi sebentar lagi.",
+        ),
       },
       { status: 400 },
     );
@@ -291,8 +295,14 @@ export async function DELETE(request: Request) {
 
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
+    console.error("[hapus akun staf]", teksGalat(error));
     return NextResponse.json(
-      { error: "Akun gagal dihapus: " + error.message },
+      {
+        error: pesanGalat(
+          error,
+          "Akun gagal dihapus karena sebab di server. Coba lagi sebentar lagi.",
+        ),
+      },
       { status: 500 },
     );
   }
