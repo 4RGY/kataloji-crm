@@ -1,6 +1,6 @@
 import { hitungPoinTransaksi, type InputHitungPoin } from "@/lib/poin";
 
-// Route tipis — hanya lapisan HTTP.
+// Route tipis, hanya lapisan HTTP.
 // Logika sebenarnya ada di src/lib/poin.ts (monolit modular),
 // dipanggil via import langsung, bukan network call antar service.
 export async function POST(request: Request) {

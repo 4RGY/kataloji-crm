@@ -1,5 +1,5 @@
 // ============================================================
-// Modul Loyalty (Poin) — Kataloji CRM
+// Modul Loyalty (Poin), Kataloji CRM
 // Bagian dari monolit Next.js (bukan service terpisah).
 // Dipakai via import langsung oleh route handler / server action;
 // route tipis di /api/poin/hitung hanya untuk kebutuhan eksternal.

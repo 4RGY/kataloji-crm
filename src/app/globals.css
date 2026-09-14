@@ -49,7 +49,7 @@
 }
 
 :root {
-  /* Kataloji earthy palette — terracotta / sage / mustard / cream */
+  /* Kataloji earthy palette: terracotta / sage / mustard / cream */
   --background: oklch(0.972 0.011 76.6);      /* cream #FAF5EE */
   --foreground: oklch(0.357 0.033 57.2);       /* warm text #4A382B */
   --card: oklch(0.994 0.006 84.6);             /* paper #FFFDF9 */
@@ -130,7 +130,7 @@
   }
 }
 
-/* Film-grain halus — buat panel brand & sidebar ga "flat digital" */
+/* Film-grain halus, buat panel brand & sidebar ga "flat digital" */
 @layer utilities {
   .texture-grain {
     isolation: isolate;
