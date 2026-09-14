@@ -18,16 +18,29 @@ export interface InputPelanggan {
 }
 
 /**
- * Rappikan nomor WhatsApp ke format penyimpanan: 62xxxxxxxxxx.
+ * Rapikan nomor WhatsApp ke format penyimpanan: 62xxxxxxxxxx.
  * Terima variasi yang biasa diketik kasir:
  *   08123456789   -> 628123456789
  *   8123456789    -> 628123456789
  *   +62 812-3456-789 -> 628123456789
  *   62812 3456 789   -> 628123456789
+ *   62 08123456789   -> 628123456789   (kasir mengetik 62 lalu 0)
+ *
+ * WAJIB SINKRON dengan `public.normalisasi_whatsapp()` di
+ * `supabase/security-patch-3.sql`. Database adalah penentu akhir; fungsi
+ * ini hanya supaya aplikasi bisa memberi pesan ramah lebih dulu. Kalau
+ * keduanya berbeda, aplikasi akan mengizinkan nomor yang kemudian
+ * ditolak database, dan kasir melihat error teknis alih-alih arahan.
+ * Daftar kasus uji bersama ada di `scripts/verify-sql.mjs` (sisi SQL) dan
+ * di test ad-hoc (sisi TypeScript). Ubah keduanya bersamaan.
  */
 export function normalisasiWhatsapp(input: string): string {
   const digit = (input || "").replace(/\D/g, "");
   if (!digit) return "";
+  // Cek "620" DULUAN sebelum "62". Kalau urutannya dibalik, nomor
+  // "6208..." akan lolos apa adanya dan tidak lagi sama dengan versi
+  // SQL, sehingga deteksi duplikat di aplikasi gagal.
+  if (digit.startsWith("620")) return "62" + digit.slice(3);
   if (digit.startsWith("62")) return digit;
   if (digit.startsWith("0")) return "62" + digit.slice(1);
   if (digit.startsWith("8")) return "62" + digit;
