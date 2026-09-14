@@ -11,6 +11,32 @@ import { Button } from "@/components/ui/button";
 
 type RangeKey = "today" | "3d" | "7d" | "30d" | "all" | "custom";
 
+/**
+ * Ambil nama panggilan dari identitas yang sedang login.
+ * Urutan prioritas: kolom `profile.nama` (nama staf asli), lalu bagian
+ * sebelum `@` dari email, terakhir "Staf". Dipakai supaya sapaan di
+ * dashboard tidak menampilkan nama orang lain.
+ */
+function namaPanggilan(nama: string | null, email: string | null): string {
+  const bersih = (nama ?? "").trim();
+  // `profile.nama` diisi email saat trigger pendaftaran berjalan, jadi
+  // nilai yang mengandung "@" tidak lebih baik daripada emailnya sendiri.
+  const pilih = (t: string) => {
+    const kata = t.split(/\s+/)[0] ?? "";
+    // Nama yang diambil dari email biasanya huruf kecil semua
+    // ("wahyu@kataloji.id"), jadi huruf pertamanya dibesarkan supaya
+    // sapaan tidak terlihat seperti nama pengguna mentah.
+    return kata ? kata.charAt(0).toUpperCase() + kata.slice(1) : "";
+  };
+
+  if (bersih && !bersih.includes("@")) return pilih(bersih);
+  // Diambil dari email: buang bagian domain dulu, kalau tidak sapaan
+  // akan berbunyi "wahyu@kataloji.id" alih-alih "Wahyu".
+  const surel = (email ?? "").trim();
+  const dariEmail = surel.includes("@") ? surel.split("@")[0] : surel;
+  return pilih(dariEmail) || pilih(bersih) || "Staf";
+}
+
 const RANGES: { key: RangeKey; label: string; hari: number | null }[] = [
   { key: "today", label: "Hari ini", hari: 1 },
   { key: "3d", label: "3 hari", hari: 3 },
@@ -68,6 +94,31 @@ export default function DashboardPage() {
   const [pelanggan, setPelanggan] = useState<PelangganRingkas[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
+  // Nama untuk sapaan, diambil dari sesi yang sedang login. Sebelumnya
+  // ditulis tetap "Wahyu" sehingga staf lain disapa dengan nama orang lain.
+  const [namaStaf, setNamaStaf] = useState<string | null>(null);
+
+  useEffect(() => {
+    let aktif = true;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!aktif || !user) return;
+
+      const { data } = await supabase
+        .from("profile")
+        .select("nama")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!aktif) return;
+      setNamaStaf(namaPanggilan(data?.nama ?? null, user.email ?? null));
+    })();
+    return () => {
+      aktif = false;
+    };
+  }, [supabase]);
 
   // Ambil semua transaksi + tanggal daftar pelanggan. SetState hanya
   // terjadi setelah await, jadi aman terhadap aturan set-state-in-effect.
@@ -259,7 +310,8 @@ export default function DashboardPage() {
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-primary">
-            {sapaan}, Wahyu
+            {sapaan}
+            {namaStaf ? `, ${namaStaf}` : ""}
           </p>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Dashboard</h1>
           <p className="mt-0.5 text-sm capitalize text-muted-foreground">
