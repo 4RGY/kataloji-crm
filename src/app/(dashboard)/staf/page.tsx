@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { createClient } from "@/lib/supabase/client";
 import {
   KETERANGAN_ROLE,
   LABEL_ROLE,
@@ -20,7 +21,14 @@ import {
   validasiStafBaru,
   validasiUbahStaf,
 } from "@/lib/staf";
-import { Loader2, RefreshCw, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +66,10 @@ export default function StafPage() {
   const [daftar, setDaftar] = useState<Staf[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
+  // null = belum diketahui, true/false = hasil pemeriksaan.
+  // Selama belum diketahui, panel kelola tidak ditampilkan sama sekali.
+  const [bolehKelola, setBolehKelola] = useState<boolean | null>(null);
+  const [roleSendiri, setRoleSendiri] = useState<string | null>(null);
 
   const [sheetBaru, setSheetBaru] = useState(false);
   const [formBaru, setFormBaru] = useState(BARU_KOSONG);
@@ -72,11 +84,24 @@ export default function StafPage() {
     const res = await fetch("/api/staf", { cache: "no-store" });
     const json = await res.json();
 
+    // 403 berarti yang membuka bukan admin. Halaman ini tidak menyembunyikan
+    // datanya saja, tetapi juga tidak menampilkan tombol yang pasti gagal.
+    // Tanpa pemeriksaan ini, kasir bisa membuka /staf dan melihat panel
+    // kelola kosong dengan tombol "Tambah akun" yang selalu ditolak server.
+    if (res.status === 403) {
+      setBolehKelola(false);
+      setGalat(null);
+      setDaftar([]);
+      return;
+    }
+
     if (!res.ok) {
+      setBolehKelola(true);
       setGalat(json.error ?? "Gagal memuat daftar staf.");
       setDaftar([]);
       return;
     }
+    setBolehKelola(true);
     setGalat(null);
     setDaftar(json.data ?? []);
   }, []);
@@ -84,6 +109,21 @@ export default function StafPage() {
   useEffect(() => {
     let aktif = true;
     (async () => {
+      // Peran sendiri dibaca terpisah supaya tetap diketahui walau daftar
+      // staf ditolak (kasir tidak boleh membaca daftar seluruh staf).
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (aktif && user) {
+        const { data } = await supabase
+          .from("profile")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (aktif) setRoleSendiri((data?.role as string) ?? null);
+      }
+
       await ambilDaftar();
       if (aktif) setMemuat(false);
     })();
@@ -194,6 +234,54 @@ export default function StafPage() {
   }
 
   const jumlahAdmin = daftar.filter((s) => s.role === "admin").length;
+
+  // Peran akun yang sedang membuka, dibaca dari baris profile miliknya
+  // sendiri (policy "profile sendiri" mengizinkan ini). Dipakai hanya untuk
+  // menjelaskan kenapa halaman ini tertutup bagi yang bukan admin.
+  const peranSaya = daftar.find((s) => s.diri_sendiri)?.role ?? roleSendiri;
+  const labelPeranSaya = peranSaya ? (LABEL_ROLE[peranSaya] ?? peranSaya) : "staf";
+
+  // Selama jawaban server belum tiba, jangan tampilkan panel kelola apa pun.
+  // Ini mencegah kedipan: sekejap tombol "Tambah akun" muncul untuk kasir
+  // lalu hilang, dan itu terbaca seolah kasir memang berhak.
+  if (bolehKelola === null) {
+    return (
+      <div className="px-6 pb-10 pt-4 lg:px-8">
+        <header className="mb-6">
+          <h1 className="text-2xl font-extrabold tracking-tight">Staf</h1>
+        </header>
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-24">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Memuat</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Bukan admin: jangan tampilkan panel kelola sama sekali. Server sudah
+  // menolak (403), jadi menampilkan tombol hanya menyesatkan.
+  if (bolehKelola === false) {
+    return (
+      <div className="px-6 pb-10 pt-4 lg:px-8">
+        <header className="mb-6">
+          <h1 className="text-2xl font-extrabold tracking-tight">Staf</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Kelola akun yang bisa masuk ke Kataloji CRM beserta perannya.
+          </p>
+        </header>
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <ShieldOff className="mx-auto h-6 w-6 text-muted-foreground" />
+          <p className="mt-3 text-sm font-bold text-foreground">
+            Halaman ini hanya untuk admin
+          </p>
+          <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-muted-foreground">
+            Akun Anda masuk sebagai {labelPeranSaya}.
+            Pengelolaan akun staf hanya bisa dilakukan oleh admin.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
