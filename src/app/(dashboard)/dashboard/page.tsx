@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const period = periodLabel(range, from, to);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pb-10 pt-4 lg:px-10">
+    <div className="max-w-6xl px-6 pb-10 pt-4 lg:px-8">
       {/* Header */}
       <header className="mb-6">
         <p className="text-sm font-semibold text-primary">

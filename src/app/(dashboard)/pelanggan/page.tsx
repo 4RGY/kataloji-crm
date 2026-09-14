@@ -17,7 +17,7 @@ export default function PelangganPage() {
   const [query, setQuery] = useState("");
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pb-10 pt-4 lg:px-10">
+    <div className="max-w-6xl px-6 pb-10 pt-4 lg:px-8">
       {/* Header */}
       <header className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight">Pelanggan</h1>
