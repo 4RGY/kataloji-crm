@@ -29,22 +29,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pelanggan", label: "Pelanggan", icon: Users },
-  { href: "/transaksi", label: "Transaksi", icon: ReceiptText },
-  { href: "/loyalitas", label: "Loyalitas", icon: Gift },
-  { href: "/campaign", label: "Campaign", icon: Megaphone },
-  { href: "/analitik", label: "Analitik", icon: BarChart3 },
-  { href: "/pengaturan", label: "Pengaturan", icon: Settings },
+/**
+ * Menu navigasi, dikelompokkan menurut jenis pekerjaannya.
+ *
+ * Dipisah supaya kasir tidak perlu menyisir tujuh menu untuk menemukan yang
+ * dipakai sehari-hari. Kelompok Operasional adalah pekerjaan yang menyentuh
+ * transaksi dan pelanggan langsung, Pemasaran yang sifatnya menawarkan dan
+ * mengukur, dan Sistem yang menyangkut aturan serta akun.
+ *
+ * Urutan di dalam tiap kelompok disengaja mengikuti alur kerja harian:
+ * mencatat transaksi dulu, baru melihat pelanggannya, lalu loyalitasnya.
+ */
+const KELOMPOK_NAV: {
+  judul: string | null;
+  menu: { href: string; label: string; icon: typeof LayoutDashboard }[];
+}[] = [
+  {
+    judul: null,
+    menu: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    judul: "Operasional",
+    menu: [
+      { href: "/transaksi", label: "Transaksi", icon: ReceiptText },
+      { href: "/pelanggan", label: "Pelanggan", icon: Users },
+      { href: "/loyalitas", label: "Loyalitas", icon: Gift },
+    ],
+  },
+  {
+    judul: "Pemasaran",
+    menu: [
+      { href: "/campaign", label: "Campaign", icon: Megaphone },
+      { href: "/analitik", label: "Analitik", icon: BarChart3 },
+    ],
+  },
+  {
+    judul: "Sistem",
+    // Menu admin diselipkan ke kelompok Sistem supaya tidak perlu kelompok
+    // tersendiri hanya untuk satu tautan.
+    menu: [{ href: "/pengaturan", label: "Pengaturan", icon: Settings }],
+  },
 ];
 
 // Menu yang hanya boleh dilihat admin. Disembunyikan dari peran lain
 // supaya kasir tidak diarahkan ke halaman yang akan menolaknya. Ini
 // hanya soal tampilan; penolakan sebenarnya ada di route /api/staf.
-const NAV_ADMIN = [
-  { href: "/staf", label: "Staf", icon: UserCog },
-];
+const MENU_ADMIN = { href: "/staf", label: "Staf", icon: UserCog };
 
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
@@ -116,6 +146,11 @@ export function SidebarNav() {
   const namaTampil = profil?.nama ?? "Memuat";
   const roleTampil = profil ? LABEL_ROLE[profil.role] ?? profil.role : "";
 
+  // Menu Staf hanya muncul untuk admin. Sengaja memakai hasil baca profil
+  // dari database, bukan email atau tebakan dari sesi, karena peran adalah
+  // data yang hanya boleh ditentukan server.
+  const bolehStaf = profil?.role === "admin";
+
   return (
     <aside
       className="texture-grain fixed inset-y-4 left-4 z-40 flex w-16 flex-col rounded-2xl border border-sidebar-border bg-sidebar shadow-xl lg:w-60"
@@ -139,31 +174,59 @@ export function SidebarNav() {
 
       <div className="mx-4 h-px bg-sidebar-border lg:mx-5" />
 
-      {/* Nav utama */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 lg:px-4">
-        {[...NAV, ...(profil?.role === "admin" ? NAV_ADMIN : [])].map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
-          const Icon = item.icon;
+      {/* Nav utama, dikelompokkan */}
+      <nav
+        className="flex-1 space-y-4 overflow-y-auto px-3 py-4 lg:px-4"
+        aria-label="Menu"
+      >
+        {KELOMPOK_NAV.map((kelompok, iKelompok) => {
+          const menu =
+            kelompok.judul === "Sistem" && bolehStaf
+              ? [...kelompok.menu, MENU_ADMIN]
+              : kelompok.menu;
+
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={item.label}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
-                active
-                  ? "text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            <div key={kelompok.judul ?? "utama"}>
+              {/* Judul kelompok hanya tampil saat sidebar melebar. Saat
+                  menyempit jadi ikon, batang pemisah di bawah ini yang
+                  menggantikan perannya supaya kelompoknya tetap terbaca. */}
+              {kelompok.judul && (
+                <p className="hidden px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/40 lg:block">
+                  {kelompok.judul}
+                </p>
               )}
-            >
-              {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+              {iKelompok > 0 && (
+                <div className="mx-3 mb-2 h-px bg-sidebar-border lg:hidden" />
               )}
-              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-              <span className="hidden lg:inline">{item.label}</span>
-            </Link>
+
+              <div className="space-y-1">
+                {menu.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={item.label}
+                      className={cn(
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                        active
+                          ? "text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+                      )}
+                      <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                      <span className="hidden lg:inline">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>

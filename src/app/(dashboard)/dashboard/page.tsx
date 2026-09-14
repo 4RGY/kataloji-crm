@@ -7,7 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import { NILAI_POIN } from "@/lib/poin";
 import { namaPanggilan } from "@/lib/staf";
-import { Loader2, RefreshCw, ShieldAlert, TrendingUp } from "lucide-react";
+import { catatGalat } from "@/lib/pesan-galat";
+import {
+  hitungPapanLoyalitas,
+  hitungPoinDiberikan,
+  ringkasJamTeramai,
+  sebaranJam,
+  type BarisLedger,
+} from "@/lib/dashboard-tampilan";
+import { Loader2, RefreshCw, ShieldAlert, Star, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type RangeKey = "today" | "3d" | "7d" | "30d" | "all" | "custom";
@@ -67,6 +75,10 @@ export default function DashboardPage() {
 
   const [transaksi, setTransaksi] = useState<Transaksi[]>([]);
   const [pelanggan, setPelanggan] = useState<PelangganRingkas[]>([]);
+  // Buku besar poin dipakai papan loyalitas. Diambil terpisah dari transaksi
+  // karena jumlah barisnya tidak sebanding: satu transaksi bisa menghasilkan
+  // satu baris poin, dan riwayat penukaran menambah baris lagi.
+  const [ledger, setLedger] = useState<BarisLedger[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
   // Nama untuk sapaan, diambil dari sesi yang sedang login. Sebelumnya
@@ -110,7 +122,7 @@ export default function DashboardPage() {
     // PostgREST: server tetap hanya mengirim 1000 baris pertama tanpa
     // error. Akibatnya omzet pada rentang "Semua" terhitung kurang dari
     // yang sebenarnya. ambilSemua() memecahnya jadi beberapa permintaan.
-    const [t, p] = await Promise.all([
+    const [t, p, l] = await Promise.all([
       ambilSemua<Transaksi>((dari, sampai) =>
         supabase
           .from("transaksi")
@@ -125,23 +137,37 @@ export default function DashboardPage() {
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
+      ambilSemua<BarisLedger>((dari, sampai) =>
+        supabase
+          .from("point_ledger")
+          .select("pelanggan_id, tipe, poin_masuk, poin_keluar, sisa, kedaluwarsa_pada")
+          .order("created_at", { ascending: false })
+          .range(dari, sampai),
+      ),
     ]);
-    return { t, p };
+    return { t, p, l };
   }, [supabase]);
 
   useEffect(() => {
     let aktif = true;
     (async () => {
-      const { t, p } = await ambilData();
+      const { t, p, l } = await ambilData();
       if (!aktif) return;
       if (t.error || p.error) {
         setGalat("Gagal memuat data dashboard.");
         setTransaksi([]);
         setPelanggan([]);
+        setLedger([]);
       } else {
         setGalat(null);
         setTransaksi(t.data);
         setPelanggan(p.data);
+        // Kegagalan membaca buku besar poin sengaja TIDAK menggagalkan
+        // seluruh dashboard. Omzet dan grafik tetap tampil, hanya papan
+        // loyalitas yang kosong. Kalau digabung, satu tabel bermasalah
+        // membuat pemilik kehilangan seluruh laporan hariannya.
+        setLedger(l.error ? [] : l.data);
+        if (l.error) catatGalat("baca ledger poin dashboard", l.error);
       }
       setMemuat(false);
     })();
@@ -152,13 +178,15 @@ export default function DashboardPage() {
 
   async function muatUlang() {
     setMemuat(true);
-    const { t, p } = await ambilData();
+    const { t, p, l } = await ambilData();
     if (t.error || p.error) {
       setGalat("Gagal memuat data dashboard.");
     } else {
       setGalat(null);
       setTransaksi(t.data);
       setPelanggan(p.data);
+      setLedger(l.error ? [] : l.data);
+      if (l.error) catatGalat("baca ledger poin dashboard", l.error);
     }
     setMemuat(false);
   }
@@ -200,7 +228,12 @@ export default function DashboardPage() {
         ),
       0,
     );
-    const poinDiberikan = tersaring.reduce((s, t) => s + (t.poin_didapat ?? 0), 0);
+    // Poin diberikan dihitung lewat fungsi, bukan dengan menjumlahkan
+    // poin_didapat mentah. Transaksi tanpa pelanggan tetap menyimpan angka di
+    // kolom itu padahal tidak pernah masuk buku besar, sehingga penjumlahan
+    // mentah menampilkan angka lebih besar daripada poin yang benar-benar
+    // diberikan. Data pemilik sempat menunjukkan 9 padahal buku besarnya 8.
+    const poinDiberikan = hitungPoinDiberikan(tersaring);
     const poinDitukar = tersaring.reduce((s, t) => s + (t.poin_dipakai ?? 0), 0);
 
     const hariUnik = new Set(tersaring.map((t) => kunciHari(new Date(t.created_at))));
@@ -253,6 +286,28 @@ export default function DashboardPage() {
   const maksSeri = useMemo(
     () => seri.reduce((m, s) => Math.max(m, s.nilai), 0),
     [seri],
+  );
+
+  // Sebaran transaksi per jam pada periode terpilih. Dihitung dari data yang
+  // sudah diambil untuk grafik omzet, jadi tidak ada permintaan tambahan.
+  const batangJam = useMemo(() => sebaranJam(tersaring), [tersaring]);
+
+  const ringkasJam = useMemo(() => ringkasJamTeramai(batangJam), [batangJam]);
+
+  // Papan loyalitas sengaja memakai SELURUH buku besar, bukan yang tersaring
+  // periode. Poin beredar adalah saldo yang berlaku hari ini; kalau dibatasi
+  // ke periode terpilih, angkanya berubah saat pemilik berpindah rentang dan
+  // itu menyesatkan.
+  const papan = useMemo(
+    () =>
+      hitungPapanLoyalitas(
+        ledger,
+        transaksi,
+        pelanggan.length,
+        NILAI_POIN,
+        new Date(),
+      ),
+    [ledger, transaksi, pelanggan],
   );
 
   const period = useMemo(() => {
@@ -451,17 +506,26 @@ export default function DashboardPage() {
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                 Rincian · {period}
               </p>
-              <div className="grid flex-1 gap-px overflow-hidden rounded-xl border border-border bg-border/60 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {/* Selalu ditumpuk ke bawah, tidak pernah berdampingan.
+                  Sebelumnya di layar 1280px ke atas kelas xl:grid-cols-3
+                  membuat ketiganya berdampingan sehingga lebarnya menyusut
+                  jadi sekitar 386px, dan karena kartunya ditarik tinggi agar
+                  sejajar dengan kartu omzet, tiap kartu jadi setinggi 205px
+                  padahal isinya hanya sekitar 48px. Ruang kosong itulah yang
+                  membuat bagian bawah dashboard tampak menggantung.
+                  Ditumpuk, ketiganya setinggi 237px dan hampir sejajar dengan
+                  kartu omzet yang 277px. */}
+              <div className="flex flex-1 flex-col gap-px overflow-hidden rounded-xl border border-border bg-border/60">
                 {[
                   { label: "Transaksi", nilai: metrik.jumlah.toLocaleString("id-ID") },
                   { label: "Pelanggan baru", nilai: metrik.pelangganBaru.toLocaleString("id-ID") },
                   { label: "Poin diberikan", nilai: metrik.poinDiberikan.toLocaleString("id-ID") },
                 ].map((s) => (
-                  <div key={s.label} className="bg-card p-5">
+                  <div key={s.label} className="flex flex-1 flex-col justify-center bg-card px-5 py-4">
                     <p className="text-xs font-semibold text-muted-foreground">
                       {s.label}
                     </p>
-                    <p className="mt-1.5 text-2xl font-extrabold tabular-nums">
+                    <p className="mt-1 text-2xl font-extrabold tabular-nums">
                       {s.nilai}
                     </p>
                   </div>
@@ -546,6 +610,129 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          {/* Jam ramai + papan loyalitas. Ditaruh di bawah grafik omzet
+              supaya bagian bawah halaman terisi dan pemilik langsung dapat
+              dua hal yang bisa ditindak: kapan orang datang, dan berapa poin
+              yang masih beredar. */}
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+            {/* Jam ramai */}
+            <section aria-label="Jam ramai">
+              <div className="h-full rounded-xl border border-border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Jam ramai
+                  </p>
+                  <p className="text-xs text-muted-foreground">{ringkasJam}</p>
+                </div>
+
+                <div className="p-6">
+                  <div className="flex h-32 items-end gap-[3px]">
+                    {batangJam.map((b) => (
+                      <div
+                        key={b.jam}
+                        className="group relative flex h-full min-w-0 flex-1 flex-col justify-end"
+                        title={`${b.label}.00 · ${b.jumlah} transaksi`}
+                      >
+                        {/* tooltip sederhana saat disorot */}
+                        <span className="pointer-events-none absolute -top-1 z-10 hidden -translate-y-full whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[11px] font-semibold tabular-nums text-popover-foreground shadow-md group-hover:block">
+                          {b.label}.00 · {b.jumlah} transaksi
+                        </span>
+                        {/* Jam kosong tetap digambar setipis mungkin supaya
+                            sumbu waktunya utuh dan tidak ada jam yang
+                            tampak hilang. */}
+                        <div
+                          className={
+                            "w-full rounded-t-sm transition-colors " +
+                            (b.puncak
+                              ? "bg-primary"
+                              : b.jumlah > 0
+                                ? "bg-primary/45 group-hover:bg-primary/70"
+                                : "bg-foreground/10")
+                          }
+                          style={{ height: `${b.jumlah > 0 ? Math.max(b.porsi * 100, 4) : 2}px` }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Sumbu jam. Sengaja ditulis langsung, bukan mengambil
+                      dari data, supaya label tetap rata walau layar sempit
+                      dan tidak ada label yang saling menumpuk. */}
+                  <div className="mt-2 flex gap-[3px]">
+                    {batangJam.map((b) => (
+                      <p
+                        key={b.jam}
+                        className="min-w-0 flex-1 text-center text-[9px] tabular-nums text-muted-foreground"
+                      >
+                        {b.jam}
+                      </p>
+                    ))}
+                  </div>
+
+                  <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                    Setiap batang satu jam pada rentang operasional. Dipakai
+                    untuk menyusun jam staf dan memilih jam promo.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Papan loyalitas */}
+            <section aria-label="Papan loyalitas">
+              <div className="h-full rounded-xl border border-border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    <Star className="h-3 w-3" aria-hidden />
+                    Papan loyalitas
+                  </p>
+                  <p className="text-xs text-muted-foreground">Saat ini</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-px bg-border/60">
+                  {[
+                    {
+                      label: "Poin beredar",
+                      nilai: papan.poinBeredar.toLocaleString("id-ID"),
+                      keterangan: `senilai ${rupiah.format(papan.nilaiPoinBeredar)}`,
+                    },
+                    {
+                      label: "Pelanggan",
+                      nilai: papan.pelangganTerdaftar.toLocaleString("id-ID"),
+                      keterangan: "terdaftar",
+                    },
+                    {
+                      label: "Pelanggan ulang",
+                      nilai: papan.pelangganUlang.toLocaleString("id-ID"),
+                      keterangan: "datang lebih dari sekali",
+                    },
+                    {
+                      label: "Akan hangus",
+                      nilai: papan.akanHangus.toLocaleString("id-ID"),
+                      keterangan: `dalam 60 hari, senilai ${rupiah.format(papan.nilaiAkanHangus)}`,
+                    },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-card px-5 py-4">
+                      <p className="text-[10.5px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
+                        {s.label}
+                      </p>
+                      <p className="mt-1 text-2xl font-extrabold tracking-tight tabular-nums">
+                        {s.nilai}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {s.keterangan}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="border-t border-border px-6 py-3 text-xs leading-relaxed text-muted-foreground">
+                  Poin beredar adalah potongan yang belum dipakai pelanggan,
+                  jadi angkanya bisa dibaca sebagai kewajiban kedai.
+                </p>
+              </div>
+            </section>
+          </div>
 
           {/* Ringkas tambahan */}
           {adaData && (
