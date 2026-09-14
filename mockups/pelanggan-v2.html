@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup Pelanggan Kataloji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --cream: #FAF5EE;
+    --paper: #FFFDF9;
+    --ink: #2A1D14;
+    --ink-soft: #5C4A3D;
+    --ink-mute: #9A8A7D;
+    --terra: #C88F7B;
+    --terra-deep: #B0715A;
+    --terra-wash: rgba(200,143,123,0.13);
+    --sage: #839A66;
+    --sage-wash: rgba(131,154,102,0.15);
+    --mustard: #D9AE4E;
+    --mustard-wash: rgba(217,174,78,0.18);
+    --hair: rgba(42,29,20,0.13);
+    --hair-soft: rgba(42,29,20,0.07);
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--cream); color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .frame { min-height: 100vh; padding: 24px; display: flex; gap: 24px; }
+
+  /* ================= SIDEBAR (sama kayak app) ================= */
+  .sidebar {
+    width: 240px; flex-shrink: 0; background: var(--ink);
+    border-radius: 20px; padding: 24px 16px;
+    display: flex; flex-direction: column; color: #EFE6DC;
+    position: sticky; top: 24px; height: calc(100vh - 48px);
+  }
+  .sidebar .logo { padding: 4px 8px 20px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; }
+  .sidebar .logo span { color: var(--terra); }
+  .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(239,230,220,0.4); padding: 16px 12px 8px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: rgba(239,230,220,0.66); font-size: 13.5px; font-weight: 500; position: relative; margin-bottom: 2px; }
+  .nav-item svg { width: 17px; height: 17px; opacity: 0.8; }
+  .nav-item.active { background: rgba(200,143,123,0.14); color: #F5EDE4; }
+  .nav-item.active::before { content: ''; position: absolute; left: -16px; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: var(--terra); }
+  .sidebar .foot { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 8px 4px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--terra); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+  .sidebar .foot .who { font-size: 13px; font-weight: 600; }
+  .sidebar .foot .role { font-size: 11px; color: rgba(239,230,220,0.45); }
+
+  /* ================= CONTENT ================= */
+  .content { flex: 1; min-width: 0; }
+  .variant-tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--terra-deep); background: var(--terra-wash); border-radius: 999px; padding: 6px 14px; margin-bottom: 12px; }
+  .variant-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .variant-desc { font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; max-width: 640px; margin-bottom: 28px; }
+  .variant-block { margin-bottom: 72px; }
+  .variant-block + .variant-block { padding-top: 56px; border-top: 2px dashed var(--hair); }
+
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; gap: 16px; flex-wrap: wrap; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .page-head .sub { font-size: 13px; color: var(--ink-mute); font-weight: 500; margin-top: 3px; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .search { flex: 1; min-width: 210px; max-width: 300px; position: relative; }
+  .search input { width: 100%; height: 40px; border-radius: 10px; border: 1px solid var(--hair); background: var(--paper); padding: 0 14px 0 36px; font-family: inherit; font-size: 13.5px; color: var(--ink); }
+  .search input::placeholder { color: var(--ink-mute); }
+  .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--ink-mute); }
+  .btn { height: 40px; border-radius: 10px; border: 1px solid var(--hair); background: var(--paper); color: var(--ink); font-family: inherit; font-size: 13.5px; font-weight: 600; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; }
+  .btn svg { width: 16px; height: 16px; }
+  .btn-primary { background: var(--terra); border-color: var(--terra); color: #fff; }
+  .btn-ghost-sq { width: 40px; padding: 0; justify-content: center; }
+
+  /* ---- daftar ---- */
+  .list { border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: var(--paper); }
+  .list-head { display: grid; gap: 16px; padding: 12px 22px; background: rgba(42,29,20,0.028); border-bottom: 1px solid var(--hair); }
+  .list-head p { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+  .row { display: grid; gap: 16px; padding: 15px 22px; border-bottom: 1px solid var(--hair-soft); align-items: center; }
+  .row:last-child { border-bottom: none; }
+  .row.sel { background: var(--terra-wash); }
+  .who-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .ava { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; }
+  .who-cell .nm { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who-cell .sub { font-size: 11.5px; color: var(--ink-mute); margin-top: 2px; }
+  .num { font-size: 13.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .num b { font-weight: 700; }
+  .poin-cell { font-size: 15px; font-weight: 800; color: var(--terra-deep); font-variant-numeric: tabular-nums; }
+  .poin-cell small { display: block; font-size: 10.5px; font-weight: 600; color: var(--ink-mute); letter-spacing: 0.02em; }
+  .right { text-align: right; }
+
+  /* ---- lencana ---- */
+  .badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 3px 9px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; }
+  .badge svg { width: 11px; height: 11px; }
+  .b-aktif { background: var(--sage-wash); color: #5C7043; }
+  .b-baru { background: var(--terra-wash); color: var(--terra-deep); }
+  .b-sepi { background: rgba(42,29,20,0.07); color: var(--ink-soft); }
+  .b-ultah { background: var(--mustard-wash); color: #8A6A1C; }
+
+  /* ---- panel detail ---- */
+  .panel-wrap { display: flex; gap: 0; border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: var(--paper); }
+  .panel-wrap .list-side { flex: 1; min-width: 0; }
+  .panel-wrap .list-side .list { border: none; border-radius: 0; }
+  .panel { width: 372px; flex-shrink: 0; border-left: 1px solid var(--hair); background: var(--paper); display: flex; flex-direction: column; }
+  .panel-head { padding: 20px 22px 16px; border-bottom: 1px solid var(--hair-soft); display: flex; align-items: flex-start; gap: 14px; }
+  .panel-head .ava { width: 46px; height: 46px; font-size: 15px; }
+  .panel-head .nm { font-size: 16.5px; font-weight: 800; letter-spacing: -0.01em; }
+  .panel-head .sub { font-size: 12.5px; color: var(--ink-mute); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .x { margin-left: auto; color: var(--ink-mute); font-size: 18px; line-height: 1; }
+  .panel-body { padding: 18px 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .poin-card { border-radius: 12px; padding: 16px 18px; background: var(--terra-wash); border: 1px solid rgba(200,143,123,0.28); }
+  .poin-card .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--terra-deep); }
+  .poin-card .val { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin-top: 4px; }
+  .poin-card .val small { font-size: 13px; font-weight: 600; color: var(--ink-soft); letter-spacing: 0; }
+  .poin-card .meta { font-size: 11.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.5; }
+
+  .sec-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 10px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--hair-soft); border-radius: 10px; overflow: hidden; }
+  .stat { background: var(--paper); padding: 12px 10px; text-align: center; }
+  .stat .v { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+  .stat .k { font-size: 10px; color: var(--ink-mute); font-weight: 600; margin-top: 3px; }
+
+  .tl { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 12px; padding-bottom: 14px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before { content: ''; position: absolute; left: 4.5px; top: 14px; bottom: 0; width: 1px; background: var(--hair); }
+  .tl-item:last-child::before { display: none; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; z-index: 1; }
+  .d-earn { background: var(--sage); }
+  .d-redeem { background: var(--terra); }
+  .tl-item .t { font-size: 13px; font-weight: 600; }
+  .tl-item .t span { float: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tl-item .d { font-size: 11px; color: var(--ink-mute); margin-top: 2px; }
+  .tl-item .by { font-size: 11px; color: var(--ink-mute); margin-top: 3px; font-style: italic; }
+
+  .panel-foot { margin-top: auto; padding: 16px 22px; border-top: 1px solid var(--hair-soft); display: flex; flex-direction: column; gap: 8px; }
+  .panel-foot .btn { justify-content: center; }
+
+  /* ---- ringkasan strip (varian B) ---- */
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--hair); border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; margin-bottom: 22px; }
+  .strip-cell { background: var(--paper); padding: 16px 18px; }
+  .strip-cell .k { font-size: 11px; font-weight: 700; color: var(--ink-mute); letter-spacing: 0.03em; display: flex; align-items: center; gap: 6px; }
+  .strip-cell .k svg { width: 13px; height: 13px; }
+  .strip-cell .v { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
+  .strip-cell .v small { font-size: 12px; font-weight: 600; color: var(--ink-mute); letter-spacing: 0; }
+  .strip-cell.hot { background: var(--mustard-wash); }
+
+  .row-b { grid-template-columns: minmax(0,2.2fr) 0.8fr 1fr 1fr auto; }
+  .row-a { grid-template-columns: minmax(0,2.2fr) 1.2fr 0.7fr 0.7fr 1fr; }
+  .list-head.row-a, .list-head.row-b { }
+
+  .legend { margin-top: 14px; padding: 14px 18px; border-radius: 12px; border: 1px dashed var(--hair); font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; }
+  .legend b { color: var(--ink); }
+  .legend code { background: rgba(42,29,20,0.06); border-radius: 4px; padding: 1px 5px; font-size: 11.5px; }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="logo">Kataloji <span>CRM</span></div>
+    <div class="nav-label">Operasional</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Pelanggan</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 7h8M8 11h6"/></svg>Transaksi</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 6.9H21l-5.4 4 2 6.5L12 15.2 6.4 19.4l2-6.5L3 8.9h6.6z"/></svg>Loyalitas</div>
+    <div class="nav-label">Pemasaran</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8z"/></svg>Campaign</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Analitik</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5"/></svg>Pengaturan</div>
+    <div class="foot">
+      <div class="avatar">W</div>
+      <div><div class="who">Wahyu</div><div class="role">Admin</div></div>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- ===================================================================
+         VARIAN A
+         =================================================================== -->
+    <section class="variant-block">
+      <div class="variant-tag">Varian A</div>
+      <h2 class="variant-title">Tabel diperkaya + panel detail</h2>
+      <p class="variant-desc">
+        Struktur tabel dipertahankan, tapi tiap baris dapat lencana status dan dua kolom
+        tambahan (kunjungan, terakhir datang). Nama diklik, panel detail muncul di kanan.
+        Kolom dirapikan supaya panel tidak sesak.
+      </p>
+
+      <div class="page-head">
+        <div>
+          <h1>Pelanggan</h1>
+          <div class="sub">12 pelanggan terdaftar, 5 perlu disapa minggu ini</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input placeholder="Cari nama atau nomor WhatsApp" value="">
+        </div>
+        <button class="btn btn-ghost-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
+        <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Tambah pelanggan</button>
+      </div>
+
+      <div class="panel-wrap">
+        <div class="list-side">
+          <div class="list">
+            <div class="list-head row-a">
+              <p>Pelanggan</p><p>WhatsApp</p><p class="right">Kunjungan</p><p class="right">Poin</p><p class="right">Terakhir datang</p>
+            </div>
+            <div class="row row-a sel">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--terra-wash);color:var(--terra-deep)">AN</span>
+                <div style="min-width:0"><div class="nm">Anggara</div><div class="sub"><span class="badge b-aktif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Aktif</span></div></div>
+              </div>
+              <div class="num">0815 1568 0397</div>
+              <div class="num right"><b>3</b></div>
+              <div class="right"><div class="poin-cell">7<small>poin</small></div></div>
+              <div class="num right">hari ini</div>
+            </div>
+            <div class="row row-a">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--mustard-wash);color:#8A6A1C">DP</span>
+                <div style="min-width:0"><div class="nm">Dewi Puspitasari</div><div class="sub"><span class="badge b-ultah"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 4.2L18 7l-3 3 .7 4.3L12 12.3 8.3 14.3 9 10 6 7l4.2-.8z"/></svg>Ultah bulan ini</span></div></div>
+              </div>
+              <div class="num">0813 2211 8890</div>
+              <div class="num right"><b>11</b></div>
+              <div class="right"><div class="poin-cell">24<small>poin</small></div></div>
+              <div class="num right">3 hari lalu</div>
+            </div>
+            <div class="row row-a">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--sage-wash);color:#5C7043">BS</span>
+                <div style="min-width:0"><div class="nm">Budi Santoso</div><div class="sub"><span class="badge b-aktif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Aktif</span></div></div>
+              </div>
+              <div class="num">0812 3456 7890</div>
+              <div class="num right"><b>7</b></div>
+              <div class="right"><div class="poin-cell">12<small>poin</small></div></div>
+              <div class="num right">5 hari lalu</div>
+            </div>
+            <div class="row row-a">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--terra-wash);color:var(--terra-deep)">SM</span>
+                <div style="min-width:0"><div class="nm">Sinta Maharani</div><div class="sub"><span class="badge b-baru">Baru</span></div></div>
+              </div>
+              <div class="num">0877 8899 1020</div>
+              <div class="num right"><b>1</b></div>
+              <div class="right"><div class="poin-cell">2<small>poin</small></div></div>
+              <div class="num right">8 hari lalu</div>
+            </div>
+            <div class="row row-a">
+              <div class="who-cell">
+                <span class="ava" style="background:rgba(42,29,20,0.07);color:var(--ink-soft)">RP</span>
+                <div style="min-width:0"><div class="nm">Rizky Pratama</div><div class="sub"><span class="badge b-sepi">Sudah 2 bulan</span></div></div>
+              </div>
+              <div class="num">0856 4433 1187</div>
+              <div class="num right"><b>9</b></div>
+              <div class="right"><div class="poin-cell">31<small>poin</small></div></div>
+              <div class="num right">12 Jul 2026</div>
+            </div>
+            <div class="row row-a">
+              <div class="who-cell">
+                <span class="ava" style="background:rgba(42,29,20,0.07);color:var(--ink-soft)">NH</span>
+                <div style="min-width:0"><div class="nm">Nurul Hidayah</div><div class="sub"><span class="badge b-sepi">Sudah 3 bulan</span></div></div>
+              </div>
+              <div class="num">0819 7766 5544</div>
+              <div class="num right"><b>4</b></div>
+              <div class="right"><div class="poin-cell">6<small>poin</small></div></div>
+              <div class="num right">2 Jun 2026</div>
+            </div>
+            <div class="row row-a">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--sage-wash);color:#5C7043">AS</span>
+                <div style="min-width:0"><div class="nm">Agus Setiawan</div><div class="sub"><span class="badge b-aktif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>Aktif</span></div></div>
+              </div>
+              <div class="num">0821 3344 5566</div>
+              <div class="num right"><b>6</b></div>
+              <div class="right"><div class="poin-cell">9<small>poin</small></div></div>
+              <div class="num right">9 Sep 2026</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- panel detail -->
+        <aside class="panel">
+          <div class="panel-head">
+            <span class="ava" style="background:var(--terra-wash);color:var(--terra-deep)">AN</span>
+            <div style="min-width:0">
+              <div class="nm">Anggara</div>
+              <div class="sub">0815 1568 0397</div>
+              <div class="sub">Lahir 9 Nov 2004</div>
+            </div>
+            <div class="x">&#10005;</div>
+          </div>
+          <div class="panel-body">
+            <div class="poin-card">
+              <div class="lbl">Poin aktif</div>
+              <div class="val">7 <small>poin</small></div>
+              <div class="meta">Setara Rp 7.000. Sebagian poin hangus Mar 2027 kalau tidak dipakai.</div>
+            </div>
+
+            <div>
+              <div class="sec-title">Ringkasan</div>
+              <div class="stats">
+                <div class="stat"><div class="v">3</div><div class="k">kunjungan</div></div>
+                <div class="stat"><div class="v">179rb</div><div class="k">total belanja</div></div>
+                <div class="stat"><div class="v">59rb</div><div class="k">rata-rata</div></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec-title">Riwayat kunjungan</div>
+              <div class="tl">
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Rp 47.000 <span>+2 poin</span></div>
+                    <div class="d">14 Sep 2026, 19.14</div>
+                    <div class="by">Dicatat sistem (impor)</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Rp 100.000 <span>+5 poin</span></div>
+                    <div class="d">14 Sep 2026, 18.33</div>
+                    <div class="by">Dicatat sistem (impor)</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Rp 32.000 <span>+1 poin</span></div>
+                    <div class="d">14 Sep 2026, 18.26</div>
+                    <div class="by">Dicatat sistem (impor)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec-title">Riwayat poin</div>
+              <div class="tl">
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Poin masuk <span>+5</span></div>
+                    <div class="d">14 Sep 2026 &middot; dari Rp 100.000</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Poin masuk <span>+2</span></div>
+                    <div class="d">14 Sep 2026 &middot; hangus Mar 2027</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-foot">
+            <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-4-.9L3 21l1.9-4.9A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>Chat WhatsApp</button>
+            <button class="btn">Catat kunjungan baru</button>
+          </div>
+        </aside>
+      </div>
+
+      <div class="legend">
+        <b>Lencana status</b> dihitung otomatis dari data yang sudah ada, tanpa tabel baru:
+        <code>Aktif</code> datang dalam 30 hari &middot;
+        <code>Sudah N bulan</code> lewat 45 hari &middot;
+        <code>Baru</code> baru 1 kunjungan &middot;
+        <code>Ultah bulan ini</code> dari tanggal lahir.
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VARIAN B
+         =================================================================== -->
+    <section class="variant-block">
+      <div class="variant-tag">Varian B</div>
+      <h2 class="variant-title">Ringkasan di atas + daftar lega</h2>
+      <p class="variant-desc">
+        Empat angka penting ditaruh paling atas supaya hari kerja ada konteksnya,
+        lalu daftar ditulis lebih lega (kolom lebih sedikit, baris lebih tinggi).
+        Panel detailnya sama dengan Varian A. Lebih lapang, tapi sekali lihat
+        dapat lebih sedikit nama.
+      </p>
+
+      <div class="page-head">
+        <div>
+          <h1>Pelanggan</h1>
+          <div class="sub">Data per 14 September 2026</div>
+        </div>
+      </div>
+
+      <div class="strip">
+        <div class="strip-cell">
+          <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Total pelanggan</div>
+          <div class="v">12</div>
+        </div>
+        <div class="strip-cell hot">
+          <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Ultah bulan ini</div>
+          <div class="v">2 <small>orang</small></div>
+        </div>
+        <div class="strip-cell">
+          <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Perlu disapa</div>
+          <div class="v">5 <small>orang</small></div>
+        </div>
+        <div class="strip-cell">
+          <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 6.9H21l-5.4 4 2 6.5L12 15.2 6.4 19.4l2-6.5L3 8.9h6.6z"/></svg>Poin beredar</div>
+          <div class="v">118 <small>poin</small></div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input placeholder="Cari nama atau nomor WhatsApp" value="">
+        </div>
+        <button class="btn">Semua</button>
+        <button class="btn">Perlu disapa</button>
+        <button class="btn">Ultah</button>
+        <button class="btn btn-primary" style="margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Tambah</button>
+      </div>
+
+      <div class="panel-wrap">
+        <div class="list-side">
+          <div class="list">
+            <div class="list-head row-b">
+              <p>Pelanggan</p><p class="right">Kunjungan</p><p class="right">Poin</p><p class="right">Terakhir datang</p><p></p>
+            </div>
+            <div class="row row-b sel">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--terra-wash);color:var(--terra-deep)">AN</span>
+                <div style="min-width:0">
+                  <div class="nm">Anggara</div>
+                  <div class="sub">0815 1568 0397 &middot; <span class="badge b-aktif">Aktif</span></div>
+                </div>
+              </div>
+              <div class="num right"><b>3</b> kali</div>
+              <div class="right"><div class="poin-cell">7<small>poin</small></div></div>
+              <div class="num right">hari ini</div>
+              <div class="num right" style="color:var(--terra-deep)">Lihat</div>
+            </div>
+            <div class="row row-b">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--mustard-wash);color:#8A6A1C">DP</span>
+                <div style="min-width:0">
+                  <div class="nm">Dewi Puspitasari</div>
+                  <div class="sub">0813 2211 8890 &middot; <span class="badge b-ultah">Ultah 21 Sep</span></div>
+                </div>
+              </div>
+              <div class="num right"><b>11</b> kali</div>
+              <div class="right"><div class="poin-cell">24<small>poin</small></div></div>
+              <div class="num right">3 hari lalu</div>
+              <div class="num right" style="color:var(--terra-deep)">Lihat</div>
+            </div>
+            <div class="row row-b">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--sage-wash);color:#5C7043">BS</span>
+                <div style="min-width:0">
+                  <div class="nm">Budi Santoso</div>
+                  <div class="sub">0812 3456 7890 &middot; <span class="badge b-aktif">Aktif</span></div>
+                </div>
+              </div>
+              <div class="num right"><b>7</b> kali</div>
+              <div class="right"><div class="poin-cell">12<small>poin</small></div></div>
+              <div class="num right">5 hari lalu</div>
+              <div class="num right" style="color:var(--terra-deep)">Lihat</div>
+            </div>
+            <div class="row row-b">
+              <div class="who-cell">
+                <span class="ava" style="background:var(--terra-wash);color:var(--terra-deep)">SM</span>
+                <div style="min-width:0">
+                  <div class="nm">Sinta Maharani</div>
+                  <div class="sub">0877 8899 1020 &middot; <span class="badge b-baru">Baru</span></div>
+                </div>
+              </div>
+              <div class="num right"><b>1</b> kali</div>
+              <div class="right"><div class="poin-cell">2<small>poin</small></div></div>
+              <div class="num right">8 hari lalu</div>
+              <div class="num right" style="color:var(--terra-deep)">Lihat</div>
+            </div>
+            <div class="row row-b">
+              <div class="who-cell">
+                <span class="ava" style="background:rgba(42,29,20,0.07);color:var(--ink-soft)">RP</span>
+                <div style="min-width:0">
+                  <div class="nm">Rizky Pratama</div>
+                  <div class="sub">0856 4433 1187 &middot; <span class="badge b-sepi">Sudah 2 bulan</span></div>
+                </div>
+              </div>
+              <div class="num right"><b>9</b> kali</div>
+              <div class="right"><div class="poin-cell">31<small>poin</small></div></div>
+              <div class="num right">12 Jul 2026</div>
+              <div class="num right" style="color:var(--terra-deep)">Lihat</div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="panel-head">
+            <span class="ava" style="background:var(--terra-wash);color:var(--terra-deep)">AN</span>
+            <div style="min-width:0">
+              <div class="nm">Anggara</div>
+              <div class="sub">0815 1568 0397</div>
+              <div class="sub">Lahir 9 Nov 2004</div>
+            </div>
+            <div class="x">&#10005;</div>
+          </div>
+          <div class="panel-body">
+            <div class="poin-card">
+              <div class="lbl">Poin aktif</div>
+              <div class="val">7 <small>poin</small></div>
+              <div class="meta">Setara Rp 7.000. Sebagian poin hangus Mar 2027 kalau tidak dipakai.</div>
+            </div>
+            <div>
+              <div class="sec-title">Ringkasan</div>
+              <div class="stats">
+                <div class="stat"><div class="v">3</div><div class="k">kunjungan</div></div>
+                <div class="stat"><div class="v">179rb</div><div class="k">total belanja</div></div>
+                <div class="stat"><div class="v">59rb</div><div class="k">rata-rata</div></div>
+              </div>
+            </div>
+            <div>
+              <div class="sec-title">Riwayat kunjungan</div>
+              <div class="tl">
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Rp 47.000 <span>+2 poin</span></div>
+                    <div class="d">14 Sep 2026, 19.14</div>
+                    <div class="by">Dicatat sistem (impor)</div>
+                  </div>
+                </div>
+                <div class="tl-item">
+                  <span class="dot d-earn"></span>
+                  <div style="flex:1">
+                    <div class="t">Rp 100.000 <span>+5 poin</span></div>
+                    <div class="d">14 Sep 2026, 18.33</div>
+                    <div class="by">Dicatat sistem (impor)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-foot">
+            <button class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-4-.9L3 21l1.9-4.9A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>Chat WhatsApp</button>
+            <button class="btn">Catat kunjungan baru</button>
+          </div>
+        </aside>
+      </div>
+
+      <div class="legend">
+        Tombol saring <code>Perlu disapa</code> dan <code>Ultah</code> memakai data yang sama,
+        jadi satu kali klik langsung dapat daftar orang yang mau dihubungi hari ini.
+        Ini yang mengubah halaman dari "tempat lihat data" jadi "tempat mulai kerja".
+      </div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
