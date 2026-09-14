@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup Dashboard v2 · Kataloji CRM</title>
+<style>
+  :root{
+    --bg:#FAF5EE; --card:#FFFDF9; --border:#E8DFD0; --border-soft:#EFE7DA;
+    --fg:#4A382B; --muted:#8C7C6C; --muted-soft:#A8998A;
+    --primary:#C88F7B; --sage:#839A66; --mustard:#D9CC4C; --olive:#9B9823;
+    --sidebar:#2A1D14; --sidebar-fg:#E3D9CB; --sidebar-border:#4A382B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--fg);line-height:1.5;
+    font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:28px 20px 70px;
+  }
+  .bungkus{max-width:1180px;margin:0 auto}
+
+  h1.judul{font-size:19px;font-weight:800;letter-spacing:-.01em}
+  p.sub{font-size:13px;color:var(--muted);margin-top:3px}
+  .blok{margin-top:34px}
+  .blok > .kepala{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .blok > .kepala h2{font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .blok > .kepala span{font-size:12px;color:var(--muted)}
+  .tanda{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--primary);color:#FFFDF9;border-radius:5px;padding:3px 7px}
+  .tanda.putih{background:transparent;color:var(--muted);border:1px solid var(--border)}
+
+  .kartu{background:var(--card);border:1px solid var(--border);border-radius:14px}
+  .kartu-kepala{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border-bottom:1px solid var(--border-soft);padding:14px 18px}
+  .kartu-kepala p{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .kartu-kepala small{font-size:11.5px;color:var(--muted)}
+
+  /* ---------- sidebar ---------- */
+  .layar{display:flex;gap:0;background:var(--bg);border-radius:16px;overflow:hidden;border:1px solid var(--border)}
+  .sidebar{width:216px;flex-shrink:0;background:var(--sidebar);padding:16px 12px;display:flex;flex-direction:column}
+  .logo{display:flex;align-items:center;gap:9px;padding:2px 6px 14px}
+  .logo i{width:30px;height:30px;border-radius:8px;background:var(--primary);display:block;flex-shrink:0}
+  .logo b{font-size:13px;color:var(--sidebar-fg);font-weight:800}
+  .garis{height:1px;background:var(--sidebar-border);margin:0 6px 12px}
+  .grup{margin-bottom:16px}
+  .grup > span{display:block;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+    text-transform:uppercase;color:#8C7C6C;padding:0 8px 6px}
+  .m{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;
+    font-size:12.5px;font-weight:600;color:#B9AC9C;position:relative}
+  .m.aktif{background:#3A2A1E;color:#F3EADF}
+  .m.aktif::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:3px;height:16px;border-radius:0 3px 3px 0;background:var(--primary)}
+  .m i{width:15px;height:15px;border-radius:4px;background:#4A382B;display:block;flex-shrink:0}
+  .m.aktif i{background:var(--primary)}
+  .isi-layar{flex:1;padding:22px;min-width:0}
+
+  /* ---------- baris atas dashboard ---------- */
+  .atas{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
+  .hero{padding:22px;background:linear-gradient(135deg,rgba(200,143,123,.10),var(--card) 55%);border:1px solid rgba(200,143,123,.25)}
+  .hero .label{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .hero .angka{font-size:34px;font-weight:800;letter-spacing:-.02em;margin-top:8px;font-variant-numeric:tabular-nums}
+  .hero .angka em{font-style:normal;color:var(--muted-soft);font-weight:700}
+  .hero .dua{display:grid;grid-template-columns:1fr 1fr;gap:14px;border-top:1px solid rgba(200,143,123,.2);margin-top:20px;padding-top:16px}
+  .hero .dua p{font-size:11.5px;font-weight:600;color:var(--muted)}
+  .hero .dua b{display:block;font-size:15px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+
+  .rincian-tumpuk{display:flex;flex-direction:column;gap:8px}
+  .rincian-tumpuk > div{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px}
+  .rincian-tumpuk p{font-size:11.5px;font-weight:600;color:var(--muted)}
+  .rincian-tumpuk b{display:block;font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+  .rincian-datar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .rincian-datar > div{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px}
+  .rincian-datar p{font-size:11.5px;font-weight:600;color:var(--muted)}
+  .rincian-datar b{display:block;font-size:21px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+
+  .cacat{border:1px dashed #C88F7B;border-radius:10px;padding:10px 13px;margin-top:10px;
+    font-size:11.5px;color:#8A5F4C;background:rgba(200,143,123,.07)}
+  .catatan-opsi{margin-top:12px;font-size:12px;color:var(--muted);border-left:2px solid var(--border);padding-left:11px}
+  .catatan-opsi b{color:var(--fg)}
+  .kurang{color:#A8552F;font-weight:600}
+
+  /* ---------- varian A ---------- */
+  .dua-panel{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;margin-top:16px}
+  .jam-batang{display:flex;align-items:flex-end;gap:5px;height:118px;padding:0 2px}
+  .jam-batang > div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+  .jam-batang .b{width:100%;border-radius:3px 3px 0 0;background:rgba(200,143,123,.38)}
+  .jam-batang .b.puncak{background:var(--primary)}
+  .jam-batang .b.kosong{background:rgba(74,56,43,.08);height:3px}
+  .sumbu{display:flex;gap:5px;margin-top:7px;font-size:9px;color:var(--muted-soft);padding:0 2px}
+  .sumbu > div{flex:1;text-align:center}
+  .papan-angka{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .papan-angka > div{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px}
+  .papan-angka p{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .papan-angka b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:3px}
+  .papan-angka small{display:block;font-size:10.5px;color:var(--muted-soft);margin-top:2px}
+
+  /* ---------- varian B ---------- */
+  .tile{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+  .tile > div{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px;display:flex;flex-direction:column}
+  .tile p{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .tile b{font-size:23px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:4px}
+  .tile small{font-size:10.5px;color:var(--muted-soft);margin-top:3px}
+  .mini{display:flex;align-items:flex-end;gap:3px;height:26px;margin-top:11px}
+  .mini i{flex:1;background:rgba(200,143,123,.35);border-radius:2px 2px 0 0;display:block}
+  .mini i.akhir{background:var(--primary)}
+
+  /* ---------- varian C ---------- */
+  .peta{margin-top:16px}
+  .peta-baris{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;margin-bottom:4px}
+  .peta-baris > span{font-size:10px;color:var(--muted);text-align:right;font-weight:600}
+  .peta-sel{display:grid;grid-template-columns:repeat(16,1fr);gap:3px}
+  .peta-sel i{height:19px;border-radius:3px;background:rgba(74,56,43,.07);display:block}
+  .peta-sel i.isi1{background:rgba(200,143,123,.45)}
+  .peta-sel i.isi2{background:var(--primary)}
+  .peta-kaki{display:grid;grid-template-columns:44px 1fr;gap:8px;margin-top:6px}
+  .peta-jam{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;font-size:8.5px;color:var(--muted-soft);text-align:center}
+  .legenda{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);margin-top:11px}
+  .legenda i{width:13px;height:13px;border-radius:3px;display:block}
+</style>
+</head>
+<body>
+<div class="bungkus">
+
+  <h1 class="judul">Mockup v2 · Navigasi &amp; bawah Dashboard</h1>
+  <p class="sub">Angka di bawah ini <b>data asli Anda hari ini</b> (4 transaksi, 3 di jam 18, 1 di jam 19, omzet Rp 179.000, 8 poin, 1 pelanggan), supaya Anda menilai apa adanya, bukan bayangan data yang penuh. Palet dan token warna sama dengan aplikasi asli.</p>
+
+  <!-- ============================== NAVIGASI ============================== -->
+  <div class="blok">
+    <div class="kepala">
+      <h2>Bagian 1 · Navigasi dipisah</h2>
+      <span class="tanda">Pilih 1 atau 2</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+      <!-- NAV 1 -->
+      <div>
+        <div class="kepala" style="margin-bottom:10px">
+          <span class="tanda">Opsi 1</span>
+          <span>Dashboard berdiri sendiri, sisa menu jadi 3 kelompok</span>
+        </div>
+        <div class="layar">
+          <div class="sidebar">
+            <div class="logo"><i></i><b>Kataloji</b></div>
+            <div class="garis"></div>
+            <div class="grup">
+              <div class="m aktif"><i></i>Dashboard</div>
+            </div>
+            <div class="grup">
+              <span>Operasional</span>
+              <div class="m"><i></i>Transaksi</div>
+              <div class="m"><i></i>Pelanggan</div>
+              <div class="m"><i></i>Loyalitas</div>
+            </div>
+            <div class="grup">
+              <span>Pemasaran</span>
+              <div class="m"><i></i>Campaign</div>
+              <div class="m"><i></i>Analitik</div>
+            </div>
+            <div class="grup" style="margin-bottom:0">
+              <span>Sistem</span>
+              <div class="m"><i></i>Pengaturan</div>
+              <div class="m"><i></i>Staf</div>
+            </div>
+          </div>
+          <div class="isi-layar">
+            <div class="atas">
+              <div class="kartu hero">
+                <div class="label">Omzet · hari ini</div>
+                <div class="angka"><em>Rp</em> 179.000</div>
+                <div class="dua">
+                  <div><p>Rata-rata harian</p><b>Rp 179.000</b></div>
+                  <div><p>Transaksi terbesar</p><b>Rp 100.000</b></div>
+                </div>
+              </div>
+              <div>
+                <p style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px">Rincian · hari ini</p>
+                <div class="rincian-tumpuk">
+                  <div><p>Transaksi</p><b>4</b></div>
+                  <div><p>Pelanggan baru</p><b>0</b></div>
+                  <div><p>Poin diberikan</p><b>8</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="catatan-opsi">Tiga kelompok isinya pas: Operasional 3 menu, Pemasaran 2, Sistem 2. Kasir cukup lihat Operasional, dan menu Sistem otomatis hilang kalau bukan admin.</div>
+      </div>
+
+      <!-- NAV 2 -->
+      <div>
+        <div class="kepala" style="margin-bottom:10px">
+          <span class="tanda putih">Opsi 2</span>
+          <span>Dashboard ikut Operasional, jadi cuma 2 kelompok</span>
+        </div>
+        <div class="layar">
+          <div class="sidebar">
+            <div class="logo"><i></i><b>Kataloji</b></div>
+            <div class="garis"></div>
+            <div class="grup">
+              <span>Operasional</span>
+              <div class="m aktif"><i></i>Dashboard</div>
+              <div class="m"><i></i>Transaksi</div>
+              <div class="m"><i></i>Pelanggan</div>
+              <div class="m"><i></i>Loyalitas</div>
+            </div>
+            <div class="grup">
+              <span>Pemasaran</span>
+              <div class="m"><i></i>Campaign</div>
+              <div class="m"><i></i>Analitik</div>
+            </div>
+            <div class="grup" style="margin-bottom:0">
+              <span>Sistem</span>
+              <div class="m"><i></i>Pengaturan</div>
+              <div class="m"><i></i>Staf</div>
+            </div>
+          </div>
+          <div class="isi-layar">
+            <div class="atas">
+              <div class="kartu hero">
+                <div class="label">Omzet · hari ini</div>
+                <div class="angka"><em>Rp</em> 179.000</div>
+                <div class="dua">
+                  <div><p>Rata-rata harian</p><b>Rp 179.000</b></div>
+                  <div><p>Transaksi terbesar</p><b>Rp 100.000</b></div>
+                </div>
+              </div>
+              <div>
+                <p style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px">Rincian · hari ini</p>
+                <div class="rincian-tumpuk">
+                  <div><p>Transaksi</p><b>4</b></div>
+                  <div><p>Pelanggan baru</p><b>0</b></div>
+                  <div><p>Poin diberikan</p><b>8</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="catatan-opsi">Dashboard masuk Operasional karena isinya ringkasan kerja harian, bukan alat jualan. Kelompoknya jadi 4 / 2 / 2.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================== MASALAHNYA ============================== -->
+  <div class="blok">
+    <div class="kepala"><h2>Bagian 2 · Kenapa bawahnya kelihatan kosong</h2></div>
+    <div class="layar" style="display:block">
+      <div class="isi-layar">
+        <div class="atas">
+          <div class="kartu hero">
+            <div class="label">Omzet · hari ini</div>
+            <div class="angka"><em>Rp</em> 179.000</div>
+            <div class="dua">
+              <div><p>Rata-rata harian</p><b>Rp 179.000</b></div>
+              <div><p>Transaksi terbesar</p><b>Rp 100.000</b></div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px">Rincian · hari ini</p>
+            <div class="rincian-datar">
+              <div><p>Transaksi</p><b>4</b></div>
+              <div><p>Pelanggan baru</p><b>0</b></div>
+              <div><p>Poin diberikan</p><b>8</b></div>
+            </div>
+            <div class="cacat">
+              Di layar lebar, ketiga kartu ini berubah jadi berdampingan sehingga tingginya hanya sekitar 90px, sementara kartu omzet di sebelahnya 315px. Sisa sekitar 225px menggantung kosong. Ini yang Anda lihat.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== VARIAN A ============================== -->
+  <div class="blok">
+    <div class="kepala">
+      <span class="tanda">Varian A</span>
+      <h2>Jam ramai + papan loyalitas</h2>
+      <span>paling berguna untuk kedai kopi</span>
+    </div>
+    <div class="layar" style="display:block">
+      <div class="isi-layar">
+        <div class="atas">
+          <div class="kartu hero">
+            <div class="label">Omzet · hari ini</div>
+            <div class="angka"><em>Rp</em> 179.000</div>
+            <div class="dua">
+              <div><p>Rata-rata harian</p><b>Rp 179.000</b></div>
+              <div><p>Transaksi terbesar</p><b>Rp 100.000</b></div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px">Rincian · hari ini</p>
+            <div class="rincian-tumpuk">
+              <div><p>Transaksi</p><b>4</b></div>
+              <div><p>Pelanggan baru</p><b>0</b></div>
+              <div><p>Poin diberikan</p><b>8</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dua-panel">
+          <div class="kartu">
+            <div class="kartu-kepala">
+              <p>Jam ramai</p>
+              <small>Paling ramai 18.00, 3 transaksi</small>
+            </div>
+            <div style="padding:18px">
+              <div class="jam-batang">
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b" style="height:100%;background:var(--primary)"></span></div>
+                <div><span class="b" style="height:33%"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+              </div>
+              <div class="sumbu">
+                <div>07</div><div>08</div><div>09</div><div>10</div><div>11</div><div>12</div>
+                <div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div>
+                <div>19</div><div>20</div><div>21</div><div>22</div>
+              </div>
+              <p style="font-size:11.5px;color:var(--muted);border-top:1px solid var(--border-soft);margin-top:13px;padding-top:11px">
+                Setiap batang satu jam. Transaksi Anda hari ini jatuh di jam 18 (3 transaksi) dan jam 19 (1 transaksi). Berguna untuk atur jam staf dan jam promo.
+              </p>
+            </div>
+          </div>
+
+          <div class="kartu">
+            <div class="kartu-kepala">
+              <p>Papan loyalitas</p>
+              <small>Saat ini</small>
+            </div>
+            <div style="padding:18px">
+              <div class="papan-angka">
+                <div><p>Poin beredar</p><b>8</b><small>senilai Rp 8.000</small></div>
+                <div><p>Pelanggan</p><b>1</b><small>terdaftar</small></div>
+                <div><p>Pelanggan ulang</p><b>1</b><small>datang lebih dari sekali</small></div>
+                <div><p>Akan hangus</p><b>0</b><small>dalam 60 hari</small></div>
+              </div>
+              <p style="font-size:11.5px;color:var(--muted);border-top:1px solid var(--border-soft);margin-top:14px;padding-top:11px">
+                Angka yang bisa langsung ditindak: poin beredar adalah utang potongan yang belum dipakai.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p class="catatan-opsi"><b>Kenapa unggulan:</b> menjawab dua pertanyaan nyata pemilik kedai, kapan orang datang dan berapa poin yang beredar. Batangnya terlihat jarang sekarang karena memang baru 4 transaksi, dan akan terisi sendiri seiring waktu. Tinggal tambah di bawah grafik omzet yang sudah ada, jadi halaman bawahnya terisi penuh.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== VARIAN B ============================== -->
+  <div class="blok">
+    <div class="kepala">
+      <span class="tanda putih">Varian B</span>
+      <h2>Empat angka kunci</h2>
+      <span>paling rapat, tidak pernah kelihatan kosong</span>
+    </div>
+    <div class="layar" style="display:block">
+      <div class="isi-layar">
+        <div class="tile">
+          <div>
+            <p>Per transaksi</p><b>Rp 44.750</b><small>4 transaksi</small>
+            <div class="mini"><i style="height:40%"></i><i style="height:62%"></i><i style="height:35%"></i><i class="akhir" style="height:58%"></i></div>
+          </div>
+          <div>
+            <p>Transaksi terbesar</p><b>Rp 100.000</b><small>hari ini</small>
+            <div class="mini"><i style="height:30%"></i><i style="height:100%" class="akhir"></i><i style="height:22%"></i><i style="height:48%"></i></div>
+          </div>
+          <div>
+            <p>Poin beredar</p><b>8</b><small>Rp 8.000 potongan</small>
+            <div class="mini"><i style="height:20%"></i><i style="height:45%"></i><i style="height:70%"></i><i class="akhir" style="height:100%"></i></div>
+          </div>
+          <div>
+            <p>Hari ada transaksi</p><b>1</b><small>dari 7 hari</small>
+            <div class="mini"><i style="height:3%"></i><i style="height:3%"></i><i style="height:3%"></i><i class="akhir" style="height:100%"></i></div>
+          </div>
+        </div>
+        <p class="catatan-opsi"><b>Kenapa masuk pilihan:</b> bentuknya selalu rapat berapa pun banyaknya data, jadi dashboard tidak pernah tampak kosong. Batang kecil di tiap kotak menunjukkan pergerakan tujuh hari terakhir. Kelemahannya: lebih banyak angka daripada gambar, jadi tidak sekuat Varian A dalam memberi tahu kapan kedai ramai.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== VARIAN C ============================== -->
+  <div class="blok">
+    <div class="kepala">
+      <span class="tanda putih">Varian C</span>
+      <h2>Peta jam dikali hari</h2>
+      <span>paling banyak informasi, tapi paling cepat tampak kosong</span>
+    </div>
+    <div class="layar" style="display:block">
+      <div class="isi-layar">
+        <div class="kartu peta">
+          <div class="kartu-kepala">
+            <p>Peta kunjungan</p>
+            <small>16 jam operasional, 7 hari terakhir</small>
+          </div>
+          <div style="padding:18px">
+            <div class="peta-baris"><span>Sen</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="peta-baris"><span>Sel</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="peta-baris"><span>Rab</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="peta-baris"><span>Kam</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="peta-baris"><span>Jum</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="peta-baris"><span>Sab</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            <div class="peta-baris"><span>Min</span><div class="peta-sel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="isi2"></i><i class="isi1"></i><i></i><i></i><i></i></div></div>
+            <div class="peta-kaki"><span></span><div class="peta-jam"><div>07</div><div>08</div><div>09</div><div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div></div></div>
+            <div class="legenda">
+              <span>Sepi</span><i style="background:rgba(74,56,43,.07)"></i>
+              <i style="background:rgba(200,143,123,.45)"></i>
+              <i style="background:var(--primary)"></i><span>Ramai</span>
+            </div>
+            <p style="font-size:11.5px;color:var(--muted);border-top:1px solid var(--border-soft);margin-top:13px;padding-top:11px">
+              Setiap kotak satu jam. Terlihat bahwa hampir seluruh peta masih abu-abu karena baru ada satu hari berisi transaksi: dua kotak terisi, 110 kotak masih kosong.
+            </p>
+          </div>
+        </div>
+        <p class="catatan-opsi"><b class="kurang">Kelemahannya jujur:</b> dari 112 kotak, yang terisi baru 3. Selama transaksi masih sedikit, peta ini justru memperbesar kesan kosong. Cocok dipakai setelah terkumpul sekitar satu bulan transaksi, tidak cocok sekarang.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== SESUDAH ============================== -->
+  <div class="blok">
+    <div class="kepala">
+      <span class="tanda">Kalau Varian A dipilih</span>
+      <h2>Bentuk akhir halaman bawah</h2>
+      <span>urutan dari atas ke bawah</span>
+    </div>
+    <div class="layar" style="display:block">
+      <div class="isi-layar">
+        <div class="atas">
+          <div class="kartu hero">
+            <div class="label">Omzet · hari ini</div>
+            <div class="angka"><em>Rp</em> 179.000</div>
+            <div class="dua">
+              <div><p>Rata-rata harian</p><b>Rp 179.000</b></div>
+              <div><p>Transaksi terbesar</p><b>Rp 100.000</b></div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:9px">Rincian · hari ini</p>
+            <div class="rincian-tumpuk">
+              <div><p>Transaksi</p><b>4</b></div>
+              <div><p>Pelanggan baru</p><b>0</b></div>
+              <div><p>Poin diberikan</p><b>8</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kartu" style="margin-top:18px">
+          <div class="kartu-kepala">
+            <p>Grafik omzet harian</p>
+            <small>hari ini</small>
+          </div>
+          <div style="padding:20px">
+            <div class="jam-batang" style="height:104px">
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b kosong"></span></div>
+              <div><span class="b" style="height:100%;background:var(--primary)"></span></div>
+            </div>
+            <div class="sumbu">
+              <div>1</div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+              <div></div><div></div><div></div><div></div><div></div><div>14</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dua-panel">
+          <div class="kartu">
+            <div class="kartu-kepala"><p>Jam ramai</p><small>Paling ramai 18.00</small></div>
+            <div style="padding:18px">
+              <div class="jam-batang">
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b" style="height:100%;background:var(--primary)"></span></div>
+                <div><span class="b" style="height:33%"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+                <div><span class="b kosong"></span></div>
+              </div>
+              <div class="sumbu">
+                <div>07</div><div>08</div><div>09</div><div>10</div><div>11</div><div>12</div>
+                <div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div>
+                <div>19</div><div>20</div><div>21</div><div>22</div>
+              </div>
+            </div>
+          </div>
+          <div class="kartu">
+            <div class="kartu-kepala"><p>Papan loyalitas</p><small>Saat ini</small></div>
+            <div style="padding:18px">
+              <div class="papan-angka">
+                <div><p>Poin beredar</p><b>8</b><small>senilai Rp 8.000</small></div>
+                <div><p>Pelanggan</p><b>1</b><small>terdaftar</small></div>
+                <div><p>Pelanggan ulang</p><b>1</b><small>datang lebih dari sekali</small></div>
+                <div><p>Akan hangus</p><b>0</b><small>dalam 60 hari</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="catatan-opsi">Perubahan lain yang sekalian diusulkan: kartu Rincian tetap ditumpuk ke bawah di semua ukuran layar, bukan berubah berdampingan di layar lebar. Dengan begitu tingginya selalu sejajar dengan kartu omzet dan ruang kosong sekitar 225px itu hilang, bukan cuma ditutupi.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
