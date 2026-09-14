@@ -52,26 +52,20 @@ create trigger trg_pelanggan_updated_at
   for each row execute function public.set_updated_at();
 
 -- ---------- Poin otomatis per transaksi ----------
--- Poin pelanggan berkurang saat ditukar, bertambah sesuai transaksi.
--- Satu tempat, atomik, ga bisa kelupaan dari sisi aplikasi.
-create or replace function public.apply_transaksi_poin()
-returns trigger
-language plpgsql
-as $$
-begin
-  if new.pelanggan_id is not null then
-    update public.pelanggan
-       set poin = poin - new.poin_dipakai + new.poin_didapat
-     where id = new.pelanggan_id;
-  end if;
-  return new;
-end;
-$$;
-
-drop trigger if exists trg_transaksi_poin on public.transaksi;
-create trigger trg_transaksi_poin
-  after insert on public.transaksi
-  for each row execute function public.apply_transaksi_poin();
+-- SENGAJA TIDAK ADA DI SINI.
+--
+-- Dulu trigger poin didefinisikan di file ini sebagai
+-- `apply_transaksi_poin()` yang hanya menambah kolom pelanggan.poin.
+-- Sejak aturan FIFO 12 bulan dipakai, satu kolom tidak lagi cukup:
+-- kita perlu tahu poin mana terbit kapan.
+--
+-- Definisi trigger sekarang tinggal di `supabase/ledger-poin.sql`,
+-- memakai tabel point_ledger. Kalau trigger versi lama dihidupkan
+-- lagi di sini, re-run schema.sql akan menimpanya dan ledger
+-- berhenti diisi tanpa error (saldo diam-diam salah).
+--
+-- URUTAN MIGRASI: schema.sql -> rbac.sql -> ledger-poin.sql
+-- Jangan re-run schema.sql setelah ledger-poin.sql.
 
 -- ---------- Row Level Security ----------
 alter table public.pelanggan enable row level security;
