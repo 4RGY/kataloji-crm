@@ -15,17 +15,24 @@
  * Jalankan: npx tsx scripts/uji-pelanggan-tampilan.mts
  */
 import {
+  AMBANG_KELOMPOK,
   BATAS_AKTIF_HARI,
   BATAS_SEPI_HARI,
   hangusTerdekat,
+  hitungPerLencana,
   hitungRingkasan,
+  hurufAwal,
   inisialPelanggan,
+  kelompokkanHuruf,
   kelompokkanPerPelanggan,
   lencanaPelanggan,
   ringkasHalaman,
   rupiahPenuh,
   rupiahRingkas,
+  saringLencana,
+  SARINGAN_PELANGGAN,
   selisihHari,
+  TINGGI_BARIS_PX,
   tanggalIndonesia,
   tanggalSingkat,
   tanggalUltah,
@@ -402,6 +409,104 @@ sama("rupiah penuh nol", rupiahPenuh(0), "Rp 0");
 sama("rupiah penuh jutaan", rupiahPenuh(1250000), "Rp 1.250.000");
 sama("rupiah penuh dibulatkan ke rupiah", rupiahPenuh(59667.4), "Rp 59.667");
 sama("rupiah penuh nilai aneh jadi nol", rupiahPenuh(Number.NaN), "Rp 0");
+
+// ======================= saringLencana =======================
+// Tanggal acuan tetap, tidak diambil dari jam sistem, supaya uji ini tidak
+// lulus hari ini lalu gagal bulan depan.
+const ACUAN = new Date("2026-09-15T12:00:00");
+
+const contohSaring = [
+  // aktif: lebih dari satu kunjungan, baru saja datang
+  { nama: "Anggara", tgl_lahir: "2004-11-09", kunjungan: 4, terakhirIso: "2026-09-15" },
+  // baru: tepat satu kunjungan
+  { nama: "Bayu", tgl_lahir: null, kunjungan: 1, terakhirIso: "2026-09-10" },
+  // sepi: lewat dari batas 45 hari
+  { nama: "Citra", tgl_lahir: null, kunjungan: 3, terakhirIso: "2026-06-01" },
+  // belum transaksi
+  { nama: "dewi", tgl_lahir: null, kunjungan: 0, terakhirIso: null },
+  // ultah bulan ini, kunjungan lebih dari satu dan masih aktif
+  { nama: "Eka", tgl_lahir: "2000-09-20", kunjungan: 5, terakhirIso: "2026-09-14" },
+];
+
+sama("tanpa penyaring, semua tampil", saringLencana(contohSaring, null, ACUAN).length, 5);
+sama("penyaring sepi hanya ambil yang sepi", saringLencana(contohSaring, "sepi", ACUAN).length, 1);
+sama(
+  "penyaring sepi mengambil orang yang benar",
+  saringLencana(contohSaring, "sepi", ACUAN)[0].nama,
+  "Citra",
+);
+sama("penyaring belum transaksi", saringLencana(contohSaring, "belum", ACUAN).length, 1);
+sama("penyaring baru", saringLencana(contohSaring, "baru", ACUAN).length, 1);
+sama("penyaring ultah", saringLencana(contohSaring, "ultah", ACUAN).length, 1);
+sama("penyaring aktif", saringLencana(contohSaring, "aktif", ACUAN).length, 1);
+sama("daftar kosong tetap aman", saringLencana([], "sepi", ACUAN).length === 0, true);
+sama(
+  "menyaring tidak mengubah daftar asal",
+  (() => {
+    const salinan = [...contohSaring];
+    saringLencana(contohSaring, "sepi", ACUAN);
+    return contohSaring.length === salinan.length;
+  })(),
+  true,
+);
+
+// ======================= hitungPerLencana =======================
+const jumlah = hitungPerLencana(contohSaring, ACUAN);
+sama("jumlah semua lencana sama dengan jumlah pelanggan",
+  jumlah.aktif + jumlah.baru + jumlah.sepi + jumlah.ultah + jumlah.belum, 5);
+sama("hitung sepi", jumlah.sepi, 1);
+sama("hitung belum transaksi", jumlah.belum, 1);
+sama(
+  "tiap jenis pada daftar penyaring punya kuncinya",
+  SARINGAN_PELANGGAN.every((s) => typeof jumlah[s.jenis] === "number"),
+  true,
+);
+sama("daftar kosong menghasilkan semua nol",
+  Object.values(hitungPerLencana([], ACUAN)).reduce((a, b) => a + b, 0), 0);
+sama(
+  "jumlah penyaring cocok dengan hasil menyaring",
+  SARINGAN_PELANGGAN.every(
+    (s) => saringLencana(contohSaring, s.jenis, ACUAN).length === jumlah[s.jenis],
+  ),
+  true,
+);
+
+// Penyaring "Perlu disapa" harus lebih dulu: itu satu-satunya yang menuntut
+// tindakan hari ini, sedangkan sisanya sekadar keterangan.
+sama("perlu disapa berada di urutan pertama", SARINGAN_PELANGGAN[0].jenis, "sepi");
+
+// ======================= hurufAwal & kelompokkanHuruf =======================
+sama("huruf awal biasa", hurufAwal("Anggara"), "A");
+sama("huruf awal huruf kecil dinaikkan", hurufAwal("dewi"), "D");
+sama("nama berawalan spasi tetap terbaca", hurufAwal("  Budi"), "B");
+sama("nama berawalan angka masuk pagar", hurufAwal("3 Saudara"), "#");
+sama("nama kosong masuk pagar", hurufAwal(""), "#");
+sama("nama berawalan tanda baca masuk pagar", hurufAwal("'Aisyah"), "#");
+
+const kelompok = kelompokkanHuruf(contohSaring);
+sama("kelompok terurut menaik",
+  kelompok.map((k) => k.huruf).join("") === "ABCDE", true);
+sama("jumlah anggota kelompok sama dengan jumlah pelanggan",
+  kelompok.reduce((s, k) => s + k.isi.length, 0), 5);
+sama(
+  "pagar diletakkan paling akhir",
+  (() => {
+    const k = kelompokkanHuruf([{ nama: "9 Naga" }, { nama: "Adi" }]);
+    return k[k.length - 1].huruf === "#";
+  })(),
+  true,
+);
+sama("daftar kosong menghasilkan nol kelompok", kelompokkanHuruf([]).length === 0, true);
+sama(
+  "nama berhuruf awal sama masuk kelompok yang sama",
+  kelompokkanHuruf([{ nama: "Adi" }, { nama: "andi" }])[0].isi.length === 2,
+  true,
+);
+
+// ======================= acuan tampilan =======================
+sama("tinggi baris lebih padat daripada 76px sebelumnya", TINGGI_BARIS_PX < 76, true);
+sama("tinggi baris tetap nyaman disentuh", TINGGI_BARIS_PX >= 44, true);
+sama("ambang kelompok masuk akal", AMBANG_KELOMPOK >= 20 && AMBANG_KELOMPOK <= 60, true);
 
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);

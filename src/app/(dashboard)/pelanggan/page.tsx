@@ -21,6 +21,7 @@ import {
   validasiPelanggan,
 } from "@/lib/pelanggan";
 import {
+  hitungPerLencana,
   hitungRingkasan,
   inisialPelanggan,
   kelompokkanPerPelanggan,
@@ -28,6 +29,8 @@ import {
   ringkasHalaman,
   rupiahPenuh,
   rupiahRingkas,
+  saringLencana,
+  SARINGAN_PELANGGAN,
   tanggalIndonesia,
   tanggalSingkat,
   tanggalUltah,
@@ -243,10 +246,27 @@ export default function PelangganPage() {
 
   const hariIni = useMemo(() => new Date(), []);
 
-  const hasil = useMemo(
-    () => daftar.filter((p) => cocokCari(p, query)),
-    [daftar, query],
+  // Penyaring lencana. null berarti semua pelanggan ditampilkan.
+  const [saringan, setSaringan] = useState<JenisLencana | null>(null);
+
+  const jumlahLencana = useMemo(
+    () => hitungPerLencana(daftar as DataLencana[], hariIni),
+    [daftar, hariIni],
   );
+
+  const hasil = useMemo(
+    () =>
+      saringLencana(daftar, saringan, hariIni).filter((p) =>
+        cocokCari(p, query),
+      ),
+    [daftar, query, saringan, hariIni],
+  );
+
+  /** Kembalikan daftar ke keadaan utuh: hapus kata kunci dan penyaring. */
+  function bersihkanPencarian() {
+    setQuery("");
+    setSaringan(null);
+  }
 
   const kepala = useMemo(() => ringkasHalaman(daftar, hariIni), [daftar, hariIni]);
 
@@ -342,6 +362,46 @@ export default function PelangganPage() {
         </Button>
       </div>
 
+      {/*
+        Penyaring lencana. Sebelum ini lencana hanya keterangan, sehingga
+        pertanyaan seperti "siapa yang perlu disapa" harus dijawab dengan
+        membaca seluruh daftar satu per satu. Angka pada tombol mencegah
+        pengguna menekan penyaring yang ternyata kosong.
+      */}
+      {daftar.length > 0 && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <Button
+            variant={saringan === null ? "default" : "outline"}
+            className="h-9 px-3.5 text-xs font-bold"
+            onClick={() => setSaringan(null)}
+            aria-pressed={saringan === null}
+          >
+            Semua
+            <span className="ml-1.5 tabular-nums opacity-70">
+              {daftar.length}
+            </span>
+          </Button>
+          {SARINGAN_PELANGGAN.filter((s) => jumlahLencana[s.jenis] > 0).map(
+            (s) => (
+              <Button
+                key={s.jenis}
+                variant={saringan === s.jenis ? "default" : "outline"}
+                className="h-9 px-3.5 text-xs font-bold"
+                onClick={() =>
+                  setSaringan(saringan === s.jenis ? null : s.jenis)
+                }
+                aria-pressed={saringan === s.jenis}
+              >
+                {s.label}
+                <span className="ml-1.5 tabular-nums opacity-70">
+                  {jumlahLencana[s.jenis]}
+                </span>
+              </Button>
+            ),
+          )}
+        </div>
+      )}
+
       {/* Daftar + panel detail berdampingan mulai 1024px. Sebelumnya `xl`
           (1280px) bikin panel turun ke bawah di laptop biasa. Tabelnya
           masih dapat 640px, cukup untuk 5 kolom. */}
@@ -395,14 +455,47 @@ export default function PelangganPage() {
                 </p>
               </div>
             ) : hasil.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 bg-card px-6 py-20 text-center">
+              <div className="flex flex-col items-center justify-center gap-3 bg-card px-6 py-16 text-center">
                 <p className="text-sm font-semibold text-foreground">
                   Tidak ada yang cocok
                 </p>
                 <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  Tidak ada pelanggan dengan kata kunci &ldquo;{query}&rdquo;.
-                  Coba nama lain atau beberapa digit nomor WhatsApp.
+                  {query
+                    ? `Tidak ada pelanggan dengan kata kunci "${query}".`
+                    : "Tidak ada pelanggan pada penyaring ini."}{" "}
+                  Coba nama lain, beberapa digit nomor WhatsApp, atau daftarkan
+                  sebagai pelanggan baru.
                 </p>
+                {/* Keadaan buntu sebelumnya tidak menyediakan satu pun tombol,
+                    sehingga kasir harus menghapus ketikan sendiri. Situasi
+                    tersering saat nama tidak ketemu justru adalah orangnya
+                    memang pelanggan baru, jadi jalan pintas itu disediakan. */}
+                <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-10"
+                    onClick={bersihkanPencarian}
+                  >
+                    Tampilkan semua
+                  </Button>
+                  <Button
+                    className="h-10 gap-2 font-semibold"
+                    onClick={() => {
+                      // Kata kunci yang diketik dipakai sebagai nama awal
+                      // kalau bukan angka, supaya kasir tidak mengetik ulang.
+                      const angkaSaja = /^[\d\s+()-]+$/.test(query.trim());
+                      setForm({
+                        nama: angkaSaja ? "" : query.trim(),
+                        whatsapp: angkaSaja ? query.trim() : "",
+                        tgl_lahir: "",
+                      });
+                      setFormTerbuka(true);
+                    }}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Tambah sebagai pelanggan baru
+                  </Button>
+                </div>
               </div>
             ) : (
               <ul className="divide-y divide-border bg-card">
@@ -416,7 +509,7 @@ export default function PelangganPage() {
                         onClick={() => setPilihId(dipilih ? null : p.id)}
                         aria-expanded={dipilih}
                         className={
-                          "grid w-full grid-cols-1 gap-2 px-6 py-4 text-left transition-colors lg:grid-cols-[minmax(0,2fr)_1.3fr_0.7fr_0.6fr_1fr] lg:items-center lg:gap-4 " +
+                          "grid w-full grid-cols-1 gap-2 px-6 py-3 text-left transition-colors lg:grid-cols-[minmax(0,2fr)_1.3fr_0.7fr_0.6fr_1fr] lg:items-center lg:gap-4 " +
                           (dipilih ? "bg-primary/8" : "hover:bg-muted/40")
                         }
                       >

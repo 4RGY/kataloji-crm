@@ -359,7 +359,13 @@ export default function TransaksiPage() {
   }
 
   return (
-    <div className="grid gap-6 px-6 pb-10 pt-4 lg:px-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+    /* Dua kolom mulai 1024px, bukan 1280px.
+       Ambang xl melewatkan SEMUA iPad landscape (1180px dan 1194px) dan
+       bahkan laptop yang dipakai menguji (1262px), sehingga tata letak dua
+       kolom yang sudah dirancang tidak pernah muncul di perangkat yang
+       benar-benar dipakai kasir. Halaman Pelanggan pernah kena persis
+       masalah yang sama dan diturunkan ke lg dengan alasan yang sama. */
+    <div className="grid gap-6 px-6 pb-10 pt-4 lg:grid-cols-[minmax(0,1fr)_352px] lg:px-8 xl:grid-cols-[minmax(0,1fr)_380px]">
       {/* ============ KOLOM KIRI: input transaksi ============ */}
       <div className="min-w-0">
         <header className="mb-6">
@@ -430,7 +436,7 @@ export default function TransaksiPage() {
         <section className="mb-5">
           <Label htmlFor="total">Total tagihan</Label>
           <div className="relative mt-2">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base font-semibold text-muted-foreground">
               Rp
             </span>
             <Input
@@ -440,20 +446,22 @@ export default function TransaksiPage() {
               value={ribuan(total)}
               onChange={(e) => setTotal(angkaDari(e.target.value))}
               placeholder="0"
-              className="h-14 pl-10 text-2xl font-extrabold tabular-nums"
+              className="h-16 pl-11 !text-3xl font-extrabold tabular-nums"
               autoComplete="off"
             />
           </div>
 
-          {/* Nominal cepat: satu ketukan, tanpa mengetik nol berulang */}
-          <div className="mt-2 flex flex-wrap gap-2">
+          {/* Nominal cepat: satu ketukan, tanpa mengetik nol berulang.
+              Tinggi dikunci 44px karena inilah tombol yang paling sering
+              diketuk jari di iPad. Dengan size sm bawaan (28px) tombol ini
+              justru paling sulit dikenai, padahal tujuannya mempercepat. */}
+          <div className="mt-3 flex flex-wrap gap-2">
             {NOMINAL_CEPAT.map((n) => (
               <Button
                 key={n}
                 type="button"
                 variant="outline"
-                size="sm"
-                className="font-semibold tabular-nums"
+                className="h-11 px-4 font-semibold tabular-nums"
                 onClick={() => setTotal((t) => t + n)}
               >
                 +{n / 1000}rb
@@ -462,8 +470,7 @@ export default function TransaksiPage() {
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="font-semibold tabular-nums"
+              className="h-11 px-4 font-semibold tabular-nums"
               onClick={sambungTigaNol}
               title="Menyambung angka: 45 lalu 000 menjadi 45.000"
             >
@@ -473,7 +480,7 @@ export default function TransaksiPage() {
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                className="h-11 px-4"
                 onClick={() => setTotal(0)}
               >
                 Nolkan
@@ -537,14 +544,14 @@ export default function TransaksiPage() {
                 value={poinDipakai ? String(poinDipakai) : ""}
                 onChange={(e) => setPoinDipakai(angkaDari(e.target.value))}
                 placeholder="0"
-                className="h-12 max-w-32 text-lg font-bold tabular-nums"
+                className="h-12 max-w-32 !text-xl font-bold tabular-nums"
                 autoComplete="off"
               />
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  className="h-11 px-4"
                   onClick={() => setPoinDipakai(Math.min(maksPoin, pelanggan.poin))}
                   disabled={maksPoin === 0 || pelanggan.poin === 0}
                 >
@@ -553,7 +560,7 @@ export default function TransaksiPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
+                  className="h-11 px-4"
                   onClick={() => setPoinDipakai(0)}
                   disabled={poinDipakai === 0}
                 >
@@ -573,7 +580,7 @@ export default function TransaksiPage() {
       {/* ============ KOLOM KANAN: ringkasan + riwayat ============ */}
       <div className="space-y-5">
         {/* Ringkasan: menempel saat digulir supaya kasir selalu lihat total */}
-        <section className="rounded-xl border border-border bg-card p-5 xl:sticky xl:top-4">
+        <section className="rounded-xl border border-border bg-card p-5 lg:sticky lg:top-4">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
             Ringkasan
           </p>
@@ -642,23 +649,45 @@ export default function TransaksiPage() {
             </p>
           )}
 
-          <Button
-            className="mt-5 h-12 w-full gap-2 text-base font-bold"
-            onClick={simpanTransaksi}
-            disabled={menyimpan || total <= 0 || hitung.errors.length > 0}
-          >
-            {menyimpan ? (
-              <>
-                <Loader2 className="animate-spin" aria-hidden />
-                Menyimpan…
-              </>
-            ) : (
-              <>
-                <ReceiptText className="h-5 w-5" />
-                Simpan transaksi
-              </>
-            )}
-          </Button>
+          {/*
+            Pada mode satu kolom (di bawah 1024px) tombol ini sebelumnya
+            terdorong ke luar layar: terukur berada di 623px sampai 671px
+            pada layar setinggi 624px, sehingga terpotong 47px dan kasir
+            harus menggulung setiap kali menyimpan. Dibuat menempel di dasar
+            layar supaya tombol utama selalu terjangkau. Pada dua kolom,
+            seluruh panel ringkasan sudah menempel sehingga tidak perlu.
+          */}
+          <div className="sticky bottom-0 z-10 -mx-5 mt-5 border-t border-border bg-card px-5 pb-5 pt-4 lg:static lg:mx-0 lg:border-t-0 lg:p-0 lg:pt-0">
+            {/* Total yang dibayar diulang di sini supaya saat menempel,
+                kasir tetap melihat angka yang harus ditagih tanpa menggulung
+                balik ke atas. Disembunyikan pada dua kolom karena sudah ada
+                di daftar ringkasan tepat di atasnya. */}
+            <div className="mb-3 flex items-baseline justify-between gap-3 lg:hidden">
+              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                Dibayar
+              </span>
+              <span className="text-2xl font-extrabold tabular-nums">
+                {rupiah.format(hitung.net_total)}
+              </span>
+            </div>
+            <Button
+              className="h-12 w-full gap-2 text-base font-bold"
+              onClick={simpanTransaksi}
+              disabled={menyimpan || total <= 0 || hitung.errors.length > 0}
+            >
+              {menyimpan ? (
+                <>
+                  <Loader2 className="animate-spin" aria-hidden />
+                  Menyimpan…
+                </>
+              ) : (
+                <>
+                  <ReceiptText className="h-5 w-5" />
+                  Simpan transaksi
+                </>
+              )}
+            </Button>
+          </div>
         </section>
 
         {/* Riwayat: bukti transaksi benar-benar tercatat */}

@@ -425,3 +425,107 @@ export function hangusTerdekat(ledger: BarisLedger[], hariIni: Date): string | n
   }
   return terdekat;
 }
+
+/**
+ * Daftar penyaring yang tersedia untuk halaman Pelanggan.
+ *
+ * Lencana pada daftar hanya berguna kalau bisa dipakai menyaring. Tanpa ini,
+ * menjawab pertanyaan seperti "siapa yang sudah lama tidak datang" berarti
+ * membaca satu per satu seluruh daftar, padahal lencananya sudah menghitung
+ * hal itu. Urutan tetap sama dengan urutan prioritas lencana supaya yang
+ * paling perlu disapa muncul lebih dulu di daftar tombol.
+ */
+export const SARINGAN_PELANGGAN: { jenis: JenisLencana; label: string }[] = [
+  { jenis: "sepi", label: "Perlu disapa" },
+  { jenis: "belum", label: "Belum transaksi" },
+  { jenis: "baru", label: "Baru" },
+  { jenis: "ultah", label: "Ultah bulan ini" },
+  { jenis: "aktif", label: "Aktif" },
+];
+
+/**
+ * Saring daftar pelanggan berdasarkan lencana, dihitung ulang dari data.
+ *
+ * Lencana TIDAK dibaca dari nilai yang tersimpan, melainkan dihitung lagi di
+ * sini dengan rumus yang sama. Alasannya lencana bergantung pada tanggal hari
+ * ini: lencana yang dihitung kemarin bisa berbeda jenisnya hari ini, sehingga
+ * menyaring dari nilai lama akan menampilkan orang yang salah.
+ */
+export function saringLencana<T extends DataLencana>(
+  daftar: T[],
+  jenis: JenisLencana | null,
+  hariIni: Date,
+): T[] {
+  if (!jenis) return daftar;
+  return daftar.filter((p) => lencanaPelanggan(p, hariIni).jenis === jenis);
+}
+
+/**
+ * Hitung banyaknya pelanggan per jenis lencana, untuk ditampilkan sebagai
+ * angka pada tombol penyaring. Tanpa angka, pengguna harus menebak tombol
+ * mana yang ada isinya, dan tombol kosong terasa seperti kesalahan.
+ */
+export function hitungPerLencana<T extends DataLencana>(
+  daftar: T[],
+  hariIni: Date,
+): Record<JenisLencana, number> {
+  const hasil: Record<JenisLencana, number> = {
+    aktif: 0,
+    baru: 0,
+    sepi: 0,
+    ultah: 0,
+    belum: 0,
+  };
+  for (const p of daftar) {
+    hasil[lencanaPelanggan(p, hariIni).jenis] += 1;
+  }
+  return hasil;
+}
+
+/**
+ * Tinggi baris daftar pelanggan dalam piksel.
+ *
+ * Sebelumnya 76px sehingga satu layar hanya memuat sekitar lima pelanggan.
+ * Angka ini dipakai sebagai acuan pengujian supaya alasan di baliknya tidak
+ * hilang saat tampilan diubah lagi.
+ */
+export const TINGGI_BARIS_PX = 56;
+
+/**
+ * Ambang jumlah pelanggan sebelum pengelompokan huruf awal ditampilkan.
+ * Di bawah ambang ini daftar masih bisa dipindai dengan mata, sehingga
+ * huruf awal hanya menambah baris tanpa manfaat.
+ */
+export const AMBANG_KELOMPOK = 30;
+
+/** Huruf awal untuk pengelompokan daftar. Bukan huruf = "#". */
+export function hurufAwal(nama: string): string {
+  const bersih = (nama || "").trim();
+  if (!bersih) return "#";
+  const c = bersih[0].toUpperCase();
+  return /[A-Z]/.test(c) ? c : "#";
+}
+
+/**
+ * Kelompokkan pelanggan menurut huruf awal namanya, urut A sampai Z dengan
+ * "#" di akhir. Dipakai hanya saat jumlah pelanggan melewati AMBANG_KELOMPOK
+ * supaya daftar panjang tetap bisa dipindai tanpa membaca semuanya.
+ */
+export function kelompokkanHuruf<T extends { nama: string }>(
+  daftar: T[],
+): { huruf: string; isi: T[] }[] {
+  const peta = new Map<string, T[]>();
+  for (const p of daftar) {
+    const h = hurufAwal(p.nama);
+    const isi = peta.get(h);
+    if (isi) isi.push(p);
+    else peta.set(h, [p]);
+  }
+  return [...peta.entries()]
+    .sort(([a], [b]) => {
+      if (a === "#") return 1;
+      if (b === "#") return -1;
+      return a.localeCompare(b);
+    })
+    .map(([huruf, isi]) => ({ huruf, isi }));
+}

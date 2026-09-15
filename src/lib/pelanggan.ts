@@ -35,15 +35,27 @@ export interface InputPelanggan {
  * di test ad-hoc (sisi TypeScript). Ubah keduanya bersamaan.
  */
 export function normalisasiWhatsapp(input: string): string {
-  const digit = (input || "").replace(/\D/g, "");
+  let digit = (input || "").replace(/\D/g, "");
   if (!digit) return "";
-  // Cek "620" DULUAN sebelum "62". Kalau urutannya dibalik, nomor
-  // "6208..." akan lolos apa adanya dan tidak lagi sama dengan versi
-  // SQL, sehingga deteksi duplikat di aplikasi gagal.
-  if (digit.startsWith("620")) return "62" + digit.slice(3);
-  if (digit.startsWith("62")) return digit;
-  if (digit.startsWith("0")) return "62" + digit.slice(1);
-  if (digit.startsWith("8")) return "62" + digit;
+
+  // URUTAN INI MENIRU public.normalisasi_whatsapp() DI DATABASE PERSIS,
+  // termasuk sifatnya yang menerapkan aturan secara berurutan (bukan saling
+  // meniadakan). Database adalah penentu akhir karena indeks uniknya memakai
+  // fungsi itu; kalau versi ini berbeda, aplikasi akan meloloskan nomor yang
+  // kemudian ditolak database dan kasir melihat galat mentah.
+  //
+  // Contoh yang dulu berbeda: "0087654321" (nol tertekan dua kali).
+  //   versi lama di sini -> 62087654321
+  //   database           -> 6287654321
+  // Kasus itu sekarang ada di scripts/uji-pelanggan-tampilan.mts.
+
+  // 0 di depan menjadi 62 (nomor Indonesia).
+  if (digit.startsWith("0")) digit = "62" + digit.slice(1);
+  // 8 di depan (ditulis tanpa 0) juga dianggap 62.
+  if (digit.startsWith("8")) digit = "62" + digit;
+  // 620... (salah tulis 0 setelah 62) dirapikan.
+  if (digit.startsWith("620")) digit = "62" + digit.slice(3);
+
   return digit;
 }
 
