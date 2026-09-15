@@ -16,8 +16,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import {
   hitungPoinTransaksi,
+  jelaskanGalatPoin,
   maxPoinDipakai,
   MIN_REDEEM,
+  poinDiterimaPelanggan,
   POIN_PER_RUPIAH,
   NILAI_POIN,
 } from "@/lib/poin";
@@ -248,7 +250,13 @@ export default function TransaksiPage() {
       return;
     }
     if (hitung.errors.length > 0) {
-      toast.error(hitung.errors[0]);
+      toast.error(
+        jelaskanGalatPoin(hitung.errors[0], {
+          poinDipakai,
+          poinTersedia: pelanggan?.poin ?? 0,
+          maksPoin,
+        }),
+      );
       return;
     }
 
@@ -608,17 +616,36 @@ export default function TransaksiPage() {
             )}
           </dl>
 
-          {pelanggan && hitung.poin_didapat > 0 && (
+          {pelanggan && hitung.poin_didapat > 0 && hitung.errors.length === 0 && (
             <p className="mt-3 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
               Poin dihitung dari tagihan setelah diskon, sebelum potongan poin
               (1 poin per {rupiah.format(POIN_PER_RUPIAH)}).
             </p>
           )}
 
+          {/*
+            Alasan menampilkan sebab di sini, bukan hanya saat tombol ditekan:
+            kasir sedang berhadapan dengan pelanggan. Menunggu sampai tombol
+            ditekan baru memberi tahu penyebabnya membuat kasir menebak, dan
+            pesan sesaat mudah terlewat karena perhatiannya ke pelanggan.
+          */}
+          {total > 0 && hitung.errors.length > 0 && (
+            <p
+              role="status"
+              className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-medium leading-relaxed text-destructive"
+            >
+              {jelaskanGalatPoin(hitung.errors[0], {
+                poinDipakai,
+                poinTersedia: pelanggan?.poin ?? 0,
+                maksPoin,
+              })}
+            </p>
+          )}
+
           <Button
             className="mt-5 h-12 w-full gap-2 text-base font-bold"
             onClick={simpanTransaksi}
-            disabled={menyimpan || total <= 0}
+            disabled={menyimpan || total <= 0 || hitung.errors.length > 0}
           >
             {menyimpan ? (
               <>
@@ -681,12 +708,20 @@ export default function TransaksiPage() {
                           {t.pelanggan?.nama ?? "Tanpa pelanggan"}
                           {t.external_ref ? ` · ${t.external_ref}` : ""}
                         </p>
-                        {t.poin_didapat > 0 && (
+                        {poinDiterimaPelanggan(
+                          Boolean(t.pelanggan),
+                          t.poin_didapat,
+                        ) > 0 && (
                           <Badge
                             variant="secondary"
                             className="shrink-0 text-[10px] tabular-nums"
                           >
-                            +{t.poin_didapat} poin
+                            +
+                            {poinDiterimaPelanggan(
+                              Boolean(t.pelanggan),
+                              t.poin_didapat,
+                            )}{" "}
+                            poin
                           </Badge>
                         )}
                       </div>

@@ -67,6 +67,57 @@ export function validateRedeem(
   return errors;
 }
 
+/**
+ * Poin yang BENAR-BENAR diterima pelanggan dari sebuah transaksi.
+ *
+ * Kolom `poin_didapat` di tabel transaksi diisi trigger dari basis hitungan,
+ * tetapi poin hanya dicatat ke buku besar bila transaksinya punya pelanggan.
+ * Transaksi tanpa pelanggan karena itu bisa menyimpan angka lebih besar dari
+ * nol padahal tidak ada seorang pun yang menerimanya. Menampilkan angka itu
+ * apa adanya membuat kasir mengira poin sudah terbagi.
+ */
+export function poinDiterimaPelanggan(
+  punyaPelanggan: boolean,
+  poinDidapat: number,
+): number {
+  if (!punyaPelanggan) return 0;
+  const n = Number(poinDidapat) || 0;
+  return n > 0 ? n : 0;
+}
+
+/**
+ * Ubah kode galat teknis dari hitungPoinTransaksi menjadi kalimat yang
+ * dimengerti kasir, lengkap dengan angka yang sedang dipakai.
+ *
+ * Kode galat sengaja tetap memakai nama kolom supaya mudah dicari saat
+ * menelusuri masalah, tetapi kalimat itu tidak boleh sampai ke layar kasir.
+ */
+export function jelaskanGalatPoin(
+  kode: string,
+  ctx: { poinDipakai?: number; poinTersedia?: number; maksPoin?: number } = {},
+): string {
+  const dipakai = Number(ctx.poinDipakai) || 0;
+  const tersedia = Number(ctx.poinTersedia) || 0;
+  const maks = Number(ctx.maksPoin) || 0;
+
+  if (kode.includes("melebihi poin tersedia"))
+    return `Poin pelanggan hanya ${tersedia}, tidak cukup untuk menukar ${dipakai} poin.`;
+  if (kode.includes("minimum tukar poin"))
+    return `Penukaran poin paling sedikit ${MIN_REDEEM} poin. Saat ini baru ${dipakai} poin.`;
+  if (kode.includes("potongan poin melebihi"))
+    return `Potongan poin melebihi tagihan. Maksimal ${maks} poin untuk tagihan ini.`;
+  if (kode.includes("tidak boleh negatif"))
+    return "Jumlah poin tidak boleh minus.";
+  if (kode.includes("total harus lebih dari 0"))
+    return "Total tagihan belum diisi.";
+  if (kode.includes("diskon melebihi"))
+    return "Diskon promo melebihi total tagihan.";
+  if (kode.includes("diskon tidak boleh negatif"))
+    return "Diskon promo tidak boleh minus.";
+  // Kode yang belum dikenal tidak pernah ditampilkan mentah.
+  return "Rincian pembayaran belum benar. Periksa lagi total, diskon, dan poin.";
+}
+
 export function hitungPoinTransaksi(input: InputHitungPoin): HasilHitungPoin {
   const total = Number(input.total) || 0;
   const diskon = Number(input.diskon) || 0;
