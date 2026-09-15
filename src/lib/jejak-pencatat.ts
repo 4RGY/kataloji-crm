@@ -121,3 +121,108 @@ export function ringkasRekap(baris: BarisRekapPencatat[]): string {
   if (tanpaJejak === 0) return bagianStaf;
   return `${bagianStaf} ${tanpaJejak} transaksi lama belum punya nama pencatat.`;
 }
+
+/** Pilihan periode pada halaman rekap. `hari` null berarti sepanjang waktu. */
+export const PERIODE_REKAP: { kunci: string; label: string; hari: number | null }[] = [
+  { kunci: "7d", label: "7 hari", hari: 7 },
+  { kunci: "30d", label: "30 hari", hari: 30 },
+  { kunci: "all", label: "Semua", hari: null },
+];
+
+/** Satu baris transaksi seperlunya untuk menyusun rekap sendiri. */
+export interface BarisTransaksiRekap {
+  total: number;
+  dicatat_oleh: string | null;
+  dicatat_oleh_nama: string | null;
+  created_at: string;
+}
+
+/**
+ * Susun rekap dari daftar transaksi, dengan batas periode.
+ *
+ * View `rekap_pencatat_transaksi` di database TIDAK bisa disaring periode
+ * karena sudah teragregasi. Menyaring per periode harus dilakukan dari baris
+ * transaksinya, dan itu sebabnya rekap dihitung ulang di sini alih-alih
+ * membaca view tersebut. Hasil dengan `hari = null` harus sama persis
+ * dengan isi view, dan itu diuji di harness.
+ *
+ * Pengelompokan memakai `dicatat_oleh` (id staf) kalau ada. Kalau kosong,
+ * barulah namanya dipakai sebagai kunci, supaya baris "sebelum fitur ini"
+ * tidak pecah menjadi banyak baris.
+ */
+export function susunRekap(
+  transaksi: BarisTransaksiRekap[],
+  hari: number | null,
+  sekarang: Date,
+): BarisRekapPencatat[] {
+  let batas: number | null = null;
+  if (hari !== null) {
+    const d = new Date(sekarang);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (hari - 1));
+    batas = d.getTime();
+  }
+
+  const peta = new Map<string, BarisRekapPencatat>();
+
+  for (const t of transaksi || []) {
+    const waktu = new Date(t.created_at).getTime();
+    if (!Number.isFinite(waktu)) continue;
+    if (batas !== null && waktu < batas) continue;
+
+    const nama = t.dicatat_oleh_nama ?? LABEL_SEBELUM_FITUR;
+    const kunci = t.dicatat_oleh ?? `nama:${nama}`;
+    const ada = peta.get(kunci);
+
+    if (ada) {
+      ada.jumlah_transaksi += 1;
+      ada.total_omzet += Math.max(0, Number(t.total) || 0);
+      if (!ada.terakhir_mencatat || t.created_at > ada.terakhir_mencatat) {
+        ada.terakhir_mencatat = t.created_at;
+      }
+    } else {
+      peta.set(kunci, {
+        staf_id: t.dicatat_oleh,
+        nama,
+        jumlah_transaksi: 1,
+        total_omzet: Math.max(0, Number(t.total) || 0),
+        terakhir_mencatat: t.created_at,
+      });
+    }
+  }
+
+  return urutkanRekap([...peta.values()]);
+}
+
+/** Rata-rata nilai per struk. Nol transaksi menghasilkan nol, bukan NaN. */
+export function rataPerStrukStaf(totalOmzet: number, jumlah: number): number {
+  const n = Number(jumlah) || 0;
+  if (n <= 0) return 0;
+  const o = Number(totalOmzet) || 0;
+  return Math.round(o / n);
+}
+
+/**
+ * Bagian omzet seorang staf terhadap seluruh omzet pada periode itu,
+ * dalam persen bulat 0 sampai 100. Dipakai sebagai panjang batang.
+ */
+export function bagianOmzet(omzetStaf: number, omzetSemua: number): number {
+  const semua = Number(omzetSemua) || 0;
+  if (semua <= 0) return 0;
+  const bagian = Math.round(((Number(omzetStaf) || 0) / semua) * 100);
+  return Math.min(100, Math.max(0, bagian));
+}
+
+/** Total seluruh baris rekap, untuk baris penutup tabel. */
+export function totalRekap(baris: BarisRekapPencatat[]): {
+  transaksi: number;
+  omzet: number;
+} {
+  return (baris || []).reduce(
+    (a, b) => ({
+      transaksi: a.transaksi + (Number(b.jumlah_transaksi) || 0),
+      omzet: a.omzet + (Number(b.total_omzet) || 0),
+    }),
+    { transaksi: 0, omzet: 0 },
+  );
+}

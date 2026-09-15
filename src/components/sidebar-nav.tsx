@@ -14,6 +14,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  ClipboardList,
   UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -73,8 +74,15 @@ const KELOMPOK_NAV: {
 
 // Menu yang hanya boleh dilihat admin. Disembunyikan dari peran lain
 // supaya kasir tidak diarahkan ke halaman yang akan menolaknya. Ini
-// hanya soal tampilan; penolakan sebenarnya ada di route /api/staf.
-const MENU_ADMIN = { href: "/staf", label: "Staf", icon: UserCog };
+// hanya soal tampilan; penolakan sebenarnya ada di route /api/staf dan
+// pada pemeriksaan peran di tiap halaman.
+//
+// Rekap kasir ikut di sini karena isinya membandingkan kinerja antar staf,
+// dan itu bukan urusan sesama kasir.
+const MENU_ADMIN = [
+  { href: "/rekap-kasir", label: "Rekap kasir", icon: ClipboardList },
+  { href: "/staf", label: "Staf", icon: UserCog },
+];
 
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
@@ -182,7 +190,7 @@ export function SidebarNav() {
         {KELOMPOK_NAV.map((kelompok, iKelompok) => {
           const menu =
             kelompok.judul === "Sistem" && bolehStaf
-              ? [...kelompok.menu, MENU_ADMIN]
+              ? [...kelompok.menu, ...MENU_ADMIN]
               : kelompok.menu;
 
           return (

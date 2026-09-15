@@ -12,11 +12,16 @@
 import {
   LABEL_SEBELUM_FITUR,
   LABEL_SISTEM,
+  bagianOmzet,
   bukanNamaOrang,
   inisialPencatat,
   labelPencatat,
   namaPendekPencatat,
+  PERIODE_REKAP,
+  rataPerStrukStaf,
   ringkasRekap,
+  susunRekap,
+  totalRekap,
   urutkanRekap,
 } from "../src/lib/jejak-pencatat.ts";
 
@@ -157,6 +162,112 @@ for (const nilai of MENTAH) {
   }
 }
 sama("tidak ada penanda panjang yang tampil mentah", bocor, 0);
+
+// ===================== susunRekap =====================
+// Tanggal acuan tetap, bukan jam sistem, supaya uji yang lulus hari ini
+// tidak gagal bulan depan.
+const KINI = new Date("2026-09-15T20:00:00");
+
+// Data ini MENIRU isi database sungguhan pada 15 Sep 2026: empat transaksi
+// lama tanpa jejak pencatat, satu transaksi baru oleh admin. Hasil dengan
+// hari = null harus sama persis dengan isi view rekap_pencatat_transaksi.
+const ID_WAHYU = "18bdfad4-39ad-48ff-9408-4446220cede7";
+const trxAsli = [
+  { total: 32000, dicatat_oleh: null, dicatat_oleh_nama: LABEL_SEBELUM_FITUR, created_at: "2026-09-14T11:15:28Z" },
+  { total: 32000, dicatat_oleh: null, dicatat_oleh_nama: LABEL_SEBELUM_FITUR, created_at: "2026-09-14T11:26:10Z" },
+  { total: 100000, dicatat_oleh: null, dicatat_oleh_nama: LABEL_SEBELUM_FITUR, created_at: "2026-09-14T11:33:43Z" },
+  { total: 47000, dicatat_oleh: null, dicatat_oleh_nama: LABEL_SEBELUM_FITUR, created_at: "2026-09-14T12:14:05Z" },
+  { total: 47000, dicatat_oleh: ID_WAHYU, dicatat_oleh_nama: "wahyu@kataloji.id", created_at: "2026-09-15T04:02:56Z" },
+];
+
+const rekapSemua = susunRekap(trxAsli, null, KINI);
+sama("rekap menghasilkan dua baris", rekapSemua.length, 2);
+sama("staf sungguhan berada di atas", rekapSemua[0].nama, "wahyu@kataloji.id");
+sama("baris tanpa jejak didorong ke bawah", rekapSemua[1].nama, LABEL_SEBELUM_FITUR);
+
+// Angka di bawah ini disalin dari hasil query view sungguhan.
+sama("jumlah transaksi staf cocok dengan view", rekapSemua[0].jumlah_transaksi, 1);
+sama("omzet staf cocok dengan view", rekapSemua[0].total_omzet, 47000);
+sama("jumlah transaksi tanpa jejak cocok dengan view", rekapSemua[1].jumlah_transaksi, 4);
+sama("omzet tanpa jejak cocok dengan view", rekapSemua[1].total_omzet, 211000);
+sama("id staf terbawa", rekapSemua[0].staf_id, ID_WAHYU);
+sama("baris tanpa jejak tidak mengarang id", rekapSemua[1].staf_id, null);
+
+// Empat transaksi lama dikelompokkan jadi SATU baris, bukan empat.
+sama(
+  "transaksi tanpa id staf tidak pecah jadi banyak baris",
+  susunRekap(trxAsli, null, KINI).filter((b) => b.staf_id === null).length,
+  1,
+);
+
+sama("waktu terakhir mencatat diambil yang terbaru", rekapSemua[1].terakhir_mencatat, "2026-09-14T12:14:05Z");
+
+// Penyaringan periode. Transaksi 14 Sep berada di luar jangkauan 1 hari.
+sama("periode 1 hari hanya memuat transaksi hari ini", susunRekap(trxAsli, 1, KINI).length, 1);
+sama("periode 1 hari menyisakan staf yang benar", susunRekap(trxAsli, 1, KINI)[0].nama, "wahyu@kataloji.id");
+sama("periode 7 hari memuat semuanya", susunRekap(trxAsli, 7, KINI).length, 2);
+sama("periode 30 hari memuat semuanya", susunRekap(trxAsli, 30, KINI).length, 2);
+
+sama("daftar kosong menghasilkan rekap kosong", susunRekap([], null, KINI).length, 0);
+sama(
+  "tanggal ngawur dilewati, bukan bikin baris palsu",
+  susunRekap(
+    [{ total: 1000, dicatat_oleh: null, dicatat_oleh_nama: "X", created_at: "bukan-tanggal" }],
+    null,
+    KINI,
+  ).length,
+  0,
+);
+sama(
+  "nama kosong dianggap sebelum fitur ini",
+  susunRekap(
+    [{ total: 1000, dicatat_oleh: null, dicatat_oleh_nama: null, created_at: "2026-09-15T05:00:00Z" }],
+    null,
+    KINI,
+  )[0].nama,
+  LABEL_SEBELUM_FITUR,
+);
+sama(
+  "nilai total negatif tidak mengurangi omzet",
+  susunRekap(
+    [{ total: -5000, dicatat_oleh: "a", dicatat_oleh_nama: "A", created_at: "2026-09-15T05:00:00Z" }],
+    null,
+    KINI,
+  )[0].total_omzet,
+  0,
+);
+
+// ===================== rataPerStrukStaf =====================
+sama("rata per struk dibulatkan", rataPerStrukStaf(211000, 4), 52750);
+sama("satu transaksi sama dengan nilainya", rataPerStrukStaf(47000, 1), 47000);
+sama("nol transaksi tidak menghasilkan NaN", rataPerStrukStaf(0, 0), 0);
+sama("pembagi nol aman", rataPerStrukStaf(99000, 0), 0);
+sama("nilai bukan angka aman", rataPerStrukStaf(Number.NaN, 3), 0);
+
+// ===================== bagianOmzet =====================
+sama("bagian omzet dihitung persen", bagianOmzet(47000, 258000), 18);
+sama("bagian penuh seratus persen", bagianOmzet(100, 100), 100);
+sama("omzet nol tidak menghasilkan NaN", bagianOmzet(0, 0), 0);
+sama("pembagi nol aman", bagianOmzet(5000, 0), 0);
+sama("tidak pernah melebihi seratus", bagianOmzet(999, 100), 100);
+sama("tidak pernah negatif", bagianOmzet(-50, 100), 0);
+
+// ===================== totalRekap =====================
+const tot = totalRekap(rekapSemua);
+sama("total transaksi menjumlah semua baris", tot.transaksi, 5);
+sama("total omzet menjumlah semua baris", tot.omzet, 258000);
+sama("rekap kosong menghasilkan nol", totalRekap([]), { transaksi: 0, omzet: 0 });
+
+// Total rekap harus sama dengan jumlah seluruh transaksi yang masuk periode.
+sama(
+  "total rekap konsisten dengan sumbernya",
+  totalRekap(rekapSemua).omzet,
+  trxAsli.reduce((n, t) => n + t.total, 0),
+);
+
+// ===================== PERIODE_REKAP =====================
+sama("periode yang ditawarkan", PERIODE_REKAP.map((p) => p.label), ["7 hari", "30 hari", "Semua"]);
+sama("pilihan semua tidak punya batas hari", PERIODE_REKAP[2].hari, null);
 
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);
