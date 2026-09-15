@@ -161,18 +161,13 @@ export default function HalamanRekapKasir() {
   // Bukan admin: tidak menampilkan satu angka pun. Menampilkan tabel kosong
   // dengan tombol saring hanya menyesatkan, seperti pada halaman Staf.
   //
-  // JUJUR SOAL BATAS PENJAGAAN INI:
-  // Penyaringan di sini bersifat TAMPILAN, bukan penegakan database. Kasir
-  // memang berhak membaca tabel `transaksi` (dia butuh untuk riwayat di
-  // layar kasir), dan view `rekap_pencatat_transaksi` memakai
-  // security_invoker sehingga ikut aturan yang sama. Artinya kasir yang
-  // paham teknis tetap bisa menyusun rekap ini sendiri lewat API.
-  //
-  // Yang dicegah di sini adalah hal yang nyata terjadi di kedai: kasir
-  // membuka menu lalu tanpa sengaja melihat perbandingan kinerja rekannya.
-  // Untuk benar-benar menutupnya, RLS tabel transaksi harus dipersempit,
-  // dan itu akan mematahkan riwayat di layar kasir. Keputusan itu bukan
-  // milik kode ini, jadi batasnya ditulis apa adanya daripada diklaim aman.
+  // Ini penjagaan TAMPILAN, bukan penegakan database. Kasir berhak membaca
+  // tabel `transaksi` (butuh untuk riwayat di layar kasir), dan view-nya
+  // memakai security_invoker sehingga ikut aturan yang sama. Jadi kasir yang
+  // paham teknis masih bisa menyusun rekap ini lewat API. Yang dicegah di
+  // sini hal yang nyata terjadi di kedai: membuka menu lalu tanpa sengaja
+  // melihat perbandingan kinerja rekan. Menutupnya sampai database menuntut
+  // RLS `transaksi` dipersempit, dan itu mematahkan layar kasir.
   if (bolehLihat === false) {
     return (
       <div className="px-6 pb-10 pt-4 lg:px-8">
