@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import { catatGalat, pesanGalat } from "@/lib/pesan-galat";
+import { bolehLihatRekap } from "@/lib/staf";
 import {
   bagianOmzet,
   bukanNamaOrang,
@@ -100,7 +101,9 @@ export default function HalamanRekapKasir() {
       const role = profil?.role ?? null;
       setPeranSaya(role);
 
-      const boleh = role === "admin" || role === "manager";
+      // Syarat yang sama dipakai sidebar, supaya menu dan halaman tidak
+      // pernah berbeda pendapat.
+      const boleh = bolehLihatRekap(role);
       setBolehLihat(boleh);
 
       if (!boleh) {

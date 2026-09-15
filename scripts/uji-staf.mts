@@ -14,6 +14,8 @@ import {
   namaPanggilan,
   inisial,
   isRole,
+  menuUntukPeran,
+  bolehLihatRekap,
 } from "../src/lib/staf.ts";
 
 let gagal = 0;
@@ -240,6 +242,36 @@ sama("inisial dari email", inisial("wahyu@kataloji.id"), "WA");
 sama("inisial kosong", inisial(""), "?");
 sama("inisial spasi saja", inisial("   "), "?");
 sama("inisial dengan titik", inisial("sinta.dewi"), "SD");
+
+// ============ menuUntukPeran & bolehLihatRekap ============
+// Latar: manajer sempat TIDAK melihat menu "Rekap kasir" padahal halamannya
+// mengizinkan dia masuk dan menampilkan seluruh datanya. Menu yang hilang
+// untuk halaman yang boleh dibuka membuat fiturnya seperti tidak ada.
+// Syarat menu dan syarat halaman sekarang memakai fungsi yang sama.
+
+sama("admin melihat kedua menu", menuUntukPeran("admin"), { rekap: true, staf: true });
+sama("manajer melihat rekap tapi bukan kelola staf", menuUntukPeran("manager"), { rekap: true, staf: false });
+sama("kasir tidak melihat keduanya", menuUntukPeran("kasir"), { rekap: false, staf: false });
+
+sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false });
+sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false });
+sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false });
+
+// Kelola akun staf adalah satu-satunya yang benar-benar khusus admin.
+sama("hanya admin yang boleh kelola staf",
+  ["admin", "manager", "kasir", null].map((r) => menuUntukPeran(r).staf),
+  [true, false, false, false]);
+
+// Inti perbaikannya: menu dan halaman WAJIB sepakat.
+sama("syarat menu dan syarat halaman selalu sama",
+  ["admin", "manager", "kasir", null, "aneh"].every(
+    (r) => menuUntukPeran(r).rekap === bolehLihatRekap(r),
+  ),
+  true);
+
+sama("bolehLihatRekap admin", bolehLihatRekap("admin"), true);
+sama("bolehLihatRekap manajer", bolehLihatRekap("manager"), true);
+sama("bolehLihatRekap kasir", bolehLihatRekap("kasir"), false);
 
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);

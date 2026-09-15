@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { menuUntukPeran } from "@/lib/staf";
 import {
   LayoutDashboard,
   Users,
@@ -72,17 +73,13 @@ const KELOMPOK_NAV: {
   },
 ];
 
-// Menu yang hanya boleh dilihat admin. Disembunyikan dari peran lain
-// supaya kasir tidak diarahkan ke halaman yang akan menolaknya. Ini
-// hanya soal tampilan; penolakan sebenarnya ada di route /api/staf dan
-// pada pemeriksaan peran di tiap halaman.
-//
-// Rekap kasir ikut di sini karena isinya membandingkan kinerja antar staf,
-// dan itu bukan urusan sesama kasir.
-const MENU_ADMIN = [
-  { href: "/rekap-kasir", label: "Rekap kasir", icon: ClipboardList },
-  { href: "/staf", label: "Staf", icon: UserCog },
-];
+const MENU_REKAP = {
+  href: "/rekap-kasir",
+  label: "Rekap kasir",
+  icon: ClipboardList,
+};
+
+const MENU_STAF = { href: "/staf", label: "Staf", icon: UserCog };
 
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
@@ -154,10 +151,11 @@ export function SidebarNav() {
   const namaTampil = profil?.nama ?? "Memuat";
   const roleTampil = profil ? LABEL_ROLE[profil.role] ?? profil.role : "";
 
-  // Menu Staf hanya muncul untuk admin. Sengaja memakai hasil baca profil
-  // dari database, bukan email atau tebakan dari sesi, karena peran adalah
-  // data yang hanya boleh ditentukan server.
-  const bolehStaf = profil?.role === "admin";
+  // Peran dibaca dari hasil profil di database, bukan dari email atau
+  // tebakan sesi, karena peran adalah data yang hanya boleh ditentukan
+  // server. Aturan menu ada di src/lib/staf.ts supaya bisa diuji dan supaya
+  // syaratnya sama persis dengan yang dipakai halamannya.
+  const hakMenu = menuUntukPeran(profil?.role);
 
   return (
     <aside
@@ -189,8 +187,12 @@ export function SidebarNav() {
       >
         {KELOMPOK_NAV.map((kelompok, iKelompok) => {
           const menu =
-            kelompok.judul === "Sistem" && bolehStaf
-              ? [...kelompok.menu, ...MENU_ADMIN]
+            kelompok.judul === "Sistem"
+              ? [
+                  ...kelompok.menu,
+                  ...(hakMenu.rekap ? [MENU_REKAP] : []),
+                  ...(hakMenu.staf ? [MENU_STAF] : []),
+                ]
               : kelompok.menu;
 
           return (

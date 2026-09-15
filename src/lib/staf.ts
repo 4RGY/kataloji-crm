@@ -174,3 +174,41 @@ export function inisial(nama: string): string {
   if (kata.length === 1) return kata[0].slice(0, 2).toUpperCase();
   return (kata[0][0] + kata[1][0]).toUpperCase();
 }
+
+/**
+ * Menu yang boleh dilihat sebuah peran.
+ *
+ * Dipisah dari komponen supaya bisa diuji tanpa merender apa pun, dan
+ * supaya aturannya cuma hidup di satu tempat. Sebelum ini syaratnya ditulis
+ * langsung di dalam komponen, dan akibatnya manajer tidak melihat menu
+ * "Rekap kasir" padahal halamannya mengizinkan dia masuk dan menampilkan
+ * datanya. Menu yang hilang untuk halaman yang sebenarnya boleh dibuka
+ * membuat fiturnya seperti tidak ada.
+ *
+ * Aturannya:
+ *   admin     semua menu
+ *   manager   rekap kasir, TIDAK boleh kelola akun staf
+ *   kasir     tidak keduanya
+ */
+export interface MenuKhusus {
+  rekap: boolean;
+  staf: boolean;
+}
+
+export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
+  if (role === "admin") return { rekap: true, staf: true };
+  if (role === "manager") return { rekap: true, staf: false };
+  return { rekap: false, staf: false };
+}
+
+/**
+ * Boleh tidaknya membuka halaman Rekap kasir.
+ *
+ * WAJIB sama dengan menuUntukPeran().rekap. Kalau halaman mengizinkan
+ * sementara menunya disembunyikan, fiturnya jadi tidak bisa ditemukan; kalau
+ * menunya muncul sementara halaman menolak, pengguna menekan pintu yang
+ * terkunci.
+ */
+export function bolehLihatRekap(role: string | null | undefined): boolean {
+  return menuUntukPeran(role).rekap;
+}
