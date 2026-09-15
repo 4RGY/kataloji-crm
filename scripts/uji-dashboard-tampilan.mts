@@ -21,6 +21,7 @@ import {
   ringkasJamTeramai,
   hitungPapanLoyalitas,
   hitungPoinDiberikan,
+  rataPerStruk,
   angkaKunci,
   type BarisLedger,
   type BarisTransaksi,
@@ -389,6 +390,15 @@ sama("tanpa transaksi rata-rata nol, bukan NaN", nol[0].nilai, rp(0));
 sama("tanpa transaksi hari nol", nol[3].nilai, "0");
 benar("tidak ada NaN di kartu angka", !nol.some((k) => k.nilai.includes("NaN") || k.keterangan.includes("NaN")));
 
+// ── rataPerStruk: besar belanja tiap orang, bukan ramai tidaknya hari ──
+sama("rata per struk membagi omzet dengan jumlah transaksi", rataPerStruk(258_000, 5), 51_600);
+sama("satu transaksi, rata-rata sama dengan omzetnya", rataPerStruk(47_000, 1), 47_000);
+sama("tanpa transaksi hasilnya nol, bukan NaN", rataPerStruk(0, 0), 0);
+sama("omzet ada tetapi transaksi nol tetap nol", rataPerStruk(100_000, 0), 0);
+sama("jumlah transaksi minus tidak menghasilkan angka minus", rataPerStruk(100_000, -3), 0);
+sama("hasil pembagian dibulatkan, bukan pecahan", rataPerStruk(100_000, 3), 33_333);
+benar("hasilnya selalu bilangan bulat", Number.isInteger(rataPerStruk(258_000, 7)));
+
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);
-if (gagal > 0) process.exit(1);
+process.exitCode = gagal === 0 ? 0 : 1;

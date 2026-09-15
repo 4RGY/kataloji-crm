@@ -11,6 +11,7 @@ import { catatGalat } from "@/lib/pesan-galat";
 import {
   hitungPapanLoyalitas,
   hitungPoinDiberikan,
+  rataPerStruk,
   ringkasJamTeramai,
   sebaranJam,
   type BarisLedger,
@@ -254,6 +255,7 @@ export default function DashboardPage() {
     return {
       omzet,
       rataHarian,
+      rataPerStruk: rataPerStruk(omzet, tersaring.length),
       terbesar,
       jumlah: tersaring.length,
       pelangganBaru,
@@ -474,7 +476,7 @@ export default function DashboardPage() {
                 {metrik.omzet.toLocaleString("id-ID")}
               </p>
 
-              <div className="mt-6 grid grid-cols-2 gap-4 border-t border-primary/15 pt-5">
+              <div className="mt-6 grid grid-cols-2 gap-4 border-t border-primary/15 pt-5 sm:grid-cols-3">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground">
                     Rata-rata harian
@@ -489,6 +491,14 @@ export default function DashboardPage() {
                   </p>
                   <p className="mt-1 text-lg font-bold tabular-nums">
                     {rupiah.format(metrik.terbesar)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Rata-rata per struk
+                  </p>
+                  <p className="mt-1 text-lg font-bold tabular-nums">
+                    {rupiah.format(metrik.rataPerStruk)}
                   </p>
                 </div>
               </div>
@@ -506,27 +516,35 @@ export default function DashboardPage() {
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                 Rincian · {period}
               </p>
-              {/* Selalu ditumpuk ke bawah, tidak pernah berdampingan.
-                  Sebelumnya di layar 1280px ke atas kelas xl:grid-cols-3
-                  membuat ketiganya berdampingan sehingga lebarnya menyusut
-                  jadi sekitar 386px, dan karena kartunya ditarik tinggi agar
-                  sejajar dengan kartu omzet, tiap kartu jadi setinggi 205px
-                  padahal isinya hanya sekitar 48px. Ruang kosong itulah yang
-                  membuat bagian bawah dashboard tampak menggantung.
-                  Ditumpuk, ketiganya setinggi 237px dan hampir sejajar dengan
-                  kartu omzet yang 277px. */}
-              <div className="flex flex-1 flex-col gap-px overflow-hidden rounded-xl border border-border bg-border/60">
+              {/* Dibariskan, bukan ditumpuk sebagai tiga kartu.
+                  Versi sebelumnya membuat tiap kartu ditarik tinggi agar
+                  sejajar dengan kartu omzet, sehingga isi yang hanya sekitar
+                  48px duduk di dalam kotak 205px. Sebagai baris, tinggi
+                  kartu mengikuti isinya dan angkanya terbaca berurutan. */}
+              <div className="flex flex-1 flex-col justify-center rounded-xl border border-border bg-card px-5 py-2">
                 {[
-                  { label: "Transaksi", nilai: metrik.jumlah.toLocaleString("id-ID") },
-                  { label: "Pelanggan baru", nilai: metrik.pelangganBaru.toLocaleString("id-ID") },
-                  { label: "Poin diberikan", nilai: metrik.poinDiberikan.toLocaleString("id-ID") },
+                  { label: "Transaksi", nilai: metrik.jumlah.toLocaleString("id-ID"), tanda: null },
+                  { label: "Pelanggan baru", nilai: metrik.pelangganBaru.toLocaleString("id-ID"), tanda: null },
+                  {
+                    label: "Poin diberikan",
+                    nilai: metrik.poinDiberikan.toLocaleString("id-ID"),
+                    tanda: metrik.poinDiberikan > 0 ? "tercatat di buku poin" : null,
+                  },
                 ].map((s) => (
-                  <div key={s.label} className="flex flex-1 flex-col justify-center bg-card px-5 py-4">
-                    <p className="text-xs font-semibold text-muted-foreground">
+                  <div
+                    key={s.label}
+                    className="flex items-center justify-between gap-3 border-b border-dashed border-border py-3.5 last:border-b-0"
+                  >
+                    <p className="text-sm font-semibold text-muted-foreground">
                       {s.label}
                     </p>
-                    <p className="mt-1 text-2xl font-extrabold tabular-nums">
+                    <p className="flex items-center gap-2 text-2xl font-extrabold tabular-nums">
                       {s.nilai}
+                      {s.tanda && (
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">
+                          {s.tanda}
+                        </span>
+                      )}
                     </p>
                   </div>
                 ))}
@@ -572,6 +590,13 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <>
+                    {/* Batang dibatasi lebarnya, bukan flex-1 murni.
+                        Dengan flex-1 saja, satu hari data membuat batangnya
+                        melebar mengikuti kartu (terukur 892px) sehingga tidak
+                        lagi terbaca sebagai batang, melainkan sebagai blok
+                        warna yang tampak seperti kegagalan memuat grafik.
+                        basis-11 + max-w-[72px] menjaga bentuk batang tetap
+                        batang, berapa pun jumlah harinya. */}
                     <div className="flex h-52 items-end gap-1.5">
                       {seri.map((s) => {
                         const tinggi = maksSeri > 0 ? (s.nilai / maksSeri) * 100 : 0;
@@ -583,8 +608,7 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={s.hari}
-                            className="group relative flex min-w-0 flex-1 flex-col items-center justify-end"
-                            style={{ height: "100%" }}
+                            className="group relative flex h-full min-w-0 flex-1 basis-11 flex-col items-center justify-end sm:max-w-[72px]"
                           >
                             {/* tooltip sederhana saat disorot */}
                             <span className="pointer-events-none absolute -top-1 z-10 hidden -translate-y-full whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[11px] font-semibold tabular-nums text-popover-foreground shadow-md group-hover:block">
@@ -600,6 +624,19 @@ export default function DashboardPage() {
                           </div>
                         );
                       })}
+                      {/* Sisa ruang diisi penanda bergaris yang menyatakan
+                          dirinya belum berisi, bukan dibiarkan kosong atau
+                          diisi batang melar yang membohongi pembaca. */}
+                      {seri.length < 7 && (
+                        <div
+                          aria-hidden
+                          className="flex h-full flex-[2] items-center justify-center rounded-lg border border-dashed border-border/70"
+                        >
+                          <p className="px-3 text-center text-[11px] leading-snug text-muted-foreground/70">
+                            Hari berikutnya akan terisi di sini
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
                       Menampilkan {seri.length} hari terakhir yang ada transaksi.

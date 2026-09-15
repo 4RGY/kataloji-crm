@@ -251,6 +251,23 @@ export function hitungPoinDiberikan(
   );
 }
 
+/**
+ * Omzet rata-rata per struk.
+ *
+ * Dipisahkan dari "rata-rata harian" karena keduanya menjawab pertanyaan
+ * berbeda: rata-rata harian menunjukkan ramai tidaknya hari, sedangkan
+ * rata-rata per struk menunjukkan besar belanja tiap orang. Pemilik memakai
+ * angka kedua untuk menilai apakah penawaran paket layak dinaikkan.
+ *
+ * Pembagi memakai jumlah transaksi, bukan jumlah pelanggan, supaya transaksi
+ * tanpa data pelanggan tetap terhitung. Kalau dibagi jumlah pelanggan,
+ * angkanya akan melambung pada hari yang banyak pembeli tanpa data.
+ */
+export function rataPerStruk(omzet: number, jumlahTransaksi: number): number {
+  if (!jumlahTransaksi || jumlahTransaksi <= 0) return 0;
+  return Math.round(omzet / jumlahTransaksi);
+}
+
 /** Satu kartu pada papan angka kunci (dipakai varian B, tetap diuji). */
 export interface KartuAngka {
   label: string;
