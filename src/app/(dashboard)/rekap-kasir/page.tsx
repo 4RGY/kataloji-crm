@@ -329,8 +329,7 @@ export default function HalamanRekapKasir() {
                             audit tidak ada yang membacanya sebagai nama staf. */}
                         {khusus && (
                           <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                            Dicatat sebelum fitur jejak ada, pelakunya tidak
-                            diketahui dan sengaja tidak ditebak.
+                            Transaksi lama, sebelum nama pencatat mulai disimpan
                           </p>
                         )}
                       </div>
@@ -402,9 +401,8 @@ export default function HalamanRekapKasir() {
       </section>
 
       <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        Nama pencatat menempel pada transaksi saat disimpan dan tidak bisa
-        diubah setelahnya, termasuk oleh admin. Rekap ini dipakai saat menelusuri
-        selisih kas, jadi angkanya sengaja ditampilkan apa adanya.
+        Nama pencatat menempel saat transaksi disimpan dan tidak bisa diubah
+        lagi, termasuk oleh admin.
       </p>
     </div>
   );

@@ -348,17 +348,15 @@ export default function HalamanLoyalitas() {
               className="mt-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground"
             >
               <span className="font-bold text-foreground">
-                Catatan: ada {Math.abs(ringkas.selisihTakDikenal)} poin yang
-                tidak bisa dijelaskan.
+                Ada {Math.abs(ringkas.selisihTakDikenal)} poin yang hilang dari
+                catatan.
               </span>{" "}
-              Kalau dihitung sederhana, {ringkas.poinDiterbitkan} terbit dikurangi{" "}
-              {ringkas.poinDitukar} ditukar dan {ringkas.poinHangus} hangus
-              mestinya menyisakan{" "}
+              Sisa di buku besar {ringkas.poinBeredar} poin, padahal{" "}
+              {ringkas.poinDiterbitkan} terbit dikurangi {ringkas.poinDitukar}{" "}
+              ditukar mestinya{" "}
               {ringkas.poinDiterbitkan - ringkas.poinDitukar - ringkas.poinHangus}
-              , sedangkan yang benar-benar tersisa {ringkas.poinBeredar}. Angka{" "}
-              {ringkas.poinBeredar} adalah yang dipakai kasir dan sudah sesuai
-              catatan resmi database. Selisih ini berasal dari data awal proyek,
-              dan sengaja ditampilkan apa adanya daripada ditutup diam-diam.
+              . Penyebabnya transaksi uji di awal proyek. Kasir tetap memakai{" "}
+              {ringkas.poinBeredar}.
             </p>
           )}
         </section>
