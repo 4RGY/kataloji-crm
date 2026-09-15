@@ -14,6 +14,7 @@ import {
   hitungPoinTransaksi,
   jelaskanGalatPoin,
   poinDiterimaPelanggan,
+  ringkasanTampil,
   MIN_REDEEM,
 } from "../src/lib/poin";
 
@@ -175,6 +176,135 @@ cek(
   "aturan BR-TRX-05 tetap berlaku: 47.000 tukar 5 poin tetap dapat 2 poin",
   benar.poin_didapat === 2,
   String(benar.poin_didapat),
+);
+
+console.log("\n=== 5. ringkasanTampil: angka yang aman disebut kasir ===\n");
+
+// Latar masalah yang ditutup bagian ini (BUG-01 temuan QA):
+// tombol Simpan sudah benar terkunci saat rincian poin salah, tetapi
+// ringkasan tetap menampilkan "Dibayar Rp 42.000" dari potongan yang belum
+// berlaku. Kasir membaca ANGKA, bukan keadaan tombol, sehingga angka itu
+// bisa terucap ke pelanggan. Yang benar adalah tagihan penuh setelah diskon.
+
+const galatTukar5 = hitungPoinTransaksi({
+  total: 47_000,
+  diskon: 0,
+  poin_dipakai: 5,
+  poin_tersedia: 4,
+});
+const tampilSalah = ringkasanTampil(
+  47_000,
+  0,
+  galatTukar5.net_total,
+  5,
+  galatTukar5.errors.length > 0,
+  true,
+);
+
+cek(
+  "keadaan bermasalah memang terdeteksi lebih dulu",
+  galatTukar5.errors.length > 0,
+);
+cek(
+  "saat poin tidak cukup, yang ditampilkan tagihan penuh",
+  tampilSalah.dibayar === 47_000,
+  `dapat ${tampilSalah.dibayar}, harus 47000`,
+);
+cek(
+  "angka hasil potongan yang belum berlaku TIDAK ditampilkan",
+  tampilSalah.dibayar !== 42_000,
+);
+cek(
+  "baris potongan disembunyikan saat rinciannya salah",
+  tampilSalah.tampilkanPotongan === false,
+);
+cek(
+  "poin didapat disembunyikan saat rinciannya salah",
+  tampilSalah.tampilkanPoinDidapat === false,
+);
+
+// Kasus kedua: poin di bawah minimum. Gejalanya sama, sebabnya beda.
+const galatMinimum = hitungPoinTransaksi({
+  total: 47_000,
+  diskon: 0,
+  poin_dipakai: 3,
+  poin_tersedia: 10,
+});
+const tampilMinimum = ringkasanTampil(
+  47_000,
+  0,
+  galatMinimum.net_total,
+  3,
+  galatMinimum.errors.length > 0,
+  true,
+);
+cek(
+  "poin di bawah minimum juga menampilkan tagihan penuh",
+  tampilMinimum.dibayar === 47_000,
+  String(tampilMinimum.dibayar),
+);
+cek(
+  "poin di bawah minimum tidak menampilkan baris potongan",
+  tampilMinimum.tampilkanPotongan === false,
+);
+
+// Diskon promo TETAP berlaku walau rincian poinnya salah, karena diskon
+// tidak bergantung pada saldo poin pelanggan.
+const tampilDiskon = ringkasanTampil(60_000, 5_000, 999, 5, true, true);
+cek(
+  "diskon promo tetap dihitung saat rincian poin salah",
+  tampilDiskon.dibayar === 55_000,
+  String(tampilDiskon.dibayar),
+);
+
+// Keadaan sehat: semuanya tampil seperti biasa.
+const sehat = hitungPoinTransaksi({
+  total: 47_000,
+  diskon: 0,
+  poin_dipakai: 5,
+  poin_tersedia: 10,
+});
+const tampilSehat = ringkasanTampil(
+  47_000,
+  0,
+  sehat.net_total,
+  5,
+  sehat.errors.length > 0,
+  true,
+);
+cek("keadaan sehat tidak menyimpan galat", sehat.errors.length === 0);
+cek(
+  "keadaan sehat menampilkan hasil potongan",
+  tampilSehat.dibayar === 42_000,
+  String(tampilSehat.dibayar),
+);
+cek(
+  "keadaan sehat menampilkan baris potongan",
+  tampilSehat.tampilkanPotongan === true,
+);
+cek(
+  "keadaan sehat menampilkan poin didapat",
+  tampilSehat.tampilkanPoinDidapat === true,
+);
+
+cek(
+  "tanpa penukaran poin, baris potongan tidak muncul",
+  ringkasanTampil(30_000, 0, 30_000, 0, false, true).tampilkanPotongan === false,
+);
+cek(
+  "transaksi tanpa pelanggan tidak menampilkan poin didapat",
+  ringkasanTampil(30_000, 0, 30_000, 0, false, false).tampilkanPoinDidapat ===
+    false,
+);
+cek(
+  "nilai yang ditampilkan tidak pernah negatif",
+  ringkasanTampil(10_000, 99_000, -5_000, 0, true, true).dibayar === 0,
+);
+cek(
+  "nilai aneh tidak menghasilkan NaN di layar",
+  Number.isFinite(
+    ringkasanTampil(Number.NaN, Number.NaN, Number.NaN, 0, false, true).dibayar,
+  ),
 );
 
 console.log(`\n=== ${lulus} LULUS, ${gagal} GAGAL ===\n`);

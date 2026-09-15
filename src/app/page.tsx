@@ -122,7 +122,24 @@ export default function LoginPage() {
                 placeholder="nama@kataloji.id"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  // Pesan khusus dibersihkan tiap ketikan. Tanpa ini, pesan
+                  // lama menempel dan kolom tetap dianggap salah walau sudah
+                  // diperbaiki.
+                  e.target.setCustomValidity("");
+                  setEmail(e.target.value);
+                }}
+                onInvalid={(e) => {
+                  // Bawaan peramban berbahasa Inggris ("Please include an '@'
+                  // in the email address"). Kasir tidak harus paham itu.
+                  e.currentTarget.setCustomValidity(
+                    "Masukkan email yang benar, contohnya nama@kataloji.id",
+                  );
+                }}
+                /* Tinggi 44px: halaman ini dibuka dari iPad di meja kasir,
+                   dan 44px adalah ambang bawah sasaran sentuh jari. Tinggi
+                   bawaan komponen hanya 32px. */
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -143,6 +160,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="h-11"
               />
             </div>
 

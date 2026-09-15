@@ -85,6 +85,53 @@ export function poinDiterimaPelanggan(
   return n > 0 ? n : 0;
 }
 
+/** Angka yang aman ditampilkan pada ringkasan kasir. */
+export interface RingkasanTampil {
+  /** Nilai yang boleh disebut kasir ke pelanggan. */
+  dibayar: number;
+  /** Tampilkan baris potongan poin atau tidak. */
+  tampilkanPotongan: boolean;
+  /** Tampilkan baris poin didapat atau tidak. */
+  tampilkanPoinDidapat: boolean;
+}
+
+/**
+ * Tentukan angka mana yang boleh muncul di ringkasan.
+ *
+ * Selama rincian poin masih salah, potongannya BELUM BERLAKU, sehingga
+ * angka yang benar adalah tagihan penuh setelah diskon. Menampilkan hasil
+ * potongan pada keadaan itu berbahaya: kasir sedang berhadapan dengan
+ * pelanggan, matanya jatuh ke angka paling besar di panel, dan angka itu
+ * bisa terucap sebelum ia sadar tombol Simpan sedang terkunci.
+ *
+ * Tombol yang terkunci saja tidak cukup. Yang dibaca kasir adalah angkanya,
+ * bukan keadaan tombolnya.
+ */
+export function ringkasanTampil(
+  total: number,
+  diskon: number,
+  netTotal: number,
+  poinDipakai: number,
+  adaGalat: boolean,
+  punyaPelanggan: boolean,
+): RingkasanTampil {
+  const aman = (n: number) => (Number.isFinite(n) ? Math.max(0, n) : 0);
+
+  if (adaGalat) {
+    return {
+      dibayar: aman(aman(total) - aman(diskon)),
+      tampilkanPotongan: false,
+      tampilkanPoinDidapat: false,
+    };
+  }
+
+  return {
+    dibayar: aman(netTotal),
+    tampilkanPotongan: aman(poinDipakai) > 0,
+    tampilkanPoinDidapat: punyaPelanggan,
+  };
+}
+
 /**
  * Ubah kode galat teknis dari hitungPoinTransaksi menjadi kalimat yang
  * dimengerti kasir, lengkap dengan angka yang sedang dipakai.

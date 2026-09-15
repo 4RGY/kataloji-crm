@@ -22,6 +22,7 @@ import {
   poinDiterimaPelanggan,
   POIN_PER_RUPIAH,
   NILAI_POIN,
+  ringkasanTampil,
 } from "@/lib/poin";
 import { formatWhatsapp, normalisasiWhatsapp, validasiPelanggan } from "@/lib/pelanggan";
 import {
@@ -151,6 +152,22 @@ export default function TransaksiPage() {
   );
 
   const maksPoin = maxPoinDipakai(total, diskon);
+
+  // Angka mana yang boleh muncul di ringkasan. Saat rincian poin masih
+  // salah, potongannya belum berlaku sehingga yang benar adalah tagihan
+  // penuh setelah diskon.
+  const tampil = useMemo(
+    () =>
+      ringkasanTampil(
+        total,
+        diskon,
+        hitung.net_total,
+        poinDipakai,
+        hitung.errors.length > 0,
+        Boolean(pelanggan),
+      ),
+    [total, diskon, hitung, poinDipakai, pelanggan],
+  );
 
   // ---- riwayat transaksi ----
   const ambilRiwayat = useCallback(async () => {
@@ -597,7 +614,7 @@ export default function TransaksiPage() {
                 </dd>
               </div>
             )}
-            {poinDipakai > 0 && (
+            {tampil.tampilkanPotongan && (
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">
                   Potongan {poinDipakai} poin
@@ -610,10 +627,10 @@ export default function TransaksiPage() {
             <div className="flex items-center justify-between border-t border-border pt-2">
               <dt className="font-bold">Dibayar</dt>
               <dd className="text-2xl font-extrabold tabular-nums">
-                {rupiah.format(hitung.net_total)}
+                {rupiah.format(tampil.dibayar)}
               </dd>
             </div>
-            {pelanggan && (
+            {tampil.tampilkanPoinDidapat && (
               <div className="flex items-center justify-between border-t border-border pt-2">
                 <dt className="text-muted-foreground">Poin didapat</dt>
                 <dd className="font-bold tabular-nums text-primary">
@@ -667,7 +684,7 @@ export default function TransaksiPage() {
                 Dibayar
               </span>
               <span className="text-2xl font-extrabold tabular-nums">
-                {rupiah.format(hitung.net_total)}
+                {rupiah.format(tampil.dibayar)}
               </span>
             </div>
             <Button

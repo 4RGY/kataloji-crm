@@ -604,12 +604,16 @@ export default function PelangganPage() {
           <form onSubmit={simpan} className="flex flex-1 flex-col gap-5 px-4">
             <div className="space-y-2">
               <Label htmlFor="nama">Nama pelanggan</Label>
+              {/* Tinggi 44px pada ketiga kolom di bawah: formulir ini diisi
+                  kasir lewat layar sentuh iPad sambil pelanggan menunggu,
+                  sedangkan tinggi bawaan komponen hanya 32px. */}
               <Input
                 id="nama"
                 value={form.nama}
                 onChange={(e) => setForm({ ...form, nama: e.target.value })}
                 placeholder="Nama panggilan juga boleh"
                 autoComplete="off"
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -621,6 +625,7 @@ export default function PelangganPage() {
                 onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                 placeholder="0812 3456 789"
                 autoComplete="off"
+                className="h-11"
               />
               <p className="text-xs text-muted-foreground">
                 Boleh diketik 08 atau 62, nanti dirapikan otomatis.
@@ -635,6 +640,7 @@ export default function PelangganPage() {
                 onChange={(e) =>
                   setForm({ ...form, tgl_lahir: e.target.value })
                 }
+                className="h-11"
               />
               <p className="text-xs text-muted-foreground">
                 Dipakai untuk ucapan ulang tahun dan pembagian segmen.
