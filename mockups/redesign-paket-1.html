@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paket 1 · Poles — Kataloji CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#FAF5EE; --card:#FFFDF9; --ink:#4A382B; --muted:#8B7B6B;
+    --line:#E7DED1; --terracotta:#C88F7B; --sage:#839A66; --mustard:#D9CC4C;
+    --sidebar:#2A1D14; --sidebar-ink:#E4D9C9; --sidebar-hover:#3B2A1E;
+    --r:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .app{display:flex;min-height:100vh}
+
+  /* ── SIDEBAR ── */
+  .side{width:248px;flex:0 0 248px;background:var(--sidebar);color:var(--sidebar-ink);padding:20px 14px;display:flex;flex-direction:column;gap:6px}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+  .brand-mark{width:34px;height:34px;border-radius:9px;background:var(--terracotta);display:grid;place-items:center;font-weight:800;color:#fff;font-size:15px}
+  .brand-name{font-weight:800;letter-spacing:-.02em;font-size:15px}
+  .navgroup{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8A7561;padding:14px 10px 6px;font-weight:700}
+  .nav{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:13.5px;font-weight:600;color:#C9BBA9;cursor:pointer}
+  .nav:hover{background:var(--sidebar-hover);color:#fff}
+  .nav.on{background:var(--terracotta);color:#fff}
+  .dot{width:15px;height:15px;border-radius:4px;background:currentColor;opacity:.55}
+  .side-foot{margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px;border-top:1px solid #402E22;font-size:12px}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--terracotta);display:grid;place-items:center;font-weight:700;color:#fff;font-size:11px}
+
+  /* ── MAIN ── */
+  main{flex:1;padding:26px 30px 40px;max-width:1180px}
+  .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:6px}
+  h1{font-size:25px;font-weight:800;letter-spacing:-.025em}
+  .sub{font-size:13px;color:var(--muted);margin-top:3px}
+  .tabs{display:flex;gap:4px;background:#F1E9DC;padding:4px;border-radius:10px;margin:18px 0 20px;width:fit-content}
+  .tab{padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(74,56,43,.1)}
+
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+  .lbl{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px}
+
+  /* hero omzet */
+  .hero{border-color:#DCC9B8;background:linear-gradient(140deg,#FFFDF9 0%,#FBF1E7 100%)}
+  .big{font-size:42px;font-weight:800;letter-spacing:-.035em;line-height:1}
+  .heroFoot{display:flex;gap:26px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .mini .k{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .mini .v{font-size:15px;font-weight:700;margin-top:2px}
+
+  /* PERBAIKAN 1: rincian jadi baris, bukan 3 kartu melar */
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:0}
+  .row .n{font-size:13px;color:var(--muted);font-weight:600}
+  .row .b{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .chip{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;background:#EFF3E9;color:#5F7346;margin-left:8px}
+
+  /* PERBAIKAN 2: grafik 1-hari tidak melebar */
+  .chartwrap{display:flex;align-items:flex-end;gap:10px;height:150px;margin-top:6px}
+  .bar{width:46px;border-radius:6px 6px 0 0;background:var(--terracotta);position:relative}
+  .bar span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;white-space:nowrap}
+  .barlbl{font-size:10.5px;color:var(--muted);text-align:center;margin-top:7px;font-weight:600;width:46px}
+  .ghost{flex:1;height:100%;border-radius:6px;background:repeating-linear-gradient(135deg,#F4EDE2 0 6px,transparent 6px 12px);display:grid;place-items:center}
+  .ghost p{font-size:11.5px;color:#B0A08E;font-weight:600;padding:0 10px;text-align:center;line-height:1.5}
+
+  .note{font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:11px;border-top:1px solid var(--line);line-height:1.6}
+
+  /* papan loyalitas */
+  .loy{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border-radius:10px;overflow:hidden;margin-top:4px}
+  .loycell{background:var(--card);padding:14px}
+  .loycell .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .loycell .v{font-size:23px;font-weight:800;margin-top:5px;letter-spacing:-.02em}
+  .loycell .s{font-size:11px;color:var(--muted);margin-top:2px}
+  .v.sage{color:var(--sage)}
+
+  .banner{display:flex;gap:11px;align-items:flex-start;background:#FBF4E4;border:1px solid #EADFC2;border-radius:10px;padding:13px 15px;margin-top:16px}
+  .banner .ic{width:20px;height:20px;border-radius:6px;background:var(--mustard);flex:0 0 20px;margin-top:1px}
+  .banner p{font-size:12.5px;line-height:1.6}
+  .banner b{font-weight:700}
+
+  .tag{position:fixed;right:16px;bottom:16px;background:var(--sidebar);color:#E4D9C9;font-size:11.5px;font-weight:700;padding:8px 14px;border-radius:99px;letter-spacing:.03em}
+  .fix{display:inline-block;background:#EFF3E9;color:#5F7346;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;letter-spacing:.06em;vertical-align:middle;margin-left:7px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="brand-mark">K</div><div class="brand-name">Kataloji</div></div>
+    <div class="nav on"><i class="dot"></i>Dashboard</div>
+    <div class="navgroup">Operasional</div>
+    <div class="nav"><i class="dot"></i>Transaksi</div>
+    <div class="nav"><i class="dot"></i>Pelanggan</div>
+    <div class="nav"><i class="dot"></i>Loyalitas</div>
+    <div class="navgroup">Pemasaran</div>
+    <div class="nav"><i class="dot"></i>Campaign</div>
+    <div class="nav"><i class="dot"></i>Analitik</div>
+    <div class="navgroup">Sistem</div>
+    <div class="nav"><i class="dot"></i>Pengaturan</div>
+    <div class="nav"><i class="dot"></i>Staf</div>
+    <div class="side-foot"><div class="avatar">WA</div><div><div style="font-weight:700">wahyu@kataloji.id</div><div style="color:#9C8A76;font-size:11px">Admin</div></div></div>
+  </aside>
+
+  <main>
+    <div class="pagehead">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="sub">Selamat siang, Wahyu · Selasa, 15 September 2026</p>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted);font-weight:600">Muat ulang</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab">Hari ini</div><div class="tab">3 hari</div><div class="tab">7 hari</div>
+      <div class="tab">30 hari</div><div class="tab on">Semua</div><div class="tab">Pertanggal</div>
+    </div>
+
+    <div class="grid">
+      <div class="card hero">
+        <p class="lbl">Omzet · sepanjang waktu</p>
+        <div class="big">Rp 258.000</div>
+        <div class="heroFoot">
+          <div class="mini"><div class="k">Rata-rata harian</div><div class="v">Rp 129.000</div></div>
+          <div class="mini"><div class="k">Transaksi terbesar</div><div class="v">Rp 100.000</div></div>
+          <div class="mini"><div class="k">Rata-rata per struk</div><div class="v">Rp 51.600</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="lbl">Rincian · sepanjang waktu <span class="fix">DIPERBAIKI</span></p>
+        <div class="rows">
+          <div class="row"><span class="n">Transaksi</span><span class="b">5</span></div>
+          <div class="row"><span class="n">Pelanggan baru</span><span class="b">1</span></div>
+          <div class="row"><span class="n">Poin diberikan</span><span class="b">8<span class="chip">tercatat di buku poin</span></span></div>
+        </div>
+        <p class="note">Sebelumnya tiga angka ini jadi tiga kotak melar dengan ruang mati ±150px di dalamnya. Sekarang dibariskan sehingga tinggi kartu mengikuti isinya.</p>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:16px">
+      <div class="card">
+        <p class="lbl">Grafik omzet harian <span class="fix">DIPERBAIKI</span></p>
+        <div class="chartwrap">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="bar" style="height:96px"><span>Rp 211.000</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="bar" style="height:20px"><span>Rp 47.000</span></div>
+          </div>
+          <div class="ghost"><p>Hari berikutnya akan terisi di sini</p></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div class="barlbl">14 Sep</div><div class="barlbl">15 Sep</div>
+        </div>
+        <p class="note">Batang dikunci selebar 46px. Saat data baru satu hari, batang tidak lagi melebar 892px sampai terbaca sebagai blok warna kosong. Sisa ruang diisi area bergaris yang jelas menyatakan dirinya belum berisi.</p>
+      </div>
+
+      <div class="card">
+        <p class="lbl">Papan loyalitas · saat ini</p>
+        <div class="loy">
+          <div class="loycell"><div class="k">Poin beredar</div><div class="v sage">4</div><div class="s">senilai Rp 4.000</div></div>
+          <div class="loycell"><div class="k">Pelanggan</div><div class="v">1</div><div class="s">terdaftar</div></div>
+          <div class="loycell"><div class="k">Pelanggan ulang</div><div class="v">1</div><div class="s">datang lebih dari sekali</div></div>
+          <div class="loycell"><div class="k">Akan hangus 30 hari</div><div class="v">0</div><div class="s">tidak ada yang mendesak</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner">
+      <div class="ic"></div>
+      <p><b>Yang diubah di Paket 1:</b> hanya tampilan yang sudah ada. Tidak ada menu baru, tidak ada alur baru, tidak ada halaman dibongkar. Kasir dan admin yang sudah terbiasa tidak perlu belajar ulang apa pun.</p>
+    </div>
+  </main>
+</div>
+<div class="tag">PAKET 1 · POLES</div>
+</body>
+</html>

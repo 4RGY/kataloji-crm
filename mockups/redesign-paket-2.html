@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paket 2 · Rombak Layar Kasir — Kataloji CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#FAF5EE; --card:#FFFDF9; --ink:#4A382B; --muted:#8B7B6B;
+    --line:#E7DED1; --terracotta:#C88F7B; --terra-dark:#B77A63; --sage:#839A66;
+    --mustard:#D9CC4C; --sidebar:#2A1D14; --sidebar-ink:#E4D9C9; --sidebar-hover:#3B2A1E;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .app{display:flex;min-height:100vh}
+
+  /* sidebar menyempit saat mode kasir: fokus ke tugas */
+  .side{width:72px;flex:0 0 72px;background:var(--sidebar);color:var(--sidebar-ink);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .brand-mark{width:38px;height:38px;border-radius:10px;background:var(--terracotta);display:grid;place-items:center;font-weight:800;color:#fff;font-size:16px;margin-bottom:14px}
+  .ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;cursor:pointer}
+  .ico i{width:17px;height:17px;border-radius:5px;background:#9A8772}
+  .ico.on{background:var(--terracotta)}
+  .ico.on i{background:#fff}
+  .ico:hover{background:var(--sidebar-hover)}
+  .side-foot{margin-top:auto}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--terracotta);display:grid;place-items:center;font-weight:700;color:#fff;font-size:12px}
+
+  main{flex:1;display:grid;grid-template-columns:1fr 372px;min-height:100vh}
+
+  /* ── KIRI: area kerja ── */
+  .work{padding:20px 26px 26px;display:flex;flex-direction:column;gap:13px}
+  .toprow{display:flex;align-items:center;justify-content:space-between}
+  h1{font-size:21px;font-weight:800;letter-spacing:-.025em}
+  .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .badgeLive{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--sage);background:#EFF3E9;padding:6px 11px;border-radius:99px}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--sage)}
+
+  .step{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .num{width:21px;height:21px;border-radius:50%;background:var(--terracotta);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+  .step h2{font-size:13px;font-weight:700;letter-spacing:.01em}
+  .step .opt{font-size:11px;color:var(--muted);font-weight:600;background:#F1E9DC;padding:2px 8px;border-radius:99px}
+
+  .box{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px}
+
+  /* pelanggan terpilih */
+  .cust{display:flex;align-items:center;gap:13px}
+  .cust .av{width:44px;height:44px;border-radius:12px;background:#F3E5DC;color:var(--terra-dark);display:grid;place-items:center;font-weight:800;font-size:15px}
+  .cust .nm{font-size:15px;font-weight:700}
+  .cust .wa{font-size:12px;color:var(--muted);margin-top:1px}
+  .pts{margin-left:auto;text-align:right}
+  .pts .v{font-size:22px;font-weight:800;color:var(--sage);line-height:1}
+  .pts .k{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:3px}
+  .swap{font-size:11.5px;font-weight:700;color:var(--terra-dark);cursor:pointer;padding:6px 11px;border:1px solid #E6D2C7;border-radius:8px;margin-left:12px}
+
+  /* input total raksasa */
+  .amount{display:flex;align-items:baseline;gap:9px;padding:6px 2px 12px}
+  .rp{font-size:23px;font-weight:700;color:var(--muted)}
+  .amt{font-size:58px;font-weight:800;letter-spacing:-.04em;line-height:1}
+  .cursor{width:3px;height:44px;background:var(--terracotta);animation:bl 1.1s steps(2) infinite;border-radius:2px}
+  @keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
+
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:4px}
+  .key{background:#F6EEE3;border:1px solid var(--line);border-radius:10px;padding:11px 0;text-align:center;font-size:15px;font-weight:700;cursor:pointer}
+  .key:hover{background:#F0E4D5}
+  .key.wide{grid-column:span 2}
+  .key.warm{background:#F3E5DC;color:var(--terra-dark);border-color:#E6D2C7}
+
+  .quick{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+  .q{background:#F6EEE3;border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:12.5px;font-weight:700;cursor:pointer}
+
+  /* ── KANAN: struk hidup ── */
+  .recv{background:var(--card);border-left:1px solid var(--line);padding:22px 22px 24px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .recv h3{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .line{display:flex;justify-content:space-between;align-items:center;padding:11px 0;font-size:13.5px}
+  .line .k{color:var(--muted);font-weight:600}
+  .line .v{font-weight:700;font-variant-numeric:tabular-nums}
+  .line.minus .v{color:var(--terra-dark)}
+  .sep{border-top:1px dashed var(--line);margin:3px 0}
+  .paid{background:#F3E5DC;border-radius:12px;padding:15px 16px;margin-top:8px}
+  .paid .k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--terra-dark);font-weight:700}
+  .paid .v{font-size:33px;font-weight:800;letter-spacing:-.03em;margin-top:5px;line-height:1}
+  .earn{display:flex;align-items:center;gap:9px;background:#EFF3E9;border-radius:10px;padding:12px 14px;margin-top:9px}
+  .earn .p{font-size:19px;font-weight:800;color:var(--sage)}
+  .earn .t{font-size:12px;color:#5F7346;font-weight:600;line-height:1.45}
+
+  .cta{margin-top:auto;display:flex;flex-direction:column;gap:9px}
+  .btn{background:var(--terracotta);color:#fff;border:0;border-radius:11px;padding:17px;font-size:15.5px;font-weight:800;font-family:inherit;cursor:pointer;letter-spacing:.01em}
+  .btn:hover{background:var(--terra-dark)}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);padding:11px;font-size:13px;font-weight:700}
+  .hint{font-size:11px;color:var(--muted);text-align:center;line-height:1.55}
+  kbd{background:#F1E9DC;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:inherit;font-size:10.5px;font-weight:700}
+
+  .why{background:#FBF4E4;border:1px solid #EADFC2;border-radius:11px;padding:13px 15px;font-size:12.5px;line-height:1.65;margin-top:2px}
+  .why b{font-weight:700}
+  .tag{position:fixed;right:16px;bottom:16px;background:var(--sidebar);color:#E4D9C9;font-size:11.5px;font-weight:700;padding:8px 14px;border-radius:99px;letter-spacing:.03em}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand-mark">K</div>
+    <div class="ico"><i></i></div>
+    <div class="ico on"><i></i></div>
+    <div class="ico"><i></i></div>
+    <div class="ico"><i></i></div>
+    <div class="ico"><i></i></div>
+    <div class="side-foot"><div class="avatar">WA</div></div>
+  </aside>
+
+  <main>
+    <section class="work">
+      <div class="toprow">
+        <div>
+          <h1>Mode Kasir</h1>
+          <p class="sub">Struk majoo di tangan? Ketik totalnya saja.</p>
+        </div>
+        <div class="badgeLive"><span class="pulse"></span>Siap menerima</div>
+      </div>
+
+      <div>
+        <div class="step"><span class="num">1</span><h2>Pelanggan</h2><span class="opt">boleh dilewati</span></div>
+        <div class="box cust">
+          <div class="av">AN</div>
+          <div>
+            <div class="nm">Anggara</div>
+            <div class="wa">+62 851-5680-3978 · pelanggan ulang</div>
+          </div>
+          <div class="pts"><div class="v">4</div><div class="k">POIN</div></div>
+          <div class="swap">Ganti</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="step"><span class="num">2</span><h2>Total tagihan</h2></div>
+        <div class="box">
+          <div class="amount"><span class="rp">Rp</span><span class="amt">47 000</span><span class="cursor"></span></div>
+          <div class="quick">
+            <div class="q">+10rb</div><div class="q">+20rb</div><div class="q">+25rb</div>
+            <div class="q">+50rb</div><div class="q">+100rb</div><div class="q">+000</div>
+          </div>
+          <div class="keys" style="margin-top:12px">
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+            <div class="key wide">0</div><div class="key warm">Hapus</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="why">
+        <b>Kenapa dirombak:</b> versi sekarang menaruh total, diskon, poin, nomor struk, dan ringkasan dalam satu kolom panjang sehingga kasir harus menggulung layar sambil pelanggan menunggu. Di sini semua yang perlu dilihat pelanggan pindah ke panel kanan yang tidak pernah bergerak.
+      </div>
+    </section>
+
+    <aside class="recv">
+      <h3>Struk berjalan</h3>
+      <div class="line"><span class="k">Total tagihan</span><span class="v">Rp 47.000</span></div>
+      <div class="line"><span class="k">Diskon promo</span><span class="v">Rp 0</span></div>
+      <div class="line minus"><span class="k">Potongan 5 poin</span><span class="v">- Rp 5.000</span></div>
+      <div class="sep"></div>
+      <div class="paid">
+        <div class="k">Dibayar pelanggan</div>
+        <div class="v">Rp 42.000</div>
+      </div>
+      <div class="earn">
+        <div class="p">+2</div>
+        <div class="t">poin masuk untuk Anggara<br>saldo jadi <b>1 poin</b> setelah transaksi</div>
+      </div>
+      <div class="line" style="margin-top:6px"><span class="k">No. struk majoo</span><span class="v" style="color:var(--muted);font-weight:600">QA-UJI-001</span></div>
+
+      <div class="cta">
+        <p class="hint">Tekan <kbd>Enter</kbd> untuk simpan · <kbd>Esc</kbd> untuk kosongkan</p>
+        <button class="btn">Simpan transaksi</button>
+        <button class="btn ghost">Kosongkan semua</button>
+      </div>
+    </aside>
+  </main>
+</div>
+<div class="tag">PAKET 2 · ROMBAK KASIR</div>
+</body>
+</html>

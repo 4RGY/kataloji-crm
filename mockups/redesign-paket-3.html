@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paket 3 · Identitas Baru — Kataloji CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --cream:#FAF5EE; --paper:#FFFDF9; --ink:#3D2E22; --muted:#8B7B6B;
+    --line:#E7DED1; --terracotta:#C88F7B; --terra-dark:#B77A63; --sage:#839A66;
+    --mustard:#D9CC4C; --olive:#9B9823; --rose:#D79479;
+    --ink-deep:#241A12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .display{font-family:'Fraunces',Georgia,serif;font-weight:600;letter-spacing:-.015em}
+  .app{display:flex;min-height:100vh}
+
+  /* ── SIDEBAR: kedai, bukan kantor ── */
+  .side{width:252px;flex:0 0 252px;background:var(--ink-deep);color:#E4D9C9;padding:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .side::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.045) 1px,transparent 1px);background-size:15px 15px;pointer-events:none}
+  .sidehead{padding:22px 20px 18px;border-bottom:1px solid #3A2A1E;position:relative;z-index:1}
+  .logo{height:46px;display:block;filter:brightness(0) invert(1) sepia(.2) saturate(.6) brightness(1.15)}
+  .tagline{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#8A7561;font-weight:700;margin-top:11px}
+  .navwrap{padding:14px 12px;position:relative;z-index:1;flex:1}
+  .navgroup{font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;color:#7D6853;padding:15px 11px 7px;font-weight:800}
+  .nav{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;font-size:13.5px;font-weight:600;color:#C3B4A1;cursor:pointer;position:relative}
+  .nav:hover{background:#33241A;color:#fff}
+  .nav.on{background:linear-gradient(90deg,rgba(200,143,123,.22),transparent);color:#fff}
+  .nav.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--terracotta)}
+  .dot{width:16px;height:16px;border-radius:5px;background:currentColor;opacity:.5}
+  .side-foot{padding:14px 18px;border-top:1px solid #3A2A1E;display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+  .avatar{width:34px;height:34px;border-radius:11px;background:var(--terracotta);display:grid;place-items:center;font-weight:800;color:#fff;font-size:12px}
+
+  /* ── MAIN ── */
+  main{flex:1;padding:0 0 44px;max-width:1160px}
+  .hero{padding:30px 32px 26px;border-bottom:1px solid var(--line);background:linear-gradient(160deg,#FFFDF9 0%,#FAF2E8 65%,#F6EADC 100%);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-70px;top:-70px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(200,143,123,.16),transparent 66%)}
+  .eyebrow{font-size:10.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--terra-dark);font-weight:800}
+  h1{font-size:32px;margin-top:8px}
+  .hsub{font-size:13.5px;color:var(--muted);margin-top:7px}
+
+  .body{padding:24px 32px 0}
+  .tabs{display:flex;gap:3px;background:#F1E9DC;padding:4px;border-radius:11px;width:fit-content;margin-bottom:22px}
+  .tab{padding:8px 15px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(61,46,34,.11)}
+
+  .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:17px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:22px;position:relative}
+  .lbl{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:12px}
+
+  /* omzet jadi "papan tulis kedai" */
+  .omzet{background:var(--ink-deep);border-color:var(--ink-deep);color:#F2E8DA;overflow:hidden}
+  .omzet::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1px);background-size:16px 16px}
+  .omzet .lbl{color:#A08B75}
+  .omzet .big{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:46px;letter-spacing:-.03em;line-height:1;position:relative}
+  .omzet .foot{display:flex;gap:28px;margin-top:19px;padding-top:16px;border-top:1px solid #42311F;position:relative}
+  .omzet .k{font-size:10.5px;color:#A08B75;font-weight:700;letter-spacing:.05em}
+  .omzet .v{font-size:16px;font-weight:700;margin-top:3px}
+
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:0}
+  .row .n{font-size:13px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:9px}
+  .sq{width:9px;height:9px;border-radius:3px}
+  .row .b{font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;letter-spacing:-.02em}
+
+  /* kartu poin bergaya "kartu stempel kopi" */
+  .stamp{background:linear-gradient(135deg,#F3E5DC,#FBF1E7);border:1px dashed #DCBFAE;border-radius:16px;padding:20px}
+  .stamp .top{display:flex;align-items:baseline;justify-content:space-between}
+  .stamp .v{font-family:'Fraunces',Georgia,serif;font-size:38px;font-weight:600;color:var(--terra-dark);line-height:1}
+  .stamp .sub{font-size:12px;color:#95705E;font-weight:600;margin-top:5px}
+  .beans{display:flex;gap:6px;margin-top:16px}
+  .bean{width:24px;height:24px;border-radius:50%;border:1.5px solid #DCBFAE;display:grid;place-items:center}
+  .bean.fill{background:var(--terracotta);border-color:var(--terracotta)}
+  .bean.fill::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff;opacity:.85}
+
+  .loy{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border-radius:13px;overflow:hidden}
+  .loycell{background:var(--paper);padding:15px}
+  .loycell .k{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .loycell .v{font-family:'Fraunces',Georgia,serif;font-size:25px;font-weight:600;margin-top:6px}
+  .loycell .s{font-size:11px;color:var(--muted);margin-top:2px}
+  .sage{color:var(--sage)}
+
+  .chart{display:flex;align-items:flex-end;gap:11px;height:142px;margin-top:8px}
+  .bar{width:44px;border-radius:7px 7px 0 0;background:linear-gradient(180deg,var(--rose),var(--terracotta));position:relative}
+  .bar span{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10.5px;font-weight:700;white-space:nowrap}
+  .ghost{flex:1;height:100%;border-radius:7px;background:repeating-linear-gradient(135deg,#F4EDE2 0 6px,transparent 6px 12px);display:grid;place-items:center}
+  .ghost p{font-size:11.5px;color:#B0A08E;font-weight:600;text-align:center;padding:0 12px;line-height:1.5}
+  .xlbl{display:flex;gap:11px;margin-top:8px}
+  .xlbl div{width:44px;text-align:center;font-size:10.5px;color:var(--muted);font-weight:700}
+  .note{font-size:11.5px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--line);line-height:1.65}
+
+  .palette{display:flex;gap:9px;margin-top:17px;flex-wrap:wrap}
+  .sw{border-radius:11px;padding:11px 13px;min-width:112px;border:1px solid rgba(0,0,0,.06)}
+  .sw .h{font-size:11px;font-weight:800;letter-spacing:.04em}
+  .sw .n{font-size:10px;margin-top:3px;opacity:.78;font-weight:600}
+
+  .why{background:#FBF4E4;border:1px solid #EADFC2;border-radius:13px;padding:15px 17px;font-size:12.5px;line-height:1.7;margin-top:18px}
+  .why b{font-weight:700}
+  .tag{position:fixed;right:16px;bottom:16px;background:var(--ink-deep);color:#E4D9C9;font-size:11.5px;font-weight:700;padding:8px 14px;border-radius:99px;letter-spacing:.03em}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="sidehead">
+      <img class="logo" src="../public/brand/logo-typograph-removebg.png" alt="Kataloji Coffee and Eatery" />
+      <p class="tagline">Coffee and Eatery</p>
+    </div>
+    <div class="navwrap">
+      <div class="nav on"><i class="dot"></i>Dashboard</div>
+      <div class="navgroup">Operasional</div>
+      <div class="nav"><i class="dot"></i>Transaksi</div>
+      <div class="nav"><i class="dot"></i>Pelanggan</div>
+      <div class="nav"><i class="dot"></i>Loyalitas</div>
+      <div class="navgroup">Pemasaran</div>
+      <div class="nav"><i class="dot"></i>Campaign</div>
+      <div class="nav"><i class="dot"></i>Analitik</div>
+      <div class="navgroup">Sistem</div>
+      <div class="nav"><i class="dot"></i>Pengaturan</div>
+      <div class="nav"><i class="dot"></i>Staf</div>
+    </div>
+    <div class="side-foot">
+      <div class="avatar">WA</div>
+      <div><div style="font-weight:700;font-size:12.5px">wahyu@kataloji.id</div><div style="color:#9C8A76;font-size:11px">Admin</div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <p class="eyebrow">Selasa, 15 September 2026</p>
+      <h1 class="display">Selamat siang, Wahyu</h1>
+      <p class="hsub">Kedai sudah mencatat 5 transaksi. Satu pelanggan menyimpan poin yang belum dipakai.</p>
+    </div>
+
+    <div class="body">
+      <div class="tabs">
+        <div class="tab">Hari ini</div><div class="tab">3 hari</div><div class="tab">7 hari</div>
+        <div class="tab">30 hari</div><div class="tab on">Semua</div><div class="tab">Pertanggal</div>
+      </div>
+
+      <div class="grid">
+        <div class="card omzet">
+          <p class="lbl">Omzet · sepanjang waktu</p>
+          <div class="big">Rp 258.000</div>
+          <div class="foot">
+            <div><div class="k">Rata-rata harian</div><div class="v">Rp 129.000</div></div>
+            <div><div class="k">Transaksi terbesar</div><div class="v">Rp 100.000</div></div>
+            <div><div class="k">Per struk</div><div class="v">Rp 51.600</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="lbl">Rincian · sepanjang waktu</p>
+          <div class="rows">
+            <div class="row"><span class="n"><i class="sq" style="background:var(--terracotta)"></i>Transaksi</span><span class="b">5</span></div>
+            <div class="row"><span class="n"><i class="sq" style="background:var(--mustard)"></i>Pelanggan baru</span><span class="b">1</span></div>
+            <div class="row"><span class="n"><i class="sq" style="background:var(--sage)"></i>Poin diberikan</span><span class="b">8</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:17px">
+        <div class="card">
+          <p class="lbl">Omzet harian</p>
+          <div class="chart">
+            <div class="bar" style="height:92px"><span>Rp 211.000</span></div>
+            <div class="bar" style="height:21px"><span>Rp 47.000</span></div>
+            <div class="ghost"><p>Hari berikutnya akan terisi di sini</p></div>
+          </div>
+          <div class="xlbl"><div>14 Sep</div><div>15 Sep</div></div>
+          <p class="note">Batang memakai gradasi rosewood ke terracotta, mengambil dua warna brand yang bersebelahan sehingga grafik terasa satu keluarga dengan logo.</p>
+        </div>
+
+        <div>
+          <div class="stamp">
+            <div class="top">
+              <div>
+                <div class="v">4 poin</div>
+                <p class="sub">senilai potongan Rp 4.000</p>
+              </div>
+              <span style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#95705E;font-weight:800">Beredar</span>
+            </div>
+            <div class="beans">
+              <i class="bean fill"></i><i class="bean fill"></i><i class="bean fill"></i><i class="bean fill"></i>
+              <i class="bean"></i><i class="bean"></i><i class="bean"></i><i class="bean"></i>
+            </div>
+            <p style="font-size:11px;color:#95705E;margin-top:11px;font-weight:600">Satu poin per belanja Rp 20.000. Butuh 5 poin untuk mulai ditukar.</p>
+          </div>
+
+          <div class="loy" style="margin-top:17px">
+            <div class="loycell"><div class="k">Pelanggan</div><div class="v">1</div><div class="s">terdaftar</div></div>
+            <div class="loycell"><div class="k">Pelanggan ulang</div><div class="v sage">1</div><div class="s">datang lagi</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:17px">
+        <p class="lbl">Palet yang dipakai · dari aset brand asli Kataloji</p>
+        <div class="palette">
+          <div class="sw" style="background:#C88F7B;color:#fff"><div class="h">#C88F7B</div><div class="n">Rosewood · aksi utama</div></div>
+          <div class="sw" style="background:#D79479;color:#fff"><div class="h">#D79479</div><div class="n">Terracotta · grafik</div></div>
+          <div class="sw" style="background:#839A66;color:#fff"><div class="h">#839A66</div><div class="n">Sage · poin &amp; sukses</div></div>
+          <div class="sw" style="background:#D9CC4C;color:#4A3E10"><div class="h">#D9CC4C</div><div class="n">Mustard · peringatan</div></div>
+          <div class="sw" style="background:#9B9823;color:#fff"><div class="h">#9B9823</div><div class="n">Olive · penanda</div></div>
+          <div class="sw" style="background:#241A12;color:#E4D9C9"><div class="h">#241A12</div><div class="n">Coffee ink · sidebar</div></div>
+          <div class="sw" style="background:#FAF5EE;color:#6B5A48"><div class="h">#FAF5EE</div><div class="n">Cream · latar</div></div>
+        </div>
+        <p class="note">Enam dari tujuh warna ini sudah ada di aplikasi sekarang, hanya belum dipakai sebagai pembeda makna. Yang benar-benar baru cuma tipografi judul (Fraunces) dan nuansa kartu.</p>
+      </div>
+
+      <div class="why">
+        <b>Kenapa arah ini:</b> aplikasi sekarang terlihat seperti dashboard perusahaan umum yang kebetulan berwarna cokelat. Padahal mitranya kedai kopi, dan penilai KP akan melihat apakah sistemnya terasa milik Kataloji. Yang diubah: judul memakai huruf serif hangat, omzet jadi papan gelap seperti papan menu, poin digambarkan sebagai kartu stempel kopi, dan tiap warna brand diberi satu tugas tetap.<br><br>
+        <b>Yang perlu diketahui:</b> paket ini menyentuh paling banyak berkas, dan menambah satu jenis huruf baru. Fungsinya nol berubah, tetapi waktu pengerjaannya paling panjang.
+      </div>
+    </div>
+  </main>
+</div>
+<div class="tag">PAKET 3 · IDENTITAS BARU</div>
+</body>
+</html>

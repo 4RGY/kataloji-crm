@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Perbandingan 3 Paket Desain — Kataloji CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--cream:#FAF5EE;--paper:#FFFDF9;--ink:#3D2E22;--muted:#8B7B6B;--line:#E7DED1;
+    --terracotta:#C88F7B;--sage:#839A66;--mustard:#D9CC4C;--ink-deep:#241A12}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream);color:var(--ink);padding:26px 22px 60px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1500px;margin:0 auto}
+  header{margin-bottom:22px}
+  h1{font-size:27px;font-weight:800;letter-spacing:-.03em}
+  .sub{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.6;max-width:760px}
+
+  .bar{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 22px}
+  .pill{background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:8px 15px;font-size:12px;font-weight:700;color:var(--muted)}
+  .pill b{color:var(--ink)}
+
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .col{background:var(--paper);border:1px solid var(--line);border-radius:15px;overflow:hidden;display:flex;flex-direction:column}
+  .col.rec{border-color:var(--terracotta);box-shadow:0 0 0 3px rgba(200,143,123,.14)}
+  .colhead{padding:16px 18px;border-bottom:1px solid var(--line);position:relative}
+  .badge{position:absolute;right:14px;top:14px;background:var(--terracotta);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.09em;padding:4px 9px;border-radius:99px}
+  .pk{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .nm{font-size:18px;font-weight:800;margin-top:5px;letter-spacing:-.02em}
+  .one{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.55}
+
+  .frame{height:330px;border-bottom:1px solid var(--line);overflow:hidden;background:#EFE7DA;position:relative}
+  iframe{width:1280px;height:825px;border:0;transform:scale(.4);transform-origin:top left;pointer-events:none}
+  .open{position:absolute;right:11px;bottom:11px;background:var(--ink-deep);color:#E4D9C9;font-size:11px;font-weight:700;padding:7px 13px;border-radius:99px;text-decoration:none}
+  .open:hover{background:var(--terracotta);color:#fff}
+
+  .body{padding:17px 18px 19px;display:flex;flex-direction:column;gap:14px;flex:1}
+  .sec .t{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:8px}
+  ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+  li{font-size:12.5px;line-height:1.55;padding-left:17px;position:relative}
+  li::before{content:"";position:absolute;left:0;top:6px;width:7px;height:7px;border-radius:2px}
+  .good li::before{background:var(--sage)}
+  .cost li::before{background:var(--mustard)}
+
+  .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-radius:10px;overflow:hidden;margin-top:auto}
+  .mc{background:var(--paper);padding:11px 9px;text-align:center}
+  .mc .k{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .mc .v{font-size:14px;font-weight:800;margin-top:4px}
+  .lo{color:var(--sage)}.md{color:#B08D2E}.hi{color:#B5654E}
+
+  table{width:100%;border-collapse:collapse;margin-top:26px;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  th,td{text-align:left;padding:12px 15px;font-size:12.5px;border-bottom:1px solid var(--line)}
+  th{background:#F4ECE0;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  tr:last-child td{border-bottom:0}
+  td:first-child{font-weight:700}
+  .yes{color:var(--sage);font-weight:800}
+  .no{color:#B0A08E;font-weight:700}
+  .part{color:#B08D2E;font-weight:800}
+
+  .foot{background:#FBF4E4;border:1px solid #EADFC2;border-radius:13px;padding:16px 18px;margin-top:24px;font-size:12.5px;line-height:1.7}
+  .foot b{font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tiga paket desain, satu halaman pembanding</h1>
+    <p class="sub">Semua yang tampak di bawah ini adalah berkas HTML mandiri di folder <code>mockups/</code>. Tidak ada satu baris pun kode aplikasi yang tersentuh, jadi memilih atau menolak salah satunya tidak berisiko apa pun terhadap sistem yang sudah jalan.</p>
+    <div class="bar">
+      <span class="pill">Warna diambil dari <b>aset brand asli Kataloji</b></span>
+      <span class="pill">Angka yang dipakai <b>data asli</b>, bukan karangan</span>
+      <span class="pill">Diukur di peramban: <b>nol pelebaran ke samping</b></span>
+      <span class="pill">Tanda hubung panjang: <b>nol</b></span>
+    </div>
+  </header>
+
+  <div class="cols">
+
+    <!-- PAKET 1 -->
+    <div class="col rec">
+      <div class="colhead">
+        <span class="badge">SARAN SAYA</span>
+        <p class="pk">Paket 1</p>
+        <p class="nm">Poles</p>
+        <p class="one">Membereskan cacat yang sudah terukur, tanpa mengubah satu pun alur kerja.</p>
+      </div>
+      <div class="frame">
+        <iframe src="redesign-paket-1.html" scrolling="no" title="Paket 1"></iframe>
+        <a class="open" href="redesign-paket-1.html" target="_blank">Buka ukuran penuh</a>
+      </div>
+      <div class="body">
+        <div class="sec good">
+          <p class="t">Yang diperbaiki</p>
+          <ul>
+            <li>Kartu Rincian tidak lagi menyisakan ruang mati 150px di dalamnya</li>
+            <li>Batang grafik dikunci 46px, tidak lagi melebar sampai terbaca sebagai blok kosong</li>
+            <li>Hari yang belum ada datanya digambar sebagai area bergaris yang jujur</li>
+            <li>Kartu hero diberi tiga angka pendukung, bukan dua</li>
+          </ul>
+        </div>
+        <div class="sec cost">
+          <p class="t">Yang perlu diterima</p>
+          <ul>
+            <li>Tampilannya tetap terasa seperti sekarang, tidak ada kejutan visual</li>
+            <li>Tidak menjawab keluhan soal layar kasir yang panjang</li>
+          </ul>
+        </div>
+        <div class="meta">
+          <div class="mc"><div class="k">Berkas</div><div class="v lo">2</div></div>
+          <div class="mc"><div class="k">Risiko</div><div class="v lo">Rendah</div></div>
+          <div class="mc"><div class="k">Waktu</div><div class="v lo">±3 jam</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAKET 2 -->
+    <div class="col">
+      <div class="colhead">
+        <p class="pk">Paket 2</p>
+        <p class="nm">Rombak layar kasir</p>
+        <p class="one">Layar yang paling sering dipakai dibuat muat satu layar penuh, tanpa menggulung.</p>
+      </div>
+      <div class="frame">
+        <iframe src="redesign-paket-2.html" scrolling="no" title="Paket 2"></iframe>
+        <a class="open" href="redesign-paket-2.html" target="_blank">Buka ukuran penuh</a>
+      </div>
+      <div class="body">
+        <div class="sec good">
+          <p class="t">Yang diperbaiki</p>
+          <ul>
+            <li>Struk berjalan menetap di kanan, tidak ikut bergerak saat kasir mengetik</li>
+            <li>Angka total dibesarkan supaya terbaca dari posisi berdiri</li>
+            <li>Tombol angka tersedia untuk layar sentuh iPad</li>
+            <li>Tiga langkah diberi nomor, kasir baru tahu urutannya tanpa diajari</li>
+            <li>Terukur: muat satu layar 1262px tanpa menggulung sama sekali</li>
+          </ul>
+        </div>
+        <div class="sec cost">
+          <p class="t">Yang perlu diterima</p>
+          <ul>
+            <li>Kasir yang sudah hafal tata letak lama perlu menyesuaikan diri sekali</li>
+            <li>Butuh diuji langsung di iPad, bukan hanya di layar laptop</li>
+            <li>Sidebar menyempit jadi ikon saat mode kasir</li>
+          </ul>
+        </div>
+        <div class="meta">
+          <div class="mc"><div class="k">Berkas</div><div class="v md">4</div></div>
+          <div class="mc"><div class="k">Risiko</div><div class="v md">Sedang</div></div>
+          <div class="mc"><div class="k">Waktu</div><div class="v md">±8 jam</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAKET 3 -->
+    <div class="col">
+      <div class="colhead">
+        <p class="pk">Paket 3</p>
+        <p class="nm">Identitas baru</p>
+        <p class="one">Membuat sistem terasa milik sebuah kedai kopi, bukan dashboard perusahaan umum.</p>
+      </div>
+      <div class="frame">
+        <iframe src="redesign-paket-3.html" scrolling="no" title="Paket 3"></iframe>
+        <a class="open" href="redesign-paket-3.html" target="_blank">Buka ukuran penuh</a>
+      </div>
+      <div class="body">
+        <div class="sec good">
+          <p class="t">Yang diperbaiki</p>
+          <ul>
+            <li>Logo asli Kataloji dipasang di sidebar, bukan huruf K buatan</li>
+            <li>Judul memakai huruf serif hangat, memberi kesan artisan</li>
+            <li>Omzet digambar seperti papan menu kedai</li>
+            <li>Poin digambarkan sebagai kartu stempel kopi, bukan sekadar angka</li>
+            <li>Tiap warna brand mendapat satu tugas tetap, bukan hiasan acak</li>
+          </ul>
+        </div>
+        <div class="sec cost">
+          <p class="t">Yang perlu diterima</p>
+          <ul>
+            <li>Menyentuh paling banyak berkas, paling mahal secara waktu</li>
+            <li>Menambah satu jenis huruf baru yang harus dimuat</li>
+            <li>Tidak memperbaiki satu pun masalah kemudahan pakai dengan sendirinya</li>
+          </ul>
+        </div>
+        <div class="meta">
+          <div class="mc"><div class="k">Berkas</div><div class="v hi">12+</div></div>
+          <div class="mc"><div class="k">Risiko</div><div class="v hi">Tinggi</div></div>
+          <div class="mc"><div class="k">Waktu</div><div class="v hi">±16 jam</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Pertanyaan</th><th>Paket 1</th><th>Paket 2</th><th>Paket 3</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Memperbaiki cacat yang sudah terukur</td><td class="yes">Ya</td><td class="part">Sebagian</td><td class="no">Tidak</td></tr>
+      <tr><td>Mempercepat kerja kasir</td><td class="no">Tidak</td><td class="yes">Ya</td><td class="no">Tidak</td></tr>
+      <tr><td>Membuat tampilan terasa milik Kataloji</td><td class="no">Tidak</td><td class="part">Sedikit</td><td class="yes">Ya</td></tr>
+      <tr><td>Aman dikerjakan saat sprint berjalan</td><td class="yes">Ya</td><td class="part">Perlu jadwal</td><td class="no">Sebaiknya di akhir</td></tr>
+      <tr><td>Terlihat menonjol saat sidang KP</td><td class="part">Sedikit</td><td class="yes">Ya</td><td class="yes">Ya</td></tr>
+      <tr><td>Perlu uji ulang di iPad</td><td class="no">Tidak</td><td class="yes">Wajib</td><td class="part">Sebaiknya</td></tr>
+      <tr><td>Bisa dibatalkan tanpa jejak</td><td class="yes">Mudah</td><td class="part">Agak repot</td><td class="no">Sulit</td></tr>
+    </tbody>
+  </table>
+
+  <div class="foot">
+    <b>Saran saya, dan alasannya:</b> kerjakan Paket 1 lebih dulu karena isinya memperbaiki cacat yang sudah terbukti lewat pengukuran, bukan selera. Lanjutkan ke Paket 2 setelah itu, sebab layar kasir adalah layar yang dipakai puluhan kali sehari dan perbaikan di sana paling terasa oleh pengguna sebenarnya. Paket 3 sebaiknya dikerjakan terakhir, mendekati sidang, ketika fitur sudah tidak banyak berubah, supaya usaha merapikan tampilan tidak terbuang saat halaman masih sering dibongkar.
+    <br><br>
+    <b>Ketiganya bisa digabung.</b> Paket 1 dan 2 tidak saling bertabrakan, dan Paket 3 hanya mengganti lapisan warna serta huruf di atas keduanya.
+  </div>
+</div>
+</body>
+</html>
