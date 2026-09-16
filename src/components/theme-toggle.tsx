@@ -52,7 +52,9 @@ export function ThemeToggle({ className }: { className?: string }) {
             title={label}
             onClick={() => setTheme(nilai)}
             className={cn(
-              "flex h-7 flex-1 items-center justify-center rounded-md transition-colors",
+              // h-11 supaya pemilihan tema ikut ambang sentuh yang sama.
+              // Sebelumnya h-7 (28px), tiga tombol berdempet di sidebar sempit.
+              "flex h-11 flex-1 items-center justify-center rounded-md transition-colors",
               aktif
                 ? "bg-sidebar-primary text-sidebar-primary-foreground"
                 : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",

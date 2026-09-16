@@ -189,7 +189,7 @@ export default function HalamanLoyalitas() {
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-6 py-20 text-center">
           <ShieldAlert className="h-6 w-6 text-muted-foreground" aria-hidden />
           <p className="text-sm font-semibold">{galat}</p>
-          <Button variant="outline" className="h-10" onClick={muatUlang}>
+          <Button variant="outline" className="h-11" onClick={muatUlang}>
             Coba lagi
           </Button>
         </div>
@@ -208,7 +208,7 @@ export default function HalamanLoyalitas() {
         </div>
         <Button
           variant="outline"
-          className="h-10 gap-2"
+          className="h-11 gap-2"
           onClick={muatUlang}
           disabled={memuat}
         >
@@ -390,7 +390,10 @@ export default function HalamanLoyalitas() {
                   aria-selected={tenggat === t}
                   onClick={() => setTenggat(t)}
                   className={
-                    "rounded-md px-3 py-1.5 text-xs font-bold transition-colors " +
+                    // min-h-11: tab ini diketuk untuk berpindah tenggat, jadi
+                    // ikut ambang sentuh 44px. Dengan py-1.5 saja tingginya
+                    // hanya 28px karena mengikuti ukuran huruf text-xs.
+                    "flex min-h-11 items-center rounded-md px-4 text-xs font-bold transition-colors " +
                     (tenggat === t
                       ? "bg-card text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground")
@@ -461,7 +464,7 @@ export default function HalamanLoyalitas() {
                           href={wa}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-bold transition-colors hover:bg-muted"
+                          className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-bold transition-colors hover:bg-muted"
                         >
                           <MessageCircle className="h-3.5 w-3.5" aria-hidden />
                           Ingatkan
@@ -563,7 +566,7 @@ export default function HalamanLoyalitas() {
                 <div className="border-t border-border px-6 py-3.5 text-center">
                   <Button
                     variant="outline"
-                    className="h-10"
+                    className="h-11"
                     onClick={() => setBatasRiwayat((n) => n + 25)}
                   >
                     Tampilkan {Math.min(25, riwayat.length - batasRiwayat)}{" "}

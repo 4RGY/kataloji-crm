@@ -384,7 +384,11 @@ export default function DashboardPage() {
               aria-selected={range === r.key}
               onClick={() => setRange(r.key)}
               className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                // min-h-11 dan bukan py- saja: padding vertikal kecil membuat
+                // tinggi ikut ukuran huruf, dan pada text-xs hasilnya 28px.
+                // Tombol rentang ini diketuk pemilik untuk berpindah periode
+                // dan harus ikut ambang sentuh 44px seperti tombol lain.
+                "flex min-h-11 items-center rounded-full px-4 text-xs font-semibold transition-colors",
                 range === r.key
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -398,7 +402,7 @@ export default function DashboardPage() {
             aria-selected={range === "custom"}
             onClick={() => setRange("custom")}
             className={cn(
-              "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+              "flex min-h-11 items-center rounded-full px-4 text-xs font-semibold transition-colors",
               range === "custom"
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -414,7 +418,7 @@ export default function DashboardPage() {
               value={from}
               onChange={(e) => setFrom(e.target.value)}
               aria-label="Tanggal mulai"
-              className="h-9 w-40 bg-card"
+              className="h-11 w-40 bg-card"
             />
             <span className="text-xs text-muted-foreground">sampai</span>
             <Input
@@ -422,7 +426,7 @@ export default function DashboardPage() {
               value={to}
               onChange={(e) => setTo(e.target.value)}
               aria-label="Tanggal akhir"
-              className="h-9 w-40 bg-card"
+              className="h-11 w-40 bg-card"
             />
           </div>
         )}

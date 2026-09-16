@@ -166,7 +166,7 @@ export function LonceNotifikasi({ className }: { className?: string }) {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium outline-none transition-colors hover:bg-sidebar-accent",
+            "relative flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium outline-none transition-colors hover:bg-sidebar-accent",
             className,
           )}
           aria-label={

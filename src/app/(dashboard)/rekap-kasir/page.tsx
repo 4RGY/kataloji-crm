@@ -260,7 +260,9 @@ export default function HalamanRekapKasir() {
                 aria-selected={periode === p.kunci}
                 onClick={() => setPeriode(p.kunci)}
                 className={
-                  "rounded-md px-3 py-1.5 text-xs font-bold transition-colors " +
+                  // min-h-11: sama seperti tab tenggat di halaman Loyalitas,
+                  // py-1.5 saja hanya menghasilkan 28px pada text-xs.
+                  "flex min-h-11 items-center rounded-md px-4 text-xs font-bold transition-colors " +
                   (periode === p.kunci
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground")

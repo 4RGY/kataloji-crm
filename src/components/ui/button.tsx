@@ -20,17 +20,31 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
+        // Tinggi dikunci minimal 44px karena aplikasi ini dipakai dengan jari
+        // di iPad, bukan dengan tetikus. 44px adalah ambang pada panduan
+        // sentuh Apple maupun WCAG 2.5.8, dan di bawah itu tombol mulai sering
+        // meleset. Ukuran bawaan shadcn (default h-8 = 32px, sm h-7 = 28px)
+        // dirancang untuk antarmuka desktop, dan terukur meleset di seluruh
+        // halaman: 20 dari 21 elemen di Dashboard ada di bawah ambang sebelum
+        // perubahan ini.
+        //
+        // Yang dinaikkan tingginya, bukan ukuran hurufnya, supaya kerapatan
+        // tampilan tidak berubah drastis. Padding mendatar ikut ditambah
+        // sedikit supaya tombol tidak terlihat gepeng.
         default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+          "h-11 gap-1.5 px-3.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        // xs sengaja dibiarkan kecil: dipakai untuk lencana yang bisa diklik
+        // di dalam baris padat, bukan untuk aksi, dan tidak dipakai di jalur
+        // kasir. Kalau nanti dipakai untuk aksi, tingginya harus dinaikkan.
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
+        sm: "h-11 gap-1 rounded-[min(var(--radius-md),12px)] px-3 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-12 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        icon: "size-11",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+          "size-11 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-12",
       },
     },
     defaultVariants: {

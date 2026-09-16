@@ -249,7 +249,7 @@ export default function Halaman() {
                   </p>
                 </div>
               </div>
-              <Button asChild variant="outline" className="h-10 gap-2">
+              <Button asChild variant="outline" className="h-11 gap-2">
                 <Link href="/staf">
                   Buka halaman Staf
                   <ArrowUpRight className="h-4 w-4" />

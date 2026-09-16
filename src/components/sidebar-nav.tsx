@@ -228,7 +228,10 @@ export function SidebarNav() {
                       href={item.href}
                       title={item.label}
                       className={cn(
-                        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                        // min-h-11: menu ini yang paling sering diketuk kasir
+                        // untuk pindah halaman. Dengan py-2 saja tingginya
+                        // hanya 36px karena ikut ukuran huruf text-sm.
+                        "group relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
                         active
                           ? "text-sidebar-accent-foreground"
                           : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
