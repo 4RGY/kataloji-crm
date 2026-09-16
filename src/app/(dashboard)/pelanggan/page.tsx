@@ -25,12 +25,15 @@ import {
   hitungRingkasan,
   inisialPelanggan,
   kelompokkanPerPelanggan,
+  keteranganArsip,
   lencanaPelanggan,
+  pisahkanArsip,
   ringkasHalaman,
   rupiahPenuh,
   rupiahRingkas,
   saringLencana,
   SARINGAN_PELANGGAN,
+  sudahDiarsipkan,
   tanggalIndonesia,
   tanggalSingkat,
   tanggalUltah,
@@ -45,6 +48,8 @@ import {
   type WarnaAvatar,
 } from "@/lib/pelanggan-tampilan";
 import {
+  Archive,
+  ArchiveRestore,
   CalendarDays,
   Clock3,
   Loader2,
@@ -67,6 +72,9 @@ interface Pelanggan {
   tgl_lahir: string | null;
   poin: number;
   created_at: string;
+  /** Terisi kalau pelanggan sudah diarsipkan. Lihat supabase/arsip-pelanggan.sql. */
+  diarsipkan_pada?: string | null;
+  alasan_arsip?: string | null;
 }
 
 /** Baris transaksi dari Supabase, dengan kolom yang dipakai halaman ini. */
@@ -113,6 +121,11 @@ export default function PelangganPage() {
 
   // Pelanggan yang sedang dibuka panelnya, beserta isi buku besar poinnya.
   const [pilihId, setPilihId] = useState<string | null>(null);
+
+  // Arsip hanya bisa dipakai setelah supabase/arsip-pelanggan.sql dijalankan.
+  const [arsipSiap, setArsipSiap] = useState(false);
+  const [mengarsip, setMengarsip] = useState<string | null>(null);
+  const [lihatArsip, setLihatArsip] = useState(false);
   const [ledger, setLedger] = useState<BarisLedger[]>([]);
   const [memuatLedger, setMemuatLedger] = useState(false);
 
@@ -133,11 +146,24 @@ export default function PelangganPage() {
     // dari tabel transaksi, bukan disimpan sebagai kolom sendiri. Kalau
     // disimpan, nilainya bisa melenceng dari transaksinya dan tidak ada yang
     // tahu mana yang benar.
+    // Kolom arsip baru ada setelah supabase/arsip-pelanggan.sql dijalankan.
+    // Selama belum, PostgREST menolak seluruh query hanya karena satu kolom
+    // tidak dikenal, sehingga daftar pelanggan ikut kosong. Karena itu kolom
+    // arsip diminta lebih dulu, dan kalau ditolak diulang tanpa kolom itu.
+    const KOLOM_ARSIP =
+      "id, nama, whatsapp, tgl_lahir, poin, created_at, diarsipkan_pada, alasan_arsip";
+    const KOLOM_DASAR = "id, nama, whatsapp, tgl_lahir, poin, created_at";
+
+    let kolom = KOLOM_ARSIP;
+    const cobaArsip = await supabase.from("pelanggan").select("diarsipkan_pada").limit(1);
+    const arsipSiap = !cobaArsip.error;
+    if (!arsipSiap) kolom = KOLOM_DASAR;
+
     const [hasilPelanggan, hasilTransaksi] = await Promise.all([
       ambilSemua<Pelanggan>((dari, sampai) =>
         supabase
           .from("pelanggan")
-          .select("id, nama, whatsapp, tgl_lahir, poin, created_at")
+          .select(kolom)
           .order("nama", { ascending: true })
           .range(dari, sampai),
       ),
@@ -151,7 +177,7 @@ export default function PelangganPage() {
     ]);
 
     if (hasilPelanggan.error) {
-      return { data: [], error: hasilPelanggan.error, terpotong: false };
+      return { data: [], error: hasilPelanggan.error, arsipSiap, terpotong: false };
     }
 
     const peta = kelompokkanPerPelanggan(hasilTransaksi.data);
@@ -176,6 +202,7 @@ export default function PelangganPage() {
     return {
       data,
       error: null,
+      arsipSiap,
       terpotong: hasilPelanggan.terpotong || hasilTransaksi.terpotong,
     };
   }, [supabase]);
@@ -183,8 +210,9 @@ export default function PelangganPage() {
   useEffect(() => {
     let aktif = true;
     (async () => {
-      const { data, error, terpotong: tp } = await ambilDaftar();
+      const { data, error, terpotong: tp, arsipSiap: siap } = await ambilDaftar();
       if (!aktif) return;
+      setArsipSiap(siap);
       if (error) {
         setGalat("Gagal memuat daftar pelanggan. Coba muat ulang.");
         setDaftar([]);
@@ -202,7 +230,8 @@ export default function PelangganPage() {
 
   async function muatUlang() {
     setMemuat(true);
-    const { data, error, terpotong: tp } = await ambilDaftar();
+    const { data, error, terpotong: tp, arsipSiap: siap } = await ambilDaftar();
+    setArsipSiap(siap);
     if (error) {
       setGalat("Gagal memuat daftar pelanggan. Coba muat ulang.");
       setDaftar([]);
@@ -212,6 +241,58 @@ export default function PelangganPage() {
     }
     setTerpotong(tp);
     setMemuat(false);
+  }
+
+  /**
+   * Arsipkan pelanggan lewat fungsi database, bukan UPDATE langsung, supaya
+   * identitas pengarsip diisi server. Kalau aplikasi yang mengisinya, nilai
+   * itu bisa dikarang oleh siapa pun yang bisa memanggil database.
+   */
+  async function arsipkan(p: BarisPelanggan) {
+    const alasan = window.prompt(
+      `Arsipkan ${p.nama}? Poin dan riwayatnya tetap tersimpan.\n\nAlasan (boleh dikosongkan):`,
+      "",
+    );
+    // prompt mengembalikan null kalau ditekan Batal, dan string kosong kalau
+    // dikirim tanpa isi. Keduanya berbeda arti dan tidak boleh disamakan.
+    if (alasan === null) return;
+
+    setMengarsip(p.id);
+    const { error } = await supabase.rpc("arsipkan_pelanggan", {
+      p_pelanggan_id: p.id,
+      p_alasan: alasan.trim() || null,
+    });
+    setMengarsip(null);
+
+    if (error) {
+      catatGalat("arsipkan pelanggan", error);
+      toast.error("Gagal mengarsipkan pelanggan.", {
+        description: pesanGalat(error, "Coba lagi sebentar."),
+      });
+      return;
+    }
+    toast.success(`${p.nama} diarsipkan.`, {
+      description: "Bisa dikembalikan lewat penyaring Arsip.",
+    });
+    await muatUlang();
+  }
+
+  async function kembalikan(p: BarisPelanggan) {
+    setMengarsip(p.id);
+    const { error } = await supabase.rpc("kembalikan_pelanggan", {
+      p_pelanggan_id: p.id,
+    });
+    setMengarsip(null);
+
+    if (error) {
+      catatGalat("kembalikan pelanggan", error);
+      toast.error("Gagal mengembalikan pelanggan.", {
+        description: pesanGalat(error, "Coba lagi sebentar."),
+      });
+      return;
+    }
+    toast.success(`${p.nama} kembali ke daftar aktif.`);
+    await muatUlang();
   }
 
   // Buku besar poin hanya diambil saat panel dibuka, bukan untuk seluruh
@@ -249,26 +330,39 @@ export default function PelangganPage() {
   // Penyaring lencana. null berarti semua pelanggan ditampilkan.
   const [saringan, setSaringan] = useState<JenisLencana | null>(null);
 
+  // Pelanggan yang diarsipkan dipisah dari yang aktif. Daftar utama hanya
+  // menampilkan yang aktif, karena itulah yang dicari kasir sehari hari.
+  const { aktif: daftarAktif, arsip: daftarArsip } = useMemo(
+    () => pisahkanArsip(daftar),
+    [daftar],
+  );
+
+  const daftarTampil = lihatArsip ? daftarArsip : daftarAktif;
+
   const jumlahLencana = useMemo(
-    () => hitungPerLencana(daftar as DataLencana[], hariIni),
-    [daftar, hariIni],
+    () => hitungPerLencana(daftarAktif as DataLencana[], hariIni),
+    [daftarAktif, hariIni],
   );
 
   const hasil = useMemo(
     () =>
-      saringLencana(daftar, saringan, hariIni).filter((p) =>
+      saringLencana(daftarTampil, saringan, hariIni).filter((p) =>
         cocokCari(p, query),
       ),
-    [daftar, query, saringan, hariIni],
+    [daftarTampil, query, saringan, hariIni],
   );
 
   /** Kembalikan daftar ke keadaan utuh: hapus kata kunci dan penyaring. */
   function bersihkanPencarian() {
     setQuery("");
     setSaringan(null);
+    setLihatArsip(false);
   }
 
-  const kepala = useMemo(() => ringkasHalaman(daftar, hariIni), [daftar, hariIni]);
+  const kepala = useMemo(
+    () => ringkasHalaman(daftarAktif, hariIni),
+    [daftarAktif, hariIni],
+  );
 
   const terpilih = useMemo(
     () => daftar.find((p) => p.id === pilihId) ?? null,
@@ -371,26 +465,30 @@ export default function PelangganPage() {
       {daftar.length > 0 && (
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <Button
-            variant={saringan === null ? "default" : "outline"}
+            variant={saringan === null && !lihatArsip ? "default" : "outline"}
             className="h-9 px-3.5 text-xs font-bold"
-            onClick={() => setSaringan(null)}
-            aria-pressed={saringan === null}
+            onClick={() => {
+              setSaringan(null);
+              setLihatArsip(false);
+            }}
+            aria-pressed={saringan === null && !lihatArsip}
           >
             Semua
             <span className="ml-1.5 tabular-nums opacity-70">
-              {daftar.length}
+              {daftarAktif.length}
             </span>
           </Button>
           {SARINGAN_PELANGGAN.filter((s) => jumlahLencana[s.jenis] > 0).map(
             (s) => (
               <Button
                 key={s.jenis}
-                variant={saringan === s.jenis ? "default" : "outline"}
+                variant={saringan === s.jenis && !lihatArsip ? "default" : "outline"}
                 className="h-9 px-3.5 text-xs font-bold"
-                onClick={() =>
-                  setSaringan(saringan === s.jenis ? null : s.jenis)
-                }
-                aria-pressed={saringan === s.jenis}
+                onClick={() => {
+                  setLihatArsip(false);
+                  setSaringan(saringan === s.jenis ? null : s.jenis);
+                }}
+                aria-pressed={saringan === s.jenis && !lihatArsip}
               >
                 {s.label}
                 <span className="ml-1.5 tabular-nums opacity-70">
@@ -398,6 +496,24 @@ export default function PelangganPage() {
                 </span>
               </Button>
             ),
+          )}
+
+          {/* Arsip hanya muncul kalau memang ada isinya. Tombol kosong yang
+              selalu ada hanya menambah pilihan tanpa menambah kemampuan. */}
+          {daftarArsip.length > 0 && (
+            <Button
+              variant={lihatArsip ? "default" : "outline"}
+              className="h-9 gap-1.5 px-3.5 text-xs font-bold"
+              onClick={() => {
+                setLihatArsip(!lihatArsip);
+                setSaringan(null);
+              }}
+              aria-pressed={lihatArsip}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Arsip
+              <span className="tabular-nums opacity-70">{daftarArsip.length}</span>
+            </Button>
           )}
         </div>
       )}
@@ -587,6 +703,10 @@ export default function PelangganPage() {
             memuatLedger={memuatLedger}
             hariIni={hariIni}
             onTutup={() => setPilihId(null)}
+            arsipSiap={arsipSiap}
+            sedangArsip={mengarsip === terpilih.id}
+            onArsip={() => void arsipkan(terpilih)}
+            onKembalikan={() => void kembalikan(terpilih)}
           />
         )}
       </div>
@@ -684,15 +804,25 @@ function PanelDetail({
   memuatLedger,
   hariIni,
   onTutup,
+  arsipSiap,
+  sedangArsip,
+  onArsip,
+  onKembalikan,
 }: {
   pelanggan: BarisPelanggan;
   ledger: BarisLedger[];
   memuatLedger: boolean;
   hariIni: Date;
   onTutup: () => void;
+  /** Fitur arsip baru aktif setelah supabase/arsip-pelanggan.sql dijalankan. */
+  arsipSiap: boolean;
+  sedangArsip: boolean;
+  onArsip: () => void;
+  onKembalikan: () => void;
 }) {
   const hangus = hangusTerdekat(ledger, hariIni);
   const ultah = tanggalUltah(pelanggan.tgl_lahir, hariIni);
+  const diarsipkan = sudahDiarsipkan(pelanggan);
 
   // Nomor WhatsApp untuk dibuka di aplikasi chat. Format penyimpanan sudah
   // 62xxx tanpa tanda, jadi langsung bisa dipakai.
@@ -909,19 +1039,61 @@ function PanelDetail({
 
       {/* Aksi */}
       <div className="mt-auto flex flex-col gap-2 border-t border-border/60 px-5 py-4">
-        <Button asChild className="h-10 w-full gap-2 font-semibold">
-          <a
-            href={`https://wa.me/${nomorWa}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Chat WhatsApp
-          </a>
-        </Button>
-        <Button variant="outline" asChild className="h-10 w-full font-semibold">
-          <a href={`/transaksi`}>Catat kunjungan baru</a>
-        </Button>
+        {diarsipkan ? (
+          <>
+            {/* Keterangan arsip ditaruh di atas tombol supaya alasannya
+                terbaca sebelum orang memutuskan mengembalikan. */}
+            <p className="mb-1 text-xs leading-relaxed text-muted-foreground">
+              {keteranganArsip(pelanggan, hariIni)}
+            </p>
+            <Button
+              className="h-10 w-full gap-2 font-semibold"
+              onClick={onKembalikan}
+              disabled={sedangArsip}
+            >
+              {sedangArsip ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArchiveRestore className="h-4 w-4" />
+              )}
+              Kembalikan ke daftar aktif
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button asChild className="h-10 w-full gap-2 font-semibold">
+              <a
+                href={`https://wa.me/${nomorWa}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat WhatsApp
+              </a>
+            </Button>
+            <Button variant="outline" asChild className="h-10 w-full font-semibold">
+              <a href={`/transaksi`}>Catat kunjungan baru</a>
+            </Button>
+            {arsipSiap && (
+              // Tidak ada tombol hapus, dan itu disengaja. Menghapus pelanggan
+              // ikut menghapus seluruh jejak poinnya, sehingga total poin yang
+              // pernah beredar tidak bisa dihitung ulang.
+              <Button
+                variant="outline"
+                className="h-10 w-full gap-2 font-semibold text-muted-foreground"
+                onClick={onArsip}
+                disabled={sedangArsip}
+              >
+                {sedangArsip ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Archive className="h-4 w-4" />
+                )}
+                Arsipkan pelanggan
+              </Button>
+            )}
+          </>
+        )}
       </div>
     </aside>
   );
