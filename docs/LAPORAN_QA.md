@@ -10,10 +10,17 @@ Tanggal pengujian: **17 September 2026**.
 **Verdict: BELUM SIAP operasional.** Bukan karena bug, tetapi karena **enam
 fitur inti yang diminta di brief tidak ada di dalam sistem**.
 
-Terdapat **6 temuan**: 1 Major yang berpotensi Critical (poin hantu saat
-transaksi dihapus), 1 Major yang paling terasa staf sehari-hari (pencarian
-format nomor lokal gagal), dan sisanya Minor/Cosmetic. **Nol bug Critical
-yang bisa terpicu saat melayani pelanggan.**
+Terdapat **5 temuan nyata**: 1 Major yang berpotensi Critical (poin hantu saat
+transaksi dihapus), dan sisanya Minor/Cosmetic. **Nol bug Critical yang bisa
+terpicu saat melayani pelanggan.**
+
+> **Koreksi dari versi sebelumnya laporan ini.** Draf awal mencantumkan satu
+> bug Major bahwa "pencarian gagal saat nomor diketik format lokal `08...`".
+> Itu **keliru dan sudah ditarik**: alat uji memakai tiruan fungsi pencarian
+> yang tidak ikut menormalisasi kata kunci, sementara kode asli melakukannya.
+> Uji ulang memakai kode asli (dan harness `uji-normalisasi-wa.mts`) memastikan
+> `08123456701` **ditemukan** untuk pelanggan `628123456701`. Tidak ada bug di
+> sini.
 
 Yang sudah ada dan terbukti kokoh justru bagian yang paling berisiko kalau
 salah: **hak akses tiga peran** dan **perhitungan poin**. Keduanya gue gebrak
@@ -158,7 +165,9 @@ dikerjakan sembarangan.
 
 ### 5.2 Pencarian Pelanggan
 
-Diuji meniru persis logika penyaring aplikasi:
+Diuji memakai **fungsi asli aplikasi** (`cocokCari` di
+`src/lib/pelanggan.ts`, dipanggil halaman Pelanggan) dan harness
+`uji-normalisasi-wa.mts` — bukan tiruan.
 
 | Cara mencari | Hasil |
 |---|---|
@@ -168,9 +177,16 @@ Diuji meniru persis logika penyaring aplikasi:
 | Nomor utuh format 62 | ketemu |
 | Nomor sebagian (`456701`) | ketemu |
 | 3 digit akhir (`701`) | ketemu |
-| **Nomor format lokal (`08123456701`)** | **TIDAK KETEMU** ← lihat BUG-01 |
-| **Nomor bertanda (`0812-3456-701`)** | **TIDAK KETEMU** ← lihat BUG-01 |
-| **Typo ringan (`QA-Andy Pratama`)** | **TIDAK KETEMU** ← lihat BUG-03 |
+| Nomor format lokal (`08123456701`) | **ketemu** |
+| Nomor bertanda (`0812-3456-701`) | **ketemu** |
+| **Typo ringan (`QA-Andy Pratama`)** | **tidak ketemu** ← lihat BUG-03 |
+
+> **Catatan koreksi.** Pengujian pertama melaporkan dua baris teratas sebagai
+> "TIDAK KETEMU". Itu **salah**: tiruan fungsi yang dipakai di alat uji tidak
+> ikut menormalisasi kata kunci, sedangkan kode aslinya menormalisasi
+> (`0812...` dirapikan jadi `62812...` sebelum dicocokkan). Harness asli
+> menguji kasus ini pada butir "cari dengan nomor berawalan nol" dan
+> "cari dengan nomor bertanda tambah", keduanya lulus.
 
 ### 5.3 Alur Transaksi & Arsip Pelanggan
 
@@ -306,21 +322,24 @@ arsip pelanggan lewat UI.
 
 Format: ID | Actor | Fitur | Langkah Reproduksi | Expected | Actual | Severity | Device/Browser
 
-### BUG-01 — Pencarian gagal saat nomor diketik format lokal `08...`
+### BUG-01 — DITARIK: bukan bug
 
-| Kolom | Isi |
-|---|---|
-| **Actor** | Kasir, Manager, Admin (semua) |
-| **Fitur** | Cari pelanggan di halaman Pelanggan dan Transaksi |
-| **Langkah** | 1. Pastikan ada pelanggan tersimpan dengan nomor `6281234567706`. 2. Buka halaman Pelanggan. 3. Ketik `081234567706` di kotak cari. |
-| **Expected** | Pelanggan ditemukan. Format `08...` adalah cara paling wajar orang Indonesia menyebut nomornya. |
-| **Actual** | **0 hasil.** Pencarian hanya mencocokkan angka apa adanya terhadap nomor yang sudah dinormalisasi jadi `628...`, sehingga awalan `0` tidak pernah cocok. Ketik `81234567706` (tanpa 0) justru ketemu. |
-| **Severity** | **Major** — alur utama (cari pelanggan saat antrean) terhambat; ada jalan lain (cari nama / 3 digit akhir), jadi tidak memblokir total. |
-| **Device/Browser** | Chromium, 1262 px. Terverifikasi juga langsung di API. |
+Draf awal laporan ini menyatakan pencarian gagal saat nomor diketik format
+lokal `08...`, dengan severity Major. **Pernyataan itu salah dan ditarik.**
 
-**Akar masalah:** fungsi `cocokCari` menormalisasi **nomor yang tersimpan**
-tetapi **tidak menormalisasi kata kunci** yang diketik. Perbaikannya: normalkan
-dulu kata kuncinya sebelum dibandingkan.
+Kode aslinya sudah menormalisasi kata kunci sebelum mencocokkan
+(`src/lib/pelanggan.ts`, baris 151–153), sehingga `08123456701` menemukan
+pelanggan bernomor `628123456701`. Harness `uji-normalisasi-wa.mts` menguji
+kasus ini sejak awal pada butir "cari dengan nomor berawalan nol" dan
+"cari dengan nomor bertanda tambah" — keduanya lulus (38/38).
+
+**Penyebab kekeliruannya,** karena ini pelajaran yang layak dicatat: alat uji
+memakai **tiruan** fungsi pencarian yang tidak ikut menormalisasi kata kunci,
+lalu hasil tiruan itu dilaporkan sebagai perilaku sistem. Tiruannya yang salah,
+sistemnya benar.
+
+**Pelajaran:** uji fungsi aslinya, jangan tiruannya. Kalau harus meniru,
+tiruannya harus diuji berdampingan dengan yang asli.
 
 ---
 
@@ -416,6 +435,28 @@ audit tetap utuh. Proyek juga sudah punya skrip pembersih khusus untuk entri
 tanpa `transaksi_id` (`supabase/bersihkan-data-uji.sql`). Yang perlu diputuskan:
 apakah poin hantu harus dibatalkan otomatis saat transaksi dihapus, atau tetap
 dibiarkan demi jejak audit tetapi dengan peringatan di layar.
+
+---
+
+### Status Perbaikan
+
+| ID | Temuan | Severity | Status |
+|---|---|---|---|
+| BUG-01 | Pencarian gagal saat nomor format lokal | (ditarik) | **Ditarik** — bukan bug; alat ujinya yang keliru |
+| BUG-02 | Batas panjang nomor WA tidak seragam | Minor | **Diperbaiki** — migration `supabase/perbaikan-batas-wa.sql`. **Perlu Anda jalankan** di Supabase SQL Editor, karena perubahan aturan database tidak bisa dikerjakan dari luar. |
+| BUG-03 | Pencarian tidak tahan salah ketik | Minor | **Ditunda** — ini permintaan tambahan brief, bukan cacat. Butuh pengembangan, bukan perbaikan kecil. |
+| BUG-04 | Seluruh data pelanggan diunduh ke browser | Minor | **Ditunda** — perubahan cara kerja data, bukan perbaikan kecil. Perlu direncanakan bersama fitur lain. |
+| BUG-05 | Nama Admin/Kasir tampil sebagai email | Cosmetic | **Sudah diperbaiki** — nama pada baris profil disetel dari `wahyu@kataloji.id` / `anggara@kataloji.id` menjadi **Wahyu** dan **Anggara**. Akun baru tidak terpengaruh masalah ini, karena form Tambah Staf sudah mengirim nama. |
+| BUG-06 | Poin hantu saat transaksi dihapus | Major | **Ditunda, sengaja** — bukan perbaikan kecil. Menyentuh inti perhitungan poin dan butuh keputusan kebijakan dulu (lihat di bawah). |
+
+**Catatan BUG-06.** Ini sengaja tidak gue ubah. Menghapus transaksi bisa
+dilakukan lewat API dan dasbor, tetapi **tidak lewat UI**, jadi staf tidak bisa
+memicunya saat melayani. Perbaikannya juga tidak sesederhana menambah satu
+perintah: bila transaksi yang dihapus poinnya sudah terlanjur ditukar, poin
+yang sudah terpakai tidak bisa "dibatalkan" begitu saja. Diperlukan keputusan
+dulu — batalkan poin otomatis, atau pertahankan jejak audit tetapi beri
+peringatan di layar. Karena itu paling tepat dikerjakan bersamaan dengan
+pengembangan fitur otomatis yang sudah direncanakan.
 
 ---
 
