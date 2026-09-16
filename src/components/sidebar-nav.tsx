@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LonceNotifikasi } from "@/components/lonceng-notifikasi";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -195,6 +196,12 @@ export function SidebarNav() {
                 ]
               : kelompok.menu;
 
+          // Kelompok Pemasaran disembunyikan seluruhnya dari kasir, bukan
+          // disisakan sebagai judul tanpa isi. Judul kosong justru
+          // memberitahu ada sesuatu yang tidak boleh dia buka, dan itu
+          // mengganggu tanpa memberi manfaat.
+          if (kelompok.judul === "Pemasaran" && !hakMenu.pemasaran) return null;
+
           return (
             <div key={kelompok.judul ?? "utama"}>
               {/* Judul kelompok hanya tampil saat sidebar melebar. Saat
@@ -241,8 +248,10 @@ export function SidebarNav() {
         })}
       </nav>
 
-      {/* Tema + User */}
+      {/* Notifikasi + Tema + User */}
       <div className="space-y-3 border-t border-sidebar-border p-3 lg:p-4">
+        <LonceNotifikasi />
+
         <ThemeToggle className="hidden lg:flex" />
 
         <DropdownMenu>
