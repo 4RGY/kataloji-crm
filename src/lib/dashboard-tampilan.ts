@@ -17,14 +17,14 @@
  */
 /**
  * Tipe baris buku besar yang MENAMBAH saldo dan karena itu punya `sisa`.
- * Ada empat tipe: earn, redeem, expire, adjust. Hanya earn dan adjust yang
- * menyimpan saldo. Sebelumnya 'adjust' terlewat di enam berkas sekaligus,
- * sehingga koreksi manual tidak pernah terhitung sebagai saldo pelanggan.
- * Harus sama dengan `tipe in ('earn','adjust')` di supabase/perbaikan-ledger.sql.
+ *
+ * Definisinya ada di `./poin` dan hanya diteruskan di sini supaya berkas yang
+ * sudah mengimpor dari modul ini tidak perlu ikut berubah. Jangan tulis ulang
+ * syaratnya di sini: satu aturan, satu tempat.
  */
-export function bersaldo(tipe: string): boolean {
-  return tipe === "earn" || tipe === "adjust";
-}
+import { bersaldo } from "./poin";
+
+export { bersaldo, TIPE_BERSALDO } from "./poin";
 
 export const JAM_MULAI = 7;
 export const JAM_SELESAI = 22;

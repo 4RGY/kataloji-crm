@@ -14,6 +14,29 @@ export const POIN_PER_RUPIAH = 20_000;
 export const NILAI_POIN = 1_000;
 export const MIN_REDEEM = 5;
 
+/**
+ * Tipe baris buku besar yang MENAMBAH saldo dan karena itu punya kolom `sisa`.
+ *
+ * Buku besar punya empat tipe: earn, redeem, expire, adjust. Hanya earn dan
+ * adjust yang menyimpan saldo. Aturan ini sebelumnya ditulis ulang di enam
+ * berkas, dan 'adjust' terlewat di semuanya, sehingga koreksi manual tidak
+ * pernah terhitung sebagai saldo pelanggan.
+ *
+ * Definisinya sekarang HANYA ada di sini. Berkas lain mengambilnya dari modul
+ * ini, bukan menuliskan syaratnya sendiri, supaya tidak ada lagi tempat kedua
+ * yang bisa ketinggalan saat aturannya berubah.
+ *
+ * Harus tetap sama dengan klausa `tipe in ('earn','adjust')` pada saldo_poin()
+ * dan tukar_poin() di supabase/perbaikan-ledger.sql. Kalau salah satu berubah,
+ * keduanya wajib berubah bersama.
+ */
+export const TIPE_BERSALDO = ["earn", "adjust"] as const;
+
+/** Apakah baris buku besar ini ikut menentukan saldo pelanggan. */
+export function bersaldo(tipe: string): boolean {
+  return (TIPE_BERSALDO as readonly string[]).includes(tipe);
+}
+
 export interface InputHitungPoin {
   total: number;
   diskon?: number;

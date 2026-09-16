@@ -16,6 +16,8 @@
 // ============================================================
 
 /** Satu baris buku besar poin, seperlunya untuk halaman ini. */
+import { bersaldo } from "./poin";
+
 export interface BarisLedgerLoyalitas {
   id: string;
   pelanggan_id: string | null;
@@ -85,15 +87,10 @@ export function hariMenuju(iso: string | null, sekarang: Date): number | null {
  * tersebar di enam berkas, dan 'adjust' terlewat di semuanya sehingga
  * koreksi manual tidak pernah terhitung sebagai saldo.
  *
- * Harus sama dengan klausa `tipe in ('earn','adjust')` pada saldo_poin()
- * dan tukar_poin() di supabase/perbaikan-ledger.sql.
+ * Definisinya kini ada di `./poin` dan hanya diteruskan di sini. Jangan tulis
+ * ulang syaratnya di berkas ini: satu aturan, satu tempat.
  */
-export const TIPE_BERSALDO = ["earn", "adjust"] as const;
-
-/** Apakah baris ini ikut menentukan saldo pelanggan. */
-export function bersaldo(tipe: string): boolean {
-  return (TIPE_BERSALDO as readonly string[]).includes(tipe);
-}
+export { bersaldo, TIPE_BERSALDO } from "./poin";
 
 export function masihBerlaku(
   b: BarisLedgerLoyalitas,

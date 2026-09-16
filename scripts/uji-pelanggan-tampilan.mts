@@ -48,6 +48,11 @@ import {
   type BarisLedger,
   type BarisTransaksi,
 } from "../src/lib/pelanggan-tampilan.ts";
+// Diimpor dari sumber aslinya dan dari dua berkas yang meneruskannya, untuk
+// membuktikan ketiganya benar-benar satu fungsi yang sama.
+import { bersaldo as bersaldoAsli, TIPE_BERSALDO } from "../src/lib/poin.ts";
+import { bersaldo as bersaldoLoyalitas } from "../src/lib/loyalitas-tampilan.ts";
+import { bersaldo as bersaldoDashboard } from "../src/lib/dashboard-tampilan.ts";
 
 let lulus = 0;
 let gagal = 0;
@@ -524,6 +529,18 @@ sama("redeem tidak menyimpan saldo", bersaldo("redeem"), false);
 sama("expire tidak menyimpan saldo", bersaldo("expire"), false);
 sama("tipe asing tidak dianggap bersaldo", bersaldo("entah"), false);
 sama("teks kosong tidak dianggap bersaldo", bersaldo(""), false);
+
+// Aturannya sempat ditulis ulang di tiga berkas dengan isi yang berbeda:
+// dua memakai perbandingan langsung, satu memakai daftar TIPE_BERSALDO.
+// Definisinya sekarang hanya ada di src/lib/poin.ts dan diteruskan oleh yang
+// lain. Tiga jalur impor di bawah harus menunjuk ke fungsi yang SAMA, bukan
+// sekadar berperilaku sama, supaya perubahan aturan tidak bisa lagi nyangkut
+// di satu berkas saja.
+sama("bersaldo dari pelanggan-tampilan sama dengan dari poin", bersaldo === bersaldoAsli, true);
+sama("bersaldo dari loyalitas-tampilan sama dengan dari poin", bersaldoLoyalitas === bersaldoAsli, true);
+sama("bersaldo dari dashboard-tampilan sama dengan dari poin", bersaldoDashboard === bersaldoAsli, true);
+sama("TIPE_BERSALDO tepat dua tipe", TIPE_BERSALDO.length, 2);
+sama("TIPE_BERSALDO berisi earn dan adjust", TIPE_BERSALDO.join(","), "earn,adjust");
 
 // ======================= ringkasPemeriksaan =======================
 sama("pembukuan bersih dinyatakan seimbang", ringkasPemeriksaan([]).seimbang, true);
