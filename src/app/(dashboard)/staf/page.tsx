@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { DialogKonfirmasi } from "@/components/dialog-konfirmasi";
 import { createClient } from "@/lib/supabase/client";
 import {
   KETERANGAN_ROLE,
@@ -205,13 +206,16 @@ export default function StafPage() {
     }
   }
 
-  async function hapus(staf: Staf) {
-    // Konfirmasi eksplisit: tindakan ini menghapus akses login orang.
-    const yakin = window.confirm(
-      `Hapus akun ${staf.nama} (${staf.email})? Orang ini tidak akan bisa masuk lagi.`,
-    );
-    if (!yakin) return;
+  /**
+   * Menghapus akun mencabut akses masuk seseorang, dan itu tidak bisa
+   * dibatalkan dari sini. Konfirmasinya lewat dialog aplikasi supaya tombol
+   * yang merusak bisa diberi warna merah dan tidak menjadi tombol yang
+   * terfokus lebih dulu, sehingga menekan Enter secara refleks tidak langsung
+   * menghapus. window.confirm() tidak bisa melakukan keduanya.
+   */
+  const [calonHapus, setCalonHapus] = useState<Staf | null>(null);
 
+  async function hapus(staf: Staf) {
     setSibukId(staf.id);
     try {
       const res = await fetch(`/api/staf?id=${encodeURIComponent(staf.id)}`, {
@@ -224,6 +228,7 @@ export default function StafPage() {
         return;
       }
 
+      setCalonHapus(null);
       toast.success(`Akun ${staf.nama} dihapus`);
       await muatUlang();
     } catch {
@@ -348,7 +353,7 @@ export default function StafPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 px-2 text-xs"
+              className="h-11 gap-1.5 px-3 text-xs"
               disabled={memuat}
               onClick={muatUlang}
             >
@@ -430,11 +435,15 @@ export default function StafPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 sm:justify-end">
+                {/* Jarak antar tombol dilebarkan karena yang kanan menghapus
+                    akses seseorang. Dengan gap-2 (8px) dan tombol setinggi
+                    32px, Ubah dan Hapus terlalu berdekatan untuk diketuk jari
+                    di iPad. Sekarang keduanya 44px dengan jarak 12px. */}
+                <div className="flex items-center gap-3 sm:justify-end">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs"
+                    className="h-11 text-xs"
                     onClick={() => {
                       setSheetUbah(s);
                       setFormUbah({ nama: s.nama, role: s.role });
@@ -445,14 +454,14 @@ export default function StafPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-destructive"
+                    className="h-11 gap-1.5 px-3 text-xs text-muted-foreground hover:text-destructive"
                     disabled={sibukId === s.id || s.diri_sendiri}
                     title={
                       s.diri_sendiri
                         ? "Tidak bisa menghapus akun yang sedang Anda pakai"
                         : undefined
                     }
-                    onClick={() => hapus(s)}
+                    onClick={() => setCalonHapus(s)}
                   >
                     {sibukId === s.id ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -668,6 +677,25 @@ export default function StafPage() {
           </form>
         </SheetContent>
       </Sheet>
+
+      <DialogKonfirmasi
+        terbuka={calonHapus !== null}
+        onTutup={() => setCalonHapus(null)}
+        judul={`Hapus akun ${calonHapus?.nama ?? ""}?`}
+        keterangan={
+          <>
+            {calonHapus?.email} tidak akan bisa masuk lagi ke Kataloji CRM.
+            Transaksi yang pernah dia catat tetap tersimpan beserta namanya,
+            karena jejak pencatat tidak boleh hilang saat akunnya dihapus.
+          </>
+        }
+        labelAksi="Hapus akun"
+        merusak
+        sedangProses={calonHapus !== null && sibukId === calonHapus.id}
+        onKonfirmasi={() => {
+          if (calonHapus) void hapus(calonHapus);
+        }}
+      />
     </div>
   );
 }
