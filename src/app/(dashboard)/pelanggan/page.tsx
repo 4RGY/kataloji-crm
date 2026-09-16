@@ -752,7 +752,14 @@ export default function PelangganPage() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tgl_lahir">Tanggal lahir</Label>
+              {/* Tanggal lahir wajib diisi menurut aturan BR-CUS-01, tetapi
+                  sebelumnya tidak ada tanda apa pun di layar. Kasir baru tahu
+                  setelah menekan Simpan dan muncul pesan galat. Tanda bintang
+                  dan keterangan di bawah ini menyampaikan syaratnya lebih dulu,
+                  bukan sesudah gagal. */}
+              <Label htmlFor="tgl_lahir">
+                Tanggal lahir <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="tgl_lahir"
                 type="date"
@@ -763,7 +770,8 @@ export default function PelangganPage() {
                 className="h-11"
               />
               <p className="text-xs text-muted-foreground">
-                Dipakai untuk ucapan ulang tahun dan pembagian segmen.
+                Wajib diisi. Dipakai untuk ucapan ulang tahun dan pembagian
+                segmen.
               </p>
             </div>
 

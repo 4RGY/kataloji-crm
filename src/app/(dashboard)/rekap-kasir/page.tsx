@@ -18,12 +18,12 @@ import {
   type BarisTransaksiRekap,
 } from "@/lib/jejak-pencatat";
 import { Button } from "@/components/ui/button";
+import { AksesDitolak } from "@/components/akses-ditolak";
 import {
   ClipboardList,
   Loader2,
   RefreshCw,
   ShieldAlert,
-  ShieldOff,
 } from "lucide-react";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
@@ -173,24 +173,16 @@ export default function HalamanRekapKasir() {
   // RLS `transaksi` dipersempit, dan itu mematahkan layar kasir.
   if (bolehLihat === false) {
     return (
-      <div className="px-6 pb-10 pt-4 lg:px-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight">Rekap kasir</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Siapa mencatat transaksi apa, untuk pertanggungjawaban kas.
-          </p>
-        </header>
-        <div className="rounded-xl border border-border bg-card p-8 text-center">
-          <ShieldOff className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden />
-          <p className="mt-3 text-sm font-bold text-foreground">
-            Halaman ini hanya untuk admin
-          </p>
-          <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-muted-foreground">
-            Akun Anda masuk sebagai {peranSaya === "kasir" ? "Kasir" : "staf"}.
-            Rekap kinerja antar staf hanya bisa dilihat admin.
-          </p>
-        </div>
-      </div>
+      <AksesDitolak
+        judul="Rekap kasir"
+        keterangan="Siapa mencatat transaksi apa, untuk pertanggungjawaban kas."
+        peran={peranSaya}
+        // Sebelumnya di sini tertulis "Halaman ini hanya untuk admin".
+        // Itu tidak benar: manajer juga boleh membuka halaman ini, hanya kasir
+        // yang tidak. Keterangan yang keliru membuat kasir mengira hanya admin
+        // yang bisa membantunya, padahal manajer di sebelahnya juga bisa.
+        alasan="Rekap kinerja antar staf hanya bisa dilihat admin dan manajer. Hubungi salah satunya kalau ada transaksi yang perlu ditelusuri."
+      />
     );
   }
 

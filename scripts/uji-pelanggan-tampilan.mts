@@ -287,9 +287,9 @@ sama(
   "2 pelanggan terdaftar, 1 ultah bulan ini",
 );
 sama(
-  "kepala: kosong jujur",
+  "kepala: kosong memakai hitungan yang sama dengan keadaan terisi",
   ringkasHalaman([], HARI_INI).teks,
-  "Belum ada pelanggan tercatat",
+  "0 pelanggan terdaftar",
 );
 
 // ======================= terjemahLedger =======================

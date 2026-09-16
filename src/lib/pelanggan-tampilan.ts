@@ -315,7 +315,12 @@ export function ringkasHalaman(
       perluDisapa: 0,
       ultahBulanIni: 0,
       poinBeredar: 0,
-      teks: "Belum ada pelanggan tercatat",
+      // Sengaja memakai bentuk yang sama dengan keadaan terisi, yaitu
+      // hitungan. Sebelumnya di sini tertulis "Belum ada pelanggan tercatat",
+      // dan kalimat itu muncul dua kali di halaman: sekali sebagai ringkasan
+      // ini, sekali lagi di dalam kotak daftar kosong di bawahnya. Membaca
+      // kalimat yang sama dua kali membuat halaman terasa rusak.
+      teks: "0 pelanggan terdaftar",
     };
   }
 
