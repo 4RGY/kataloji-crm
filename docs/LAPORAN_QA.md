@@ -7,8 +7,13 @@ Tanggal pengujian: **17 September 2026**.
 
 ## 1. Ringkasan Eksekutif
 
-**Verdict: BELUM SIAP operasional.** Bukan karena bug, tetapi karena **empat
+**Verdict: BELUM SIAP operasional.** Bukan karena bug, tetapi karena **enam
 fitur inti yang diminta di brief tidak ada di dalam sistem**.
+
+Terdapat **6 temuan**: 1 Major yang berpotensi Critical (poin hantu saat
+transaksi dihapus), 1 Major yang paling terasa staf sehari-hari (pencarian
+format nomor lokal gagal), dan sisanya Minor/Cosmetic. **Nol bug Critical
+yang bisa terpicu saat melayani pelanggan.**
 
 Yang sudah ada dan terbukti kokoh justru bagian yang paling berisiko kalau
 salah: **hak akses tiga peran** dan **perhitungan poin**. Keduanya gue gebrak
@@ -381,6 +386,39 @@ bug lama di mana data terpotong diam-diam di 1000 baris.
 
 ---
 
+### BUG-06 — Menghapus transaksi meninggalkan poinnya (poin hantu)
+
+| Kolom | Isi |
+|---|---|
+| **Actor** | Admin (lewat API atau dasbor, bukan lewat UI) |
+| **Fitur** | Perhitungan poin / buku besar |
+| **Langkah** | 1. Catat transaksi untuk pelanggan sehingga ia mendapat poin (misalnya Rp 40.000 → 2 poin). 2. Hapus transaksi itu: `DELETE /rest/v1/transaksi?id=eq.<id>`. 3. Periksa buku besar pelanggan tersebut. |
+| **Expected** | Poin yang berasal dari transaksi terhapus ikut dibatalkan, atau minimal muncul peringatan bahwa buku besar tidak lagi cocok dengan transaksi. |
+| **Actual** | **Poinnya tetap tinggal.** `point_ledger.transaksi_id` diatur `on delete set null`, sehingga entri poin tidak ikut terhapus — hanya tautannya jadi kosong. Saldo pelanggan tetap memuat poin itu dan **poin tersebut bisa ditukar** jadi potongan tagihan. |
+| **Severity** | **Major** (menurut huruf aturan brief ini masuk **Critical**, karena bunyinya "salah hitung poin" — tapi tidak ada jalan di UI untuk menghapus transaksi, jadi tidak bisa terpicu staf saat melayani). |
+| **Device/Browser** | Tidak berlaku (uji API langsung). |
+
+**Bukti nyata dari pengujian ini.** Pelanggan uji `QA-Kiki Amelia` sempat dibuatkan
+transaksi Rp 40.000 (2 poin) lalu transaksinya dihapus. Sesudah itu:
+
+- `transaksi` berisi **3 baris** (earn 25, earn 5, earn 2)
+- `point_ledger` berisi **5 baris**, termasuk **dua** entri `earn 2` — padahal
+  transaksi yang menghasilkan 2 poin hanya satu baris
+
+Yang paling perlu diperhatikan: **pemeriksaan "pembukuan poin seimbang" tidak
+mendeteksi ini.** Saldo ringkasan (9) cocok dengan hitungan buku besar (9),
+karena keduanya sama-sama memuat poin hantu itu. Jadi tidak ada peringatan
+apa pun.
+
+**Catatan penting:** ini tampaknya **pilihan desain, bukan kelalaian**. Dengan
+`on delete set null`, riwayat poin sengaja tidak dihapus diam-diam supaya jejak
+audit tetap utuh. Proyek juga sudah punya skrip pembersih khusus untuk entri
+tanpa `transaksi_id` (`supabase/bersihkan-data-uji.sql`). Yang perlu diputuskan:
+apakah poin hantu harus dibatalkan otomatis saat transaksi dihapus, atau tetap
+dibiarkan demi jejak audit tetapi dengan peringatan di layar.
+
+---
+
 ## 12. Exit Criteria
 
 | Kriteria | Status |
@@ -419,8 +457,21 @@ pelanggan `Uji Arsip`. Transaksi dan buku besar terkait ikut terhapus karena
 terikat ke pelanggan tersebut.
 
 **Data yang diubah dan tidak dikembalikan:** saldo poin `QA-Kiki Amelia`
-(sekarang 7, hasil dari uji siklus poin) dan transaksi ujinya. Aman karena
-pelanggan uji, bukan pelanggan asli.
+(sekarang **9**, hasil dari uji siklus poin) beserta transaksi dan buku
+besarnya. Buku besar pelanggan ini juga memuat **satu entri poin tanpa
+`transaksi_id`** — sisa dari uji BUG-06. Aman karena pelanggan uji, bukan
+pelanggan asli.
+
+**Menunggu izin untuk dibersihkan:** tiga baris sisa uji verifikasi bernama
+`QA-VERIF PANJANG 9`, `QA-VERIF PANJANG 10`, dan `QA-VERIF PANJANG 16`.
+Ketiganya dibuat untuk menguji BUG-02 dan gagal terhapus oleh skrip pengujian
+(penghapusan berdasarkan nama tidak menyaring baris tersebut; penghapusan
+berdasarkan id berhasil). Perintah penghapusannya **diblokir menunggu
+persetujuan**, sehingga baris ini masih ada. Nomornya nomor contoh dan tidak
+mengganggu, tetapi sebaiknya dihapus bersama data uji lain.
+
+Jumlah baris saat laporan ini ditulis: **16 pelanggan**, 6 transaksi,
+6 baris buku besar, 0 catatan campaign, 3 profil staf.
 
 ---
 
