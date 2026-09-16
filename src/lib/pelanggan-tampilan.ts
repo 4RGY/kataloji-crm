@@ -16,6 +16,17 @@
 // ============================================================
 
 /** Batas hari untuk menyebut pelanggan masih aktif. */
+/**
+ * Tipe baris buku besar yang MENAMBAH saldo dan karena itu punya `sisa`.
+ * Ada empat tipe: earn, redeem, expire, adjust. Hanya earn dan adjust yang
+ * menyimpan saldo. Sebelumnya 'adjust' terlewat di enam berkas sekaligus,
+ * sehingga koreksi manual tidak pernah terhitung sebagai saldo pelanggan.
+ * Harus sama dengan `tipe in ('earn','adjust')` di supabase/perbaikan-ledger.sql.
+ */
+export function bersaldo(tipe: string): boolean {
+  return tipe === "earn" || tipe === "adjust";
+}
+
 export const BATAS_AKTIF_HARI = 30;
 
 /**
@@ -416,7 +427,7 @@ export function terjemahLedger(b: BarisLedger): LedgerTampil {
 export function hangusTerdekat(ledger: BarisLedger[], hariIni: Date): string | null {
   let terdekat: string | null = null;
   for (const b of ledger || []) {
-    if (b.tipe !== "earn" || b.sisa <= 0 || !b.kedaluwarsa_pada) continue;
+    if (!bersaldo(b.tipe) || b.sisa <= 0 || !b.kedaluwarsa_pada) continue;
     const hari = selisihHari(b.kedaluwarsa_pada, hariIni);
     if (hari === null || hari >= 0) continue;
     if (!terdekat || new Date(b.kedaluwarsa_pada) < new Date(terdekat)) {
@@ -528,4 +539,98 @@ export function kelompokkanHuruf<T extends { nama: string }>(
       return a.localeCompare(b);
     })
     .map(([huruf, isi]) => ({ huruf, isi }));
+}
+
+/**
+ * Ringkasan hasil pemeriksaan keseimbangan pembukuan poin.
+ *
+ * Pembukuan yang benar: (poin masuk dikurangi poin keluar) harus sama dengan
+ * jumlah kolom sisa. Selisih apa pun berarti ada poin yang berubah tanpa
+ * baris yang menjelaskannya, dan itu persis yang menimpa saldo Anggara pada
+ * 14 Sep 2026: delapan poin masuk, nol keluar, tetapi sisa hanya tujuh.
+ *
+ * Hasilnya ditampilkan di layar, bukan sekadar tersedia sebagai query, supaya
+ * keadaan seperti itu ketahuan saat terjadi. Sebelumnya selisih tersebut baru
+ * terlihat setelah seseorang kebetulan memeriksa baris satu per satu.
+ */
+export interface HasilPeriksa {
+  pelanggan_id: string;
+  nama: string;
+  buku: number;
+  terpakai: number;
+  selisih: number;
+}
+
+export function ringkasPemeriksaan(hasil: HasilPeriksa[]): {
+  seimbang: boolean;
+  judul: string;
+  rincian: string;
+} {
+  if (hasil.length === 0) {
+    return {
+      seimbang: true,
+      judul: "Pembukuan poin seimbang",
+      rincian:
+        "Setiap poin yang masuk dan keluar punya baris yang menjelaskannya.",
+    };
+  }
+
+  const total = hasil.reduce((s, h) => s + Math.abs(h.selisih), 0);
+  const orang = hasil.length === 1 ? hasil[0].nama : `${hasil.length} pelanggan`;
+
+  return {
+    seimbang: false,
+    judul: `Pembukuan ${orang} perlu diperiksa`,
+    rincian:
+      `Ada ${total} poin yang berubah tanpa baris penjelasan. ` +
+      "Poinnya tidak hilang dari catatan, tetapi sebabnya belum tercatat.",
+  };
+}
+
+/**
+ * Pelanggan yang sudah diarsipkan.
+ *
+ * Arsip menggantikan penghapusan. Menghapus pelanggan ikut menghapus seluruh
+ * jejak poinnya lewat cascade, sehingga total poin yang pernah beredar tidak
+ * bisa dihitung ulang. Terbukti pada 16 Sep 2026: menghapus satu pelanggan
+ * membuat ledgernya berubah dari satu baris menjadi nol tanpa catatan apa pun.
+ */
+export function sudahDiarsipkan(p: { diarsipkan_pada?: string | null }): boolean {
+  return Boolean(p.diarsipkan_pada);
+}
+
+/** Pisahkan daftar menjadi yang aktif dan yang diarsipkan. */
+export function pisahkanArsip<T extends { diarsipkan_pada?: string | null }>(
+  daftar: T[],
+): { aktif: T[]; arsip: T[] } {
+  const aktif: T[] = [];
+  const arsip: T[] = [];
+  for (const p of daftar) {
+    if (sudahDiarsipkan(p)) arsip.push(p);
+    else aktif.push(p);
+  }
+  return { aktif, arsip };
+}
+
+/**
+ * Kalimat yang menerangkan apa yang terjadi pada pelanggan yang diarsipkan.
+ * Tanpa alasan tertulis, arsip lama menjadi teka teki: terlihat pernah
+ * disingkirkan tetapi tidak ada yang tahu mengapa.
+ */
+export function keteranganArsip(
+  p: { diarsipkan_pada?: string | null; alasan_arsip?: string | null },
+  hariIni: Date,
+): string {
+  if (!p.diarsipkan_pada) return "";
+  const hari = selisihHari(p.diarsipkan_pada, hariIni);
+  const kapan =
+    hari === null || hari < 0
+      ? "baru saja"
+      : hari === 0
+        ? "hari ini"
+        : hari === 1
+          ? "kemarin"
+          : `${hari} hari lalu`;
+  const alasan = (p.alasan_arsip || "").trim();
+  return alasan ? `Diarsipkan ${kapan}, ${alasan}` : `Diarsipkan ${kapan}`;
 }

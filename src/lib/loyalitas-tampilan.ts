@@ -76,11 +76,30 @@ export function hariMenuju(iso: string | null, sekarang: Date): number | null {
  * Hanya baris bertipe "earn" yang menyimpan sisa; baris "redeem" mencatat
  * pengeluaran sehingga sisanya memang nol.
  */
+/**
+ * Tipe baris yang MENAMBAH saldo dan karena itu punya kolom `sisa`.
+ *
+ * Ada empat tipe di buku besar: earn, redeem, expire, adjust. Hanya 'earn'
+ * dan 'adjust' yang menyimpan saldo; 'redeem' dan 'expire' hanya mencatat
+ * pengurangan. Daftar ini ditulis sekali di sini karena aturannya sempat
+ * tersebar di enam berkas, dan 'adjust' terlewat di semuanya sehingga
+ * koreksi manual tidak pernah terhitung sebagai saldo.
+ *
+ * Harus sama dengan klausa `tipe in ('earn','adjust')` pada saldo_poin()
+ * dan tukar_poin() di supabase/perbaikan-ledger.sql.
+ */
+export const TIPE_BERSALDO = ["earn", "adjust"] as const;
+
+/** Apakah baris ini ikut menentukan saldo pelanggan. */
+export function bersaldo(tipe: string): boolean {
+  return (TIPE_BERSALDO as readonly string[]).includes(tipe);
+}
+
 export function masihBerlaku(
   b: BarisLedgerLoyalitas,
   sekarang: Date,
 ): boolean {
-  if (b.tipe !== "earn") return false;
+  if (!bersaldo(b.tipe)) return false;
   if ((b.sisa ?? 0) <= 0) return false;
   if (!b.kedaluwarsa_pada) return true; // tanpa tanggal hangus, tidak pernah hangus
   const d = tanggalDari(b.kedaluwarsa_pada);
@@ -126,7 +145,7 @@ export function ringkasLoyalitas(
   const pemilik = new Set<string>();
 
   for (const b of ledger || []) {
-    if (b.tipe === "earn") {
+    if (bersaldo(b.tipe)) {
       poinDiterbitkan += Math.max(0, b.poin_masuk ?? 0);
       if (masihBerlaku(b, sekarang)) {
         poinBeredar += b.sisa;

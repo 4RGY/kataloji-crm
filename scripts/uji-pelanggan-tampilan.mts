@@ -16,6 +16,7 @@
  */
 import {
   AMBANG_KELOMPOK,
+  bersaldo,
   BATAS_AKTIF_HARI,
   BATAS_SEPI_HARI,
   hangusTerdekat,
@@ -25,13 +26,17 @@ import {
   inisialPelanggan,
   kelompokkanHuruf,
   kelompokkanPerPelanggan,
+  keteranganArsip,
   lencanaPelanggan,
+  pisahkanArsip,
   ringkasHalaman,
+  ringkasPemeriksaan,
   rupiahPenuh,
   rupiahRingkas,
   saringLencana,
   SARINGAN_PELANGGAN,
   selisihHari,
+  sudahDiarsipkan,
   TINGGI_BARIS_PX,
   tanggalIndonesia,
   tanggalSingkat,
@@ -507,6 +512,130 @@ sama(
 sama("tinggi baris lebih padat daripada 76px sebelumnya", TINGGI_BARIS_PX < 76, true);
 sama("tinggi baris tetap nyaman disentuh", TINGGI_BARIS_PX >= 44, true);
 sama("ambang kelompok masuk akal", AMBANG_KELOMPOK >= 20 && AMBANG_KELOMPOK <= 60, true);
+
+// ======================= bersaldo =======================
+// Baris 'adjust' sempat diabaikan di enam berkas sekaligus, sehingga
+// koreksi manual tidak pernah terhitung sebagai saldo pelanggan. Terbukti
+// pada database nyata: menyisipkan adjust +3 tidak menaikkan saldo sama
+// sekali, dan penukaran tetap ditolak karena dianggap tidak cukup.
+sama("earn menambah saldo", bersaldo("earn"), true);
+sama("adjust menambah saldo", bersaldo("adjust"), true);
+sama("redeem tidak menyimpan saldo", bersaldo("redeem"), false);
+sama("expire tidak menyimpan saldo", bersaldo("expire"), false);
+sama("tipe asing tidak dianggap bersaldo", bersaldo("entah"), false);
+sama("teks kosong tidak dianggap bersaldo", bersaldo(""), false);
+
+// ======================= ringkasPemeriksaan =======================
+sama("pembukuan bersih dinyatakan seimbang", ringkasPemeriksaan([]).seimbang, true);
+sama(
+  "kalimat seimbang tidak menakut nakuti",
+  ringkasPemeriksaan([]).judul,
+  "Pembukuan poin seimbang",
+);
+const TIMPANG1 = [
+  { pelanggan_id: "a", nama: "Anggara", buku: 8, terpakai: 7, selisih: 1 },
+];
+sama("satu pelanggan timpang terdeteksi", ringkasPemeriksaan(TIMPANG1).seimbang, false);
+sama(
+  "namanya disebut saat hanya satu",
+  ringkasPemeriksaan(TIMPANG1).judul.indexOf("Anggara") >= 0,
+  true,
+);
+sama(
+  "jumlah poin bermasalah disebutkan",
+  ringkasPemeriksaan(TIMPANG1).rincian.indexOf("1 poin") >= 0,
+  true,
+);
+const TIMPANG2 = [
+  { pelanggan_id: "a", nama: "Anggara", buku: 8, terpakai: 7, selisih: 1 },
+  { pelanggan_id: "b", nama: "Bayu", buku: 5, terpakai: 3, selisih: 2 },
+];
+sama(
+  "dua pelanggan disebut sebagai jumlah, bukan nama",
+  ringkasPemeriksaan(TIMPANG2).judul.indexOf("2 pelanggan") >= 0,
+  true,
+);
+sama(
+  "selisih dijumlahkan",
+  ringkasPemeriksaan(TIMPANG2).rincian.indexOf("3 poin") >= 0,
+  true,
+);
+// Selisih negatif juga masalah: sisa lebih besar daripada yang pernah masuk.
+sama(
+  "selisih negatif dihitung sebagai besarannya",
+  ringkasPemeriksaan([
+    { pelanggan_id: "c", nama: "Citra", buku: 3, terpakai: 5, selisih: -2 },
+  ]).rincian.indexOf("2 poin") >= 0,
+  true,
+);
+sama(
+  "kalimat tidak menuduh poin hilang",
+  ringkasPemeriksaan(TIMPANG1).rincian.indexOf("tidak hilang") >= 0,
+  true,
+);
+
+// ======================= arsip pelanggan =======================
+const AKTIF = { nama: "Anggara", diarsipkan_pada: null };
+const DIARSIP = {
+  nama: "Salah Input",
+  diarsipkan_pada: "2026-09-14T10:00:00+00:00",
+  alasan_arsip: "salah ketik nama",
+};
+
+sama("pelanggan biasa bukan arsip", sudahDiarsipkan(AKTIF), false);
+sama("pelanggan diarsipkan terdeteksi", sudahDiarsipkan(DIARSIP), true);
+sama("tanpa kolom arsip dianggap aktif", sudahDiarsipkan({}), false);
+
+const pisah = pisahkanArsip([AKTIF, DIARSIP, { nama: "Bayu", diarsipkan_pada: null }]);
+sama("yang aktif terkumpul", pisah.aktif.length, 2);
+sama("yang diarsipkan terpisah", pisah.arsip.length, 1);
+sama("arsip berisi orang yang benar", pisah.arsip[0].nama, "Salah Input");
+sama(
+  "tidak ada yang hilang saat dipisah",
+  pisah.aktif.length + pisah.arsip.length,
+  3,
+);
+sama("daftar kosong aman", pisahkanArsip([]).aktif.length, 0);
+
+const ACUAN_ARSIP = new Date("2026-09-16T12:00:00+00:00");
+sama("pelanggan aktif tidak punya keterangan arsip", keteranganArsip(AKTIF, ACUAN_ARSIP), "");
+sama(
+  "keterangan menyebut alasannya",
+  keteranganArsip(DIARSIP, ACUAN_ARSIP).indexOf("salah ketik nama") >= 0,
+  true,
+);
+sama(
+  "diarsipkan hari ini ditulis hari ini",
+  keteranganArsip(
+    { diarsipkan_pada: "2026-09-16T08:00:00+00:00" },
+    ACUAN_ARSIP,
+  ),
+  "Diarsipkan hari ini",
+);
+sama(
+  "diarsipkan sehari lalu ditulis kemarin",
+  keteranganArsip(
+    { diarsipkan_pada: "2026-09-15T08:00:00+00:00" },
+    ACUAN_ARSIP,
+  ),
+  "Diarsipkan kemarin",
+);
+sama(
+  "tanpa alasan tetap menyebut waktunya",
+  keteranganArsip(
+    { diarsipkan_pada: "2026-09-10T08:00:00+00:00" },
+    ACUAN_ARSIP,
+  ),
+  "Diarsipkan 6 hari lalu",
+);
+sama(
+  "alasan berisi spasi saja diperlakukan seperti kosong",
+  keteranganArsip(
+    { diarsipkan_pada: "2026-09-16T08:00:00+00:00", alasan_arsip: "   " },
+    ACUAN_ARSIP,
+  ),
+  "Diarsipkan hari ini",
+);
 
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);

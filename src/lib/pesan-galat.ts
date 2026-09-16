@@ -198,7 +198,12 @@ export function pesanGalat(galat: GalatApapun, cadangan: string): string {
 export function catatGalat(konteks: string, galat: GalatApapun): void {
   const teks = teksGalat(galat).trim();
   if (!teks) return;
-  // Sengaja console.error: ini jejak untuk pengembang, bukan untuk pengguna.
+  // Hanya saat pengembangan. Di produksi, isi galat asli sering berupa
+  // kalimat Inggris mentah dari Supabase ("Invalid login credentials")
+  // yang tidak berguna bagi pengguna dan justru memberi tahu penyerang
+  // apakah sebuah email terdaftar. Pengguna tetap mendapat pesan yang
+  // sudah diterjemahkan lewat pesanGalat().
+  if (process.env.NODE_ENV === "production") return;
   console.error(`[${konteks}]`, teks);
 }
 

@@ -15,6 +15,17 @@
  * ini sengaja tetap dihitung ke jam terdekat, bukan dibuang, supaya
  * transaksi yang tercatat di luar jam operasional tidak hilang diam-diam.
  */
+/**
+ * Tipe baris buku besar yang MENAMBAH saldo dan karena itu punya `sisa`.
+ * Ada empat tipe: earn, redeem, expire, adjust. Hanya earn dan adjust yang
+ * menyimpan saldo. Sebelumnya 'adjust' terlewat di enam berkas sekaligus,
+ * sehingga koreksi manual tidak pernah terhitung sebagai saldo pelanggan.
+ * Harus sama dengan `tipe in ('earn','adjust')` di supabase/perbaikan-ledger.sql.
+ */
+export function bersaldo(tipe: string): boolean {
+  return tipe === "earn" || tipe === "adjust";
+}
+
 export const JAM_MULAI = 7;
 export const JAM_SELESAI = 22;
 
@@ -181,7 +192,7 @@ export function hitungPapanLoyalitas(
   let akanHangus = 0;
 
   for (const b of ledger) {
-    if (b.tipe !== "earn" || b.sisa <= 0) continue;
+    if (!bersaldo(b.tipe) || b.sisa <= 0) continue;
 
     // Tanpa tanggal kedaluwarsa, poin tidak pernah hangus, jadi selalu
     // dihitung sebagai beredar.
