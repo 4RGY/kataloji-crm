@@ -187,18 +187,38 @@ export function inisial(nama: string): string {
  *
  * Aturannya:
  *   admin     semua menu
- *   manager   rekap kasir, TIDAK boleh kelola akun staf
- *   kasir     tidak keduanya
+ *   manager   rekap kasir dan pemasaran, TIDAK boleh kelola akun staf
+ *   kasir     tidak satu pun
+ *
+ * Campaign dan Analitik dikeluarkan dari kasir sejak pemeriksaan 16 Sep 2026.
+ * Alasannya bukan soal kerahasiaan, keduanya tidak menampilkan data yang
+ * lebih sensitif daripada halaman Pelanggan yang memang boleh dia buka.
+ * Alasannya beban perhatian: kasir memakai layar ini sambil menghadapi
+ * antrean, dan menu yang tidak pernah dia pakai memperpanjang daftar yang
+ * harus dilewati untuk mencapai Transaksi. Mengirim pesan promosi juga
+ * bukan keputusan yang diambil di tengah melayani pembeli.
  */
 export interface MenuKhusus {
   rekap: boolean;
   staf: boolean;
+  /** Campaign dan Analitik, keputusan tingkat pengelola. */
+  pemasaran: boolean;
 }
 
 export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
-  if (role === "admin") return { rekap: true, staf: true };
-  if (role === "manager") return { rekap: true, staf: false };
-  return { rekap: false, staf: false };
+  if (role === "admin") return { rekap: true, staf: true, pemasaran: true };
+  if (role === "manager") return { rekap: true, staf: false, pemasaran: true };
+  return { rekap: false, staf: false, pemasaran: false };
+}
+
+/**
+ * Boleh tidaknya membuka halaman Campaign dan Analitik.
+ *
+ * WAJIB sama dengan menuUntukPeran().pemasaran, dengan alasan yang sama
+ * seperti bolehLihatRekap: menu dan halaman tidak boleh berbeda pendapat.
+ */
+export function bolehLihatPemasaran(role: string | null | undefined): boolean {
+  return menuUntukPeran(role).pemasaran;
 }
 
 /**

@@ -22,6 +22,8 @@ import {
   type TransaksiAnalitik,
 } from "@/lib/analitik";
 import { Button } from "@/components/ui/button";
+import { AksesDitolak } from "@/components/akses-ditolak";
+import { bolehLihatPemasaran } from "@/lib/staf";
 import { Cake, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
@@ -54,9 +56,30 @@ export default function HalamanAnalitik() {
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
 
+  // Peran dan izin, dibaca dari database. Syaratnya sama dengan sidebar
+  // supaya menu dan halaman tidak pernah berbeda pendapat.
+  const [peran, setPeran] = useState<string | null>(null);
+  const [bolehLihat, setBolehLihat] = useState<boolean | null>(null);
+
   const kini = useMemo(() => new Date(), []);
 
   const ambil = useCallback(async () => {
+    // Peran diperiksa sebelum data diambil. Menolak setelah data terunduh
+    // hanya menyembunyikan, bukan menjaga.
+    const { data: sesi } = await supabase.auth.getUser();
+    let role: string | null = null;
+    if (sesi.user) {
+      const { data: profil } = await supabase
+        .from("profile")
+        .select("role")
+        .eq("id", sesi.user.id)
+        .maybeSingle();
+      role = profil?.role ?? null;
+    }
+    if (!bolehLihatPemasaran(role)) {
+      return { ditolak: true as const, role, t: null, p: null };
+    }
+
     const [t, p] = await Promise.all([
       ambilSemua<TransaksiAnalitik>((dari, sampai) =>
         supabase
@@ -73,14 +96,22 @@ export default function HalamanAnalitik() {
           .range(dari, sampai),
       ),
     ]);
-    return { t, p };
+    return { ditolak: false as const, role, t, p };
   }, [supabase]);
 
   useEffect(() => {
     let aktif = true;
     (async () => {
-      const { t, p } = await ambil();
+      const hasil = await ambil();
       if (!aktif) return;
+      setPeran(hasil.role);
+      if (hasil.ditolak) {
+        setBolehLihat(false);
+        setMemuat(false);
+        return;
+      }
+      setBolehLihat(true);
+      const { t, p } = hasil;
       if (t.error) {
         catatGalat("muat analitik", t.error);
         setGalat(pesanGalat(t.error, "Gagal memuat data. Coba muat ulang."));
@@ -98,7 +129,13 @@ export default function HalamanAnalitik() {
 
   async function muatUlang() {
     setMemuat(true);
-    const { t, p } = await ambil();
+    const hasil = await ambil();
+    if (hasil.ditolak) {
+      setBolehLihat(false);
+      setMemuat(false);
+      return;
+    }
+    const { t, p } = hasil;
     if (t.error) {
       catatGalat("muat ulang analitik", t.error);
       setGalat(pesanGalat(t.error, "Gagal memuat data."));
@@ -123,6 +160,17 @@ export default function HalamanAnalitik() {
   const jamTertinggi = Math.max(...jam.map((j) => j.jumlah), 0);
   const hariTertinggi = Math.max(...hari.map((h) => h.omzet), 0);
   const belanjaTertinggi = Math.max(...belanja.map((b) => b.jumlah), 0);
+
+  if (bolehLihat === false) {
+    return (
+      <AksesDitolak
+        judul="Analitik"
+        keterangan="Pola belanja pelanggan dan jam ramai kedai."
+        peran={peran}
+        alasan="Analitik dipakai untuk mengambil keputusan usaha, dan itu wewenang admin atau manajer. Untuk data pelanggan sehari-hari, gunakan halaman Pelanggan."
+      />
+    );
+  }
 
   if (memuat) {
     return (

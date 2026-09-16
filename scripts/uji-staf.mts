@@ -16,6 +16,7 @@ import {
   isRole,
   menuUntukPeran,
   bolehLihatRekap,
+  bolehLihatPemasaran,
 } from "../src/lib/staf.ts";
 
 let gagal = 0;
@@ -249,13 +250,13 @@ sama("inisial dengan titik", inisial("sinta.dewi"), "SD");
 // untuk halaman yang boleh dibuka membuat fiturnya seperti tidak ada.
 // Syarat menu dan syarat halaman sekarang memakai fungsi yang sama.
 
-sama("admin melihat kedua menu", menuUntukPeran("admin"), { rekap: true, staf: true });
-sama("manajer melihat rekap tapi bukan kelola staf", menuUntukPeran("manager"), { rekap: true, staf: false });
-sama("kasir tidak melihat keduanya", menuUntukPeran("kasir"), { rekap: false, staf: false });
+sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, staf: true, pemasaran: true });
+sama("manajer melihat rekap dan pemasaran tapi bukan kelola staf", menuUntukPeran("manager"), { rekap: true, staf: false, pemasaran: true });
+sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, staf: false, pemasaran: false });
 
-sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false });
-sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false });
-sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false });
+sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false, pemasaran: false });
+sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false, pemasaran: false });
+sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false, pemasaran: false });
 
 // Kelola akun staf adalah satu-satunya yang benar-benar khusus admin.
 sama("hanya admin yang boleh kelola staf",
@@ -272,6 +273,33 @@ sama("syarat menu dan syarat halaman selalu sama",
 sama("bolehLihatRekap admin", bolehLihatRekap("admin"), true);
 sama("bolehLihatRekap manajer", bolehLihatRekap("manager"), true);
 sama("bolehLihatRekap kasir", bolehLihatRekap("kasir"), false);
+
+// ============ bolehLihatPemasaran ============
+// Campaign dan Analitik dikeluarkan dari kasir pada 16 Sep 2026. Alasannya
+// beban perhatian, bukan kerahasiaan: kasir memakai layar ini sambil
+// menghadapi antrean.
+sama("admin boleh membuka pemasaran", bolehLihatPemasaran("admin"), true);
+sama("manajer boleh membuka pemasaran", bolehLihatPemasaran("manager"), true);
+sama("kasir tidak boleh membuka pemasaran", bolehLihatPemasaran("kasir"), false);
+sama("peran kosong tidak boleh", bolehLihatPemasaran(null), false);
+sama("peran tak dikenal tidak boleh", bolehLihatPemasaran("tukang_parkir"), false);
+
+// Menu dan halaman WAJIB sepakat. Kalau berbeda, staf menekan menu yang
+// mengantar ke pintu terkunci, atau halaman terbuka tanpa jalan menuju ke sana.
+sama(
+  "izin halaman sama persis dengan izin menu",
+  ["admin", "manager", "kasir", "tukang_parkir", null].every(
+    (r) => bolehLihatPemasaran(r) === menuUntukPeran(r).pemasaran,
+  ),
+  true,
+);
+sama(
+  "izin rekap juga tetap sepakat dengan menunya",
+  ["admin", "manager", "kasir", null].every(
+    (r) => bolehLihatRekap(r) === menuUntukPeran(r).rekap,
+  ),
+  true,
+);
 
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);
