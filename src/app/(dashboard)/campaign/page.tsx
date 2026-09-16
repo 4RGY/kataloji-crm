@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
@@ -35,6 +36,7 @@ import {
   PhoneOff,
   RefreshCw,
   Send,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -378,7 +380,7 @@ function IsiCampaign() {
         <Button
           variant="outline"
           size="icon"
-          className="h-10 w-10"
+          className="h-11 w-10"
           onClick={() => void muatUlang()}
           disabled={memuat}
           aria-label="Muat ulang"
@@ -462,7 +464,7 @@ function IsiCampaign() {
                 <Button
                   key={s.kunci}
                   variant="outline"
-                  className="h-8 px-2.5 font-mono text-xs"
+                  className="h-11 px-3 font-mono text-xs"
                   onClick={() => setPesan((lama) => lama + " " + s.kunci)}
                   title={s.arti}
                 >
@@ -496,7 +498,7 @@ function IsiCampaign() {
                 <Button
                   key={c.judul}
                   variant="outline"
-                  className="h-9 px-3 text-xs font-semibold"
+                  className="h-11 px-3 text-xs font-semibold"
                   onClick={() => setPesan(c.isi)}
                 >
                   {c.judul}
@@ -524,9 +526,15 @@ function IsiCampaign() {
               <div className="rounded-xl border border-border bg-card px-6 py-14 text-center">
                 <p className="text-sm font-semibold">Tidak ada yang perlu dihubungi</p>
                 <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  Tidak ada pelanggan pada segmen ini. Coba segmen lain di
-                  langkah pertama.
+                  Coba segmen lain di langkah pertama, atau lengkapi nomor
+                  WhatsApp pelanggan lewat halaman Pelanggan.
                 </p>
+                <Button variant="outline" asChild className="mt-4 h-11 gap-2">
+                  <Link href="/pelanggan">
+                    <Users className="h-4 w-4" aria-hidden />
+                    Buka halaman Pelanggan
+                  </Link>
+                </Button>
               </div>
             ) : (
               <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
@@ -546,7 +554,7 @@ function IsiCampaign() {
                       </div>
                       <Button
                         variant={sudah ? "outline" : "default"}
-                        className="h-10 gap-2 px-4 font-semibold"
+                        className="h-11 gap-2 px-4 font-semibold"
                         onClick={() => void kirim(p)}
                         disabled={terkunci || menandai === p.id}
                       >
