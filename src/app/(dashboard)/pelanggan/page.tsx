@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { DialogKonfirmasi } from "@/components/dialog-konfirmasi";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import {
@@ -247,16 +248,14 @@ export default function PelangganPage() {
    * Arsipkan pelanggan lewat fungsi database, bukan UPDATE langsung, supaya
    * identitas pengarsip diisi server. Kalau aplikasi yang mengisinya, nilai
    * itu bisa dikarang oleh siapa pun yang bisa memanggil database.
+   *
+   * Konfirmasinya lewat dialog aplikasi, bukan window.prompt(). Alasan boleh
+   * kosong: memaksa mengetik alasan hanya menghasilkan "-" atau "x" yang
+   * tidak berguna, sedangkan alasan yang ditulis sukarela biasanya jujur.
    */
-  async function arsipkan(p: BarisPelanggan) {
-    const alasan = window.prompt(
-      `Arsipkan ${p.nama}? Poin dan riwayatnya tetap tersimpan.\n\nAlasan (boleh dikosongkan):`,
-      "",
-    );
-    // prompt mengembalikan null kalau ditekan Batal, dan string kosong kalau
-    // dikirim tanpa isi. Keduanya berbeda arti dan tidak boleh disamakan.
-    if (alasan === null) return;
+  const [calonArsip, setCalonArsip] = useState<BarisPelanggan | null>(null);
 
+  async function arsipkan(p: BarisPelanggan, alasan: string) {
     setMengarsip(p.id);
     const { error } = await supabase.rpc("arsipkan_pelanggan", {
       p_pelanggan_id: p.id,
@@ -271,6 +270,7 @@ export default function PelangganPage() {
       });
       return;
     }
+    setCalonArsip(null);
     toast.success(`${p.nama} diarsipkan.`, {
       description: "Bisa dikembalikan lewat penyaring Arsip.",
     });
@@ -434,13 +434,13 @@ export default function PelangganPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari nama atau nomor WhatsApp"
             aria-label="Cari pelanggan"
-            className="h-10 bg-card pl-9"
+            className="h-11 bg-card pl-9"
           />
         </div>
         <Button
           variant="outline"
           size="icon"
-          className="h-10 w-10"
+          className="h-11 w-10"
           onClick={muatUlang}
           disabled={memuat}
           aria-label="Muat ulang daftar"
@@ -448,7 +448,7 @@ export default function PelangganPage() {
           <RefreshCw className={memuat ? "animate-spin" : undefined} />
         </Button>
         <Button
-          className="h-10 gap-2 font-semibold"
+          className="h-11 gap-2 font-semibold"
           onClick={() => setFormTerbuka(true)}
         >
           <UserPlus className="h-4 w-4" />
@@ -466,7 +466,7 @@ export default function PelangganPage() {
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <Button
             variant={saringan === null && !lihatArsip ? "default" : "outline"}
-            className="h-9 px-3.5 text-xs font-bold"
+            className="h-11 px-3.5 text-xs font-bold"
             onClick={() => {
               setSaringan(null);
               setLihatArsip(false);
@@ -483,7 +483,7 @@ export default function PelangganPage() {
               <Button
                 key={s.jenis}
                 variant={saringan === s.jenis && !lihatArsip ? "default" : "outline"}
-                className="h-9 px-3.5 text-xs font-bold"
+                className="h-11 px-3.5 text-xs font-bold"
                 onClick={() => {
                   setLihatArsip(false);
                   setSaringan(saringan === s.jenis ? null : s.jenis);
@@ -503,7 +503,7 @@ export default function PelangganPage() {
           {daftarArsip.length > 0 && (
             <Button
               variant={lihatArsip ? "default" : "outline"}
-              className="h-9 gap-1.5 px-3.5 text-xs font-bold"
+              className="h-11 gap-1.5 px-3.5 text-xs font-bold"
               onClick={() => {
                 setLihatArsip(!lihatArsip);
                 setSaringan(null);
@@ -589,13 +589,13 @@ export default function PelangganPage() {
                 <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
                   <Button
                     variant="outline"
-                    className="h-10"
+                    className="h-11"
                     onClick={bersihkanPencarian}
                   >
                     Tampilkan semua
                   </Button>
                   <Button
-                    className="h-10 gap-2 font-semibold"
+                    className="h-11 gap-2 font-semibold"
                     onClick={() => {
                       // Kata kunci yang diketik dipakai sebagai nama awal
                       // kalau bukan angka, supaya kasir tidak mengetik ulang.
@@ -705,7 +705,7 @@ export default function PelangganPage() {
             onTutup={() => setPilihId(null)}
             arsipSiap={arsipSiap}
             sedangArsip={mengarsip === terpilih.id}
-            onArsip={() => void arsipkan(terpilih)}
+            onArsip={() => setCalonArsip(terpilih)}
             onKembalikan={() => void kembalikan(terpilih)}
           />
         )}
@@ -786,6 +786,26 @@ export default function PelangganPage() {
           </form>
         </SheetContent>
       </Sheet>
+
+      <DialogKonfirmasi
+        // key berganti tiap pelanggan, sehingga isian alasan selalu mulai
+        // kosong tanpa perlu menyetel state di dalam effect. Tanpa ini, alasan
+        // yang ditulis untuk pelanggan sebelumnya ikut terbawa.
+        key={calonArsip?.id ?? "arsip-kosong"}
+        terbuka={calonArsip !== null}
+        onTutup={() => setCalonArsip(null)}
+        judul={`Arsipkan ${calonArsip?.nama ?? ""}?`}
+        keterangan="Poin dan seluruh riwayatnya tetap tersimpan. Namanya hanya tidak lagi muncul di daftar sehari-hari, dan bisa dikembalikan lewat penyaring Arsip."
+        labelAksi="Arsipkan"
+        sedangProses={calonArsip !== null && mengarsip === calonArsip.id}
+        isian={{
+          label: "Alasan (boleh dikosongkan)",
+          petunjuk: "Misalnya: nomor sudah tidak aktif",
+        }}
+        onKonfirmasi={(alasan) => {
+          if (calonArsip) void arsipkan(calonArsip, alasan);
+        }}
+      />
     </div>
   );
 }
@@ -1047,7 +1067,7 @@ function PanelDetail({
               {keteranganArsip(pelanggan, hariIni)}
             </p>
             <Button
-              className="h-10 w-full gap-2 font-semibold"
+              className="h-11 w-full gap-2 font-semibold"
               onClick={onKembalikan}
               disabled={sedangArsip}
             >
@@ -1061,7 +1081,7 @@ function PanelDetail({
           </>
         ) : (
           <>
-            <Button asChild className="h-10 w-full gap-2 font-semibold">
+            <Button asChild className="h-11 w-full gap-2 font-semibold">
               <a
                 href={`https://wa.me/${nomorWa}`}
                 target="_blank"
@@ -1071,7 +1091,7 @@ function PanelDetail({
                 Chat WhatsApp
               </a>
             </Button>
-            <Button variant="outline" asChild className="h-10 w-full font-semibold">
+            <Button variant="outline" asChild className="h-11 w-full font-semibold">
               <a href={`/transaksi`}>Catat kunjungan baru</a>
             </Button>
             {arsipSiap && (
@@ -1080,7 +1100,7 @@ function PanelDetail({
               // pernah beredar tidak bisa dihitung ulang.
               <Button
                 variant="outline"
-                className="h-10 w-full gap-2 font-semibold text-muted-foreground"
+                className="h-11 w-full gap-2 font-semibold text-muted-foreground"
                 onClick={onArsip}
                 disabled={sedangArsip}
               >
