@@ -4,7 +4,16 @@ Dokumen ini dipakai untuk memastikan hak akses tiap peran bekerja sesuai
 rancangan sebelum aplikasi diserahkan ke client. Ditulis sebagai langkah yang
 bisa diikuti sambil menekan tombol, lengkap dengan hasil yang diharapkan.
 
-Hasil pengujian terakhir: **16 September 2026**, seluruh butir LULUS.
+Panduan ini disusun dari pengujian yang benar-benar dijalankan pada
+**17 September 2026** terhadap aplikasi yang hidup, bukan dari pembacaan kode.
+Empat hal yang ditemukan saat pengujian itu sudah diperbaiki; rinciannya ada
+di bagian terakhir dokumen ini.
+
+> **Catatan tentang sandi.** Saat pengujian dimulai, hanya akun admin yang
+> sandinya cocok dengan yang didokumentasikan. Sandi akun manager dan kasir
+> terpaksa disetel ulang agar pengujian tiga peran bisa dijalankan. Kalau
+> nanti ada akun yang tidak bisa masuk, periksa sandinya lebih dulu sebelum
+> mencurigai aplikasi.
 
 ---
 
@@ -102,7 +111,8 @@ Pengamanannya adalah pemeriksaan peran di dalam halaman itu sendiri.
 |---|---|---|
 | 13 | Buka **Pelanggan** | Daftar kosong, ada ajakan menambah pelanggan |
 | 14 | Klik **Tambah pelanggan** | Panel terbuka dari kanan |
-| 15 | Isi: nama `Uji Kasir`, WhatsApp `081234567890`, tanpa tanggal lahir | Tersimpan, pelanggan muncul di daftar |
+| 15 | Isi nama `Uji Kasir`, WhatsApp `081234567890`, tanggal lahir `1995-05-15` | Tersimpan, pelanggan muncul di daftar |
+| 15a | Coba simpan tanpa mengisi tanggal lahir | Ditolak: "Tanggal lahir wajib diisi." Tanggal lahir memang wajib (BR-CUS-01), dan labelnya sudah diberi tanda bintang |
 | 16 | Buka **Transaksi** | Kolom pencarian pelanggan aktif |
 | 17 | Cari `Uji Kasir`, pilih pelanggannya | Nama pelanggan menempel di transaksi |
 | 18 | Isi total belanja `100000` | Menampilkan perolehan **5 poin** (Rp 20.000 per poin) |
@@ -380,3 +390,59 @@ Pemeriksaan otomatis mencakup aturan menu per peran, validasi data staf,
 perhitungan poin, aturan saldo buku besar, dan pemeriksaan pembukuan. Bagian
 yang tidak bisa diotomatiskan adalah yang menyangkut tampilan dan alur
 menekan tombol, dan itulah yang dipandu dokumen ini.
+
+---
+
+## 9. Hasil Pengujian dan Temuan
+
+### 9.1 Yang sudah dipastikan bekerja
+
+Diuji pada aplikasi yang hidup, bukan dari pembacaan kode.
+
+| Bagian | Hasil |
+|---|---|
+| Halaman masuk, semua kondisi | Sandi salah, kolom kosong, dan format email salah sama-sama ditangani dengan pesan berbahasa Indonesia |
+| Kasir: jumlah menu | Tepat 5, kelompok Pemasaran hilang seluruhnya |
+| Kasir: halaman terlarang | Staf, Campaign, Analitik, dan Rekap kasir semuanya ditolak tanpa membocorkan data |
+| Manager: jumlah menu | Tepat 8, menu Staf tidak ada |
+| Manager: halaman terlarang | Halaman Staf ditolak |
+| Admin: jumlah menu | Tepat 9 |
+| Admin: kelola staf | Tambah, ubah, dan hapus berjalan; akun sendiri tidak bisa dihapus |
+| Arsip pelanggan | Arsip, penyaring Arsip, dan Kembalikan berjalan penuh |
+| Alur transaksi | Pelanggan menempel, pratinjau poin muncul, poin masuk ke saldo pelanggan |
+| Normalisasi WhatsApp | `081234567890` menjadi `+62 812-3456-7890` |
+| Keadaan kosong | Dashboard, Transaksi, Pelanggan, dan Loyalitas bersih tanpa angka rusak |
+| Lama tampil notifikasi | 4,2 detik, sesuai bawaan sonner |
+
+### 9.2 Empat hal yang ditemukan lalu diperbaiki
+
+1. **Pesan penolakan Rekap kasir keliru.** Tertulis "Halaman ini hanya untuk
+   admin", padahal manajer juga boleh membukanya. Kasir yang membaca pesan
+   itu mengira hanya admin yang bisa membantunya.
+2. **Kalimat ganda di daftar Pelanggan.** Saat kosong, "Belum ada pelanggan
+   tercatat" muncul dua kali dalam satu halaman.
+3. **Tombol mati di Pengaturan.** Kasir melihat tombol "Buka halaman Staf"
+   yang menuntun ke halaman yang menolaknya.
+4. **Tanggal lahir wajib tapi tidak ditandai.** Kasir baru tahu setelah
+   menekan Simpan dan gagal.
+
+### 9.3 Yang belum diuji
+
+**Tampilan pada layar kecil belum diuji.** Seluruh pengukuran dilakukan pada
+lebar 1262 px. Tablet dalam posisi tegak (sekitar 834 px) dan telepon
+(sekitar 390 px) belum diperiksa, karena alat pengujian yang dipakai tidak
+dapat mengubah ukuran jendela. Sebelum dipakai di kedai, buka aplikasi pada
+iPad sungguhan lalu jalankan bagian 5 dokumen ini.
+
+**Kedua hal berikut terlihat sekali tetapi tidak bisa diulang**, sehingga
+belum bisa dipastikan sebagai cacat. Perlu diperhatikan kalau muncul lagi:
+
+- Sesi keluar sendiri saat berpindah ke halaman Loyalitas. Kemungkinan
+  jaringan gagal menghubungi layanan autentikasi pada saat itu.
+- Panel notifikasi sempat menampilkan isi kosong padahal ada notifikasi baru.
+
+### 9.4 Data uji yang tertinggal
+
+Pengujian ini membuat satu pelanggan bernama `Uji Arsip` beserta satu
+transaksi Rp 100.000 dan 5 poin. Hapus lewat halaman Pelanggan bila tidak
+diperlukan lagi, atau biarkan sebagai contoh saat menunjukkannya ke client.
