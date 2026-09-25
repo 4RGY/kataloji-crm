@@ -17,6 +17,7 @@ import {
   LogOut,
   ClipboardList,
   UserCog,
+  FileUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -81,6 +82,8 @@ const MENU_REKAP = {
 };
 
 const MENU_STAF = { href: "/staf", label: "Staf", icon: UserCog };
+
+const MENU_IMPOR = { href: "/impor-majoo", label: "Impor Majoo", icon: FileUp };
 
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
@@ -193,6 +196,7 @@ export function SidebarNav() {
                   ...kelompok.menu,
                   ...(hakMenu.rekap ? [MENU_REKAP] : []),
                   ...(hakMenu.staf ? [MENU_STAF] : []),
+                  ...(hakMenu.impor ? [MENU_IMPOR] : []),
                 ]
               : kelompok.menu;
 

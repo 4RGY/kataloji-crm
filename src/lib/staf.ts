@@ -201,14 +201,18 @@ export function inisial(nama: string): string {
 export interface MenuKhusus {
   rekap: boolean;
   staf: boolean;
+  /** Impor data dari Majoo, hanya admin yang boleh. */
+  impor: boolean;
   /** Campaign dan Analitik, keputusan tingkat pengelola. */
   pemasaran: boolean;
 }
 
 export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
-  if (role === "admin") return { rekap: true, staf: true, pemasaran: true };
-  if (role === "manager") return { rekap: true, staf: false, pemasaran: true };
-  return { rekap: false, staf: false, pemasaran: false };
+  if (role === "admin")
+    return { rekap: true, staf: true, impor: true, pemasaran: true };
+  if (role === "manager")
+    return { rekap: true, staf: false, impor: false, pemasaran: true };
+  return { rekap: false, staf: false, impor: false, pemasaran: false };
 }
 
 /**
