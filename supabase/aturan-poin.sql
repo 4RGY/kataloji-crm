@@ -113,14 +113,26 @@ revoke all on public.aturan_poin from anon;
 -- periodelnya memuat tanggal itu (peride tidak tumpang tindih, dijaga
 -- trigger di bagian 6). Tidak ada yang cocok -> NULL = fallback
 -- model lama (per 20.000 rupiah), supaya poin lama tidak berubah.
-create or replace function public.aturan_poin_aktif(p_tanggal date)
+--
+-- BUG-07 (Okt 2026): versi sebelumnya memakai `select *` dan gagal
+-- dengan "type of parameter 8 (record) does not match that when
+-- preparing the plan (aturan_poin)" tepat setelah sebuah aturan dihapus.
+-- Akarnya: fungsi composite-return yang dikompilasi saat hasil 1 baris
+-- di-plan ulang saat hasil 0 baris; tipe baris hasil re-plan tidak cocok
+-- dengan composite type aturan_poin. Angka 8 = kolom ke-8 (keterangan).
+-- Perbaikan: daftar kolom EKSPLISIT, bukan select *. Kolom baru di
+-- tabel WAJIB ditambah ke daftar ini di perubahan yang sama, kalau
+-- tidak composite type dan hasil query tidak sinkron lagi.
+drop function if exists public.aturan_poin_aktif(date);
+create function public.aturan_poin_aktif(p_tanggal date)
 returns public.aturan_poin
 language sql
-stable
+volatile
 security definer
 set search_path = public
 as $$
-  select *
+  select a.id, a.mode, a.nominal, a.mulai, a.selesai,
+         a.dibuat_oleh, a.dibuat_pada, a.keterangan
   from public.aturan_poin a
   where a.mulai <= p_tanggal
     and (a.selesai is null or a.selesai >= p_tanggal)
@@ -155,7 +167,8 @@ declare
   ada_sebelumnya boolean;
 begin
   basis := greatest(0, coalesce(p_basis, 0));
-  aturan := public.aturan_poin_aktif(coalesce(p_tanggal, (now() at time zone 'Asia/Jakarta')::date));
+  select * into aturan
+    from public.aturan_poin_aktif(coalesce(p_tanggal, (now() at time zone 'Asia/Jakarta')::date));
 
   -- Tanpa aturan yang berlaku: model lama tetap dipakai (fallback).
   if aturan is null then
