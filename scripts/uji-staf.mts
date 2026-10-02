@@ -250,13 +250,13 @@ sama("inisial dengan titik", inisial("sinta.dewi"), "SD");
 // untuk halaman yang boleh dibuka membuat fiturnya seperti tidak ada.
 // Syarat menu dan syarat halaman sekarang memakai fungsi yang sama.
 
-sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, staf: true, pemasaran: true });
-sama("manajer melihat rekap dan pemasaran tapi bukan kelola staf", menuUntukPeran("manager"), { rekap: true, staf: false, pemasaran: true });
-sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, staf: false, pemasaran: false });
+sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, staf: true, impor: true, pencocokan: true, pemasaran: true });
+sama("manajer melihat rekap dan pemasaran tapi bukan kelola staf/impor", menuUntukPeran("manager"), { rekap: true, staf: false, impor: false, pencocokan: false, pemasaran: true });
+sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
 
-sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false, pemasaran: false });
-sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false, pemasaran: false });
-sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false, pemasaran: false });
+sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
+sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
+sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
 
 // Kelola akun staf adalah satu-satunya yang benar-benar khusus admin.
 sama("hanya admin yang boleh kelola staf",

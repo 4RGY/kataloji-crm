@@ -50,6 +50,9 @@ interface HasilPreview {
     metode_bayar: string;
     items: { nama: string; qty: number }[];
     waktu: string;
+    tanggal: string;
+    kode_pelanggan_majoo: string;
+    nama_pelanggan_majoo: string;
     baris: number;
   }[];
   dilewati: { baris: number; alasan: string }[];
@@ -57,7 +60,13 @@ interface HasilPreview {
 
 interface RingkasanImpor {
   pelanggan: { dibuat: number; diperbarui: number; dilewati: number; gagal: number };
-  transaksi: { dibuat: number; diperbarui: number; dilewati: number; gagal: number };
+  transaksi: {
+    dibuat: number;
+    diperbarui: number;
+    dilewati: number;
+    gagal: number;
+    menunggu_pencocokan: number;
+  };
   galat: { baris: number; pesan: string }[];
 }
 
@@ -308,6 +317,22 @@ export default function ImporMajooPage() {
             </div>
           </div>
 
+          {preview.jumlah.transaksi > 0 && (
+            <div className="mb-3 rounded-xl border border-border bg-card p-4">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Transaksi Majoo akan dicocokkan otomatis ke pelanggan CRM lewat
+                kode pelanggan. Yang belum ketemu masuk daftar{" "}
+                <a
+                  href="/pencocokan"
+                  className="font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  Pencocokan
+                </a>
+                , poinnya ditahan sampai pelanggan tertaut.
+              </p>
+            </div>
+          )}
+
           {preview.dilewati.length > 0 && (
             <div className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
               <div className="flex items-start gap-2">
@@ -417,6 +442,21 @@ export default function ImporMajooPage() {
               </p>
             </div>
           </div>
+
+          {(ringkasan.transaksi.menunggu_pencocokan ?? 0) > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+              <p className="text-sm leading-relaxed text-foreground">
+                <span className="font-bold tabular-nums">
+                  {ringkasan.transaksi.menunggu_pencocokan}
+                </span>{" "}
+                transaksi menunggu pencocokan pelanggan. Poinnya ditahan sampai
+                dihubungkan.
+              </p>
+              <Button asChild variant="outline" size="sm" className="h-9">
+                <a href="/pencocokan">Buka pencocokan</a>
+              </Button>
+            </div>
+          )}
 
           {ringkasan.galat.length > 0 && (
             <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3">

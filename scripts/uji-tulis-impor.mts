@@ -16,6 +16,9 @@ const { tulisImporMajoo } = await import("../src/lib/tulis-impor-majoo.ts");
 
 const KODE_UJI = "TEST-IMP-0001";
 const REF_UJI = "TEST-TRX-0001";
+// Nomor WA & kode unik per-jalan supaya tidak pernah collide dengan
+// customer asli di DB produksi (constraint pelanggan_whatsapp_unik).
+const WA_UJI = "0812" + String(Date.now()).slice(-6) + "01";
 
 const barisPelanggan = [
   ["Data Pelanggan", "", ""],
@@ -33,7 +36,7 @@ const barisPelanggan = [
     "Email",
     "Alamat",
   ],
-  [KODE_UJI, "Test Impor Majoo", "081234567891", "19/09/2000", "L", "test@example.com", "Jl. Test No 1"],
+  [KODE_UJI, "Test Impor Majoo", WA_UJI, "19/09/2000", "L", "test@example.com", "Jl. Test No 1"],
 ];
 
 const barisTransaksi = [

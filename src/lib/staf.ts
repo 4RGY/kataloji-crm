@@ -203,16 +203,36 @@ export interface MenuKhusus {
   staf: boolean;
   /** Impor data dari Majoo, hanya admin yang boleh. */
   impor: boolean;
+  /** Pencocokan transaksi impor ke pelanggan CRM, hanya admin. */
+  pencocokan: boolean;
   /** Campaign dan Analitik, keputusan tingkat pengelola. */
   pemasaran: boolean;
 }
 
 export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
   if (role === "admin")
-    return { rekap: true, staf: true, impor: true, pemasaran: true };
+    return {
+      rekap: true,
+      staf: true,
+      impor: true,
+      pencocokan: true,
+      pemasaran: true,
+    };
   if (role === "manager")
-    return { rekap: true, staf: false, impor: false, pemasaran: true };
-  return { rekap: false, staf: false, impor: false, pemasaran: false };
+    return {
+      rekap: true,
+      staf: false,
+      impor: false,
+      pencocokan: false,
+      pemasaran: true,
+    };
+  return {
+    rekap: false,
+    staf: false,
+    impor: false,
+    pencocokan: false,
+    pemasaran: false,
+  };
 }
 
 /**

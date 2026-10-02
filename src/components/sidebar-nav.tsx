@@ -18,6 +18,7 @@ import {
   ClipboardList,
   UserCog,
   FileUp,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -85,6 +86,12 @@ const MENU_STAF = { href: "/staf", label: "Staf", icon: UserCog };
 
 const MENU_IMPOR = { href: "/impor-majoo", label: "Impor Majoo", icon: FileUp };
 
+const MENU_PENCOCOKAN = {
+  href: "/pencocokan",
+  label: "Pencocokan",
+  icon: UserCheck,
+};
+
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
   manager: "Manager",
@@ -111,6 +118,11 @@ export function SidebarNav() {
   const supabase = createClient();
 
   const [profil, setProfil] = useState<Profil | null>(null);
+  // Jumlah transaksi impor Majoo yang masih menunggu pencocokan pelanggan.
+  // Ditampilkan sebagai lencana pada menu Pencocokan (channel notifikasi
+  // terpisah, bukan lonceng operasional). null = kolom belum di-migrasi
+  // (aturan-poin.sql belum jalan), 0 = tak ada yang menunggu.
+  const [pendingImpor, setPendingImpor] = useState<number | null>(null);
 
   // Identitas di sidebar diambil dari sesi yang sedang login, bukan
   // ditulis tetap. Sebelumnya nama dan peran hardcode "Wahyu / Admin",
@@ -145,6 +157,26 @@ export function SidebarNav() {
       aktif = false;
     };
   }, [ambilProfil]);
+
+  // Probe kolom status_pencocokan: kalau aturan-poin.sql belum dijalankan,
+  // PostgREST menolak seluruh query yang menyebut kolom itu, jadi jangan
+  // biarkan sidebar ikut error. null berarti "belum bisa dicek".
+  useEffect(() => {
+    let aktif = true;
+    const sup = createClient();
+    (async () => {
+      const { count, error } = await sup
+        .from("transaksi")
+        .select("id", { count: "exact", head: true })
+        .eq("status_pencocokan", "menunggu_pencocokan");
+      if (!aktif) return;
+      if (error) setPendingImpor(null);
+      else setPendingImpor(count ?? 0);
+    })();
+    return () => {
+      aktif = false;
+    };
+  }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -197,6 +229,7 @@ export function SidebarNav() {
                   ...(hakMenu.rekap ? [MENU_REKAP] : []),
                   ...(hakMenu.staf ? [MENU_STAF] : []),
                   ...(hakMenu.impor ? [MENU_IMPOR] : []),
+                  ...(hakMenu.pencocokan ? [MENU_PENCOCOKAN] : []),
                 ]
               : kelompok.menu;
 
@@ -226,6 +259,13 @@ export function SidebarNav() {
                     pathname === item.href ||
                     (item.href !== "/dashboard" && pathname.startsWith(item.href));
                   const Icon = item.icon;
+                  // Lencana jumlah transaksi yang menunggu pencocokan.
+                  // Hanya di menu Pencocokan; channel notifikasi tersendiri,
+                  // terpisah dari lonceng operasional di bawah.
+                  const angkaPending =
+                    item.href === "/pencocokan" && pendingImpor !== null
+                      ? pendingImpor
+                      : 0;
                   return (
                     <Link
                       key={item.href}
@@ -246,6 +286,14 @@ export function SidebarNav() {
                       )}
                       <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                       <span className="hidden lg:inline">{item.label}</span>
+                      {angkaPending > 0 && (
+                        <span
+                          className="ml-auto hidden min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums lg:inline-flex"
+                          aria-label={`${angkaPending} transaksi menunggu pencocokan`}
+                        >
+                          {angkaPending > 9 ? "9+" : angkaPending}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

@@ -43,6 +43,12 @@ export interface BarisTransaksiMajoo {
   items: { nama: string; qty: number }[];
   /** Tanggal/jam transaksi bila terbaca. */
   waktu: string;
+  /** Tanggal transaksi ternormalisasi (YYYY-MM-DD) untuk aturan poin per periode. */
+  tanggal: string;
+  /** Kode Pelanggan Majoo bila ikut diekspor (kunci pencocokan utama). */
+  kode_pelanggan_majoo: string;
+  /** Nama pelanggan dari baris transaksi, hanya sebagai pendukung tampilan. */
+  nama_pelanggan_majoo: string;
   baris: number;
 }
 
@@ -87,6 +93,13 @@ const KOLOM_TRANSAKSI: Record<string, keyof BarisTransaksiMajoo | "abaikan"> = {
   Item: "items",
   Waktu: "waktu",
   Tanggal: "waktu",
+  // Identitas pelanggan dari Detail Penjualan Majoo (bila ikut diekspor).
+  // Ini kunci pencocokan transaksi ke pelanggan CRM (via kode_majoo).
+  "Kode Pelanggan": "kode_pelanggan_majoo",
+  "Kode Pelanggan Majoo": "kode_pelanggan_majoo",
+  "Kode Customer": "kode_pelanggan_majoo",
+  "Nama Pelanggan": "nama_pelanggan_majoo",
+  "Nama Customer": "nama_pelanggan_majoo",
 };
 
 // ---------- Bantuan deteksi header ----------
@@ -246,6 +259,9 @@ export function parseMajoo(baris: unknown[][]): HasilParse {
     if (!barisAsli) continue;
     const nomor = i + 1; // 1-based, cocok dengan tampilan Excel
 
+    // Footer ekspor Majoo bukan record data.
+    if (barisAsli.some((c) => bersih(c).toLowerCase() === "powered by")) continue;
+
     // Lewati baris yang seluruhnya kosong.
     if (barisAsli.every((c) => bersih(c) === "")) continue;
 
@@ -257,10 +273,21 @@ export function parseMajoo(baris: unknown[][]): HasilParse {
         hasil.dilewati.push({ baris: nomor, alasan: "Tidak ada Kode/Nama Pelanggan." });
         continue;
       }
+      // Validasi WhatsApp di sini (bukan di modul tulis) supaya hitungan
+      // preview "siap impor" akurat: baris WA tak valid dilewati sejak awal,
+      // sehingga tidak tampil sebagai "siap" padahal akan ditolak saat apply.
+      const cekWa = cekWhatsappImpor(wa);
+      if (!cekWa.ok) {
+        hasil.dilewati.push({
+          baris: nomor,
+          alasan: `Pelanggan "${nama}" dilewati: ${cekWa.alasan}`,
+        });
+        continue;
+      }
       hasil.pelanggan.push({
         kode_majoo: kode,
         nama,
-        whatsapp: normalisasiWhatsapp(wa),
+        whatsapp: cekWa.normal,
         tgl_lahir: normalisasiTanggal(ambil(barisAsli, peta, "Tanggal Lahir")),
         jenis_kelamin: ambil(barisAsli, peta, "Jenis Kelamin"),
         email: ambil(barisAsli, peta, "Email"),
@@ -274,12 +301,24 @@ export function parseMajoo(baris: unknown[][]): HasilParse {
         hasil.dilewati.push({ baris: nomor, alasan: "Tidak ada nomor transaksi." });
         continue;
       }
+      if (total <= 0) {
+        hasil.dilewati.push({
+          baris: nomor,
+          alasan: `Transaksi "${ref}" dilewati: total tidak valid.`,
+        });
+        continue;
+      }
       hasil.transaksi.push({
         external_ref: ref,
         total,
         metode_bayar: ambil(barisAsli, peta, "Metode Pembayaran"),
         items: parseProduk(ambil(barisAsli, peta, "Produk")),
         waktu: ambil(barisAsli, peta, "Waktu"),
+        // Tanggal ternormalisasi (YYYY-MM-DD) untuk memilih aturan poin
+        // periode yang berlaku. Dibiarkan kosong bila tidak terbaca.
+        tanggal: normalisasiTanggal(ambil(barisAsli, peta, "Waktu")),
+        kode_pelanggan_majoo: ambil(barisAsli, peta, "Kode Pelanggan"),
+        nama_pelanggan_majoo: ambil(barisAsli, peta, "Nama Pelanggan"),
         baris: nomor,
       });
     }

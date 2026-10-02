@@ -36,13 +36,15 @@ export interface RingkasanImpor {
     diperbarui: number;
     dilewati: number;
     gagal: number;
+    /** Jumlah transaksi yang tertahan menunggu pencocokan pelanggan. */
+    menunggu_pencocokan: number;
   };
   galat: { baris: number; pesan: string }[];
 }
 
 const kosong = () => ({
   pelanggan: { dibuat: 0, diperbarui: 0, dilewati: 0, gagal: 0 },
-  transaksi: { dibuat: 0, diperbarui: 0, dilewati: 0, gagal: 0 },
+  transaksi: { dibuat: 0, diperbarui: 0, dilewati: 0, gagal: 0, menunggu_pencocokan: 0 },
   galat: [] as { baris: number; pesan: string }[],
 });
 
@@ -59,18 +61,6 @@ async function cariPelangganByKode(
     .from("pelanggan")
     .select("id")
     .eq("kode_majoo", kode)
-    .maybeSingle();
-  return (data?.id as string | undefined) ?? null;
-}
-
-async function cariTransaksiByRef(
-  admin: SupabaseClient,
-  ref: string,
-): Promise<string | null> {
-  const { data } = await admin
-    .from("transaksi")
-    .select("id")
-    .eq("external_ref", ref)
     .maybeSingle();
   return (data?.id as string | undefined) ?? null;
 }
@@ -108,6 +98,31 @@ async function tulisPelanggan(
   return error ? "gagal" : "dibuat";
 }
 
+// ---------- Kolom tambahan untuk update ----------
+// Jalur UPDATE (impor ulang file yang sama): trigger hitung_poin hanya
+// jalan saat INSERT, jadi di sini resolusi pencocokan dilakukan eksplisit.
+// Kalau pelanggan sudah dikenal, pelanggan_id di-set (trigger
+// trg_transaksi_pencocokan yang menerbitkan poinnya). Kalau belum,
+// status menunggu_pencocokan dipertahankan.
+
+interface BarisTransaksiTerkait {
+  id: string;
+  pelanggan_id: string | null;
+  status_pencocokan: string;
+}
+
+async function ambilTransaksiTerkait(
+  admin: SupabaseClient,
+  ref: string,
+): Promise<BarisTransaksiTerkait | null> {
+  const { data } = await admin
+    .from("transaksi")
+    .select("id, pelanggan_id, status_pencocokan")
+    .eq("external_ref", ref)
+    .maybeSingle();
+  return data as BarisTransaksiTerkait | null;
+}
+
 // ---------- Tulis transaksi ----------
 
 async function tulisTransaksi(
@@ -127,16 +142,42 @@ async function tulisTransaksi(
     // items disimpan sebagai jsonb array [{nama, qty}], bentuk yang sama
     // dengan kolom items milik transaksi manual.
     items: b.items.length ? b.items : [],
-    // pelanggan_id sengaja NULL: ekspor transaksi Majoo tidak memuat
-    // pengenal pelanggan, dan trigger poin otomatis menghasilkan 0 poin
-    // untuk transaksi tanpa pelanggan (tidak menyentuh ledger).
+    // Tanggal transaksi di Majoo (H+1): basis filter dan aturan poin.
+    tanggal_majoo: b.tanggal || null,
+    // Pengenal Majoo ikut disimpan apa adanya. Resolusi ke pelanggan
+    // dilakukan trigger hitung_poin_transaksi (INSERT) / di bawah (UPDATE).
+    kode_pelanggan_majoo: b.kode_pelanggan_majoo || null,
+    nama_pelanggan_majoo: b.nama_pelanggan_majoo || null,
     source: "majoo_import",
     dicatat_oleh_nama: PENCATAT_IMPOR,
   };
 
-  const sudahAda = await cariTransaksiByRef(admin, b.external_ref);
-  if (sudahAda) {
-    const { error } = await admin.from("transaksi").update(kolom).eq("id", sudahAda);
+  const terkait = await ambilTransaksiTerkait(admin, b.external_ref);
+  if (terkait) {
+    const pembaruan: Record<string, unknown> = { ...kolom };
+    if (!terkait.pelanggan_id) {
+      // Belum tertaut: coba cocokkan sekarang (pelanggan mungkin baru
+      // masuk lewat impor Data Pelanggan setelah transaksi ini).
+      if (b.kode_pelanggan_majoo) {
+        const { data: p } = await admin
+          .from("pelanggan")
+          .select("id")
+          .eq("kode_majoo", b.kode_pelanggan_majoo)
+          .maybeSingle();
+        if (p) {
+          pembaruan.pelanggan_id = p.id;
+          // trg_transaksi_pencocokan menghitung poin + status terhubung.
+        } else {
+          pembaruan.status_pencocokan = "menunggu_pencocokan";
+        }
+      } else {
+        pembaruan.status_pencocokan = "anonim";
+      }
+    }
+    const { error } = await admin
+      .from("transaksi")
+      .update(pembaruan)
+      .eq("id", terkait.id);
     return error ? "gagal" : "diperbarui";
   }
 
@@ -187,6 +228,14 @@ export async function tulisImporMajoo(
       });
     }
   }
+
+  // Hitung transaksi yang masih tertahan menunggu pencocokan, supaya
+  // ringkasan UI bisa mengarahkan admin ke halaman Pencocokan.
+  const { count } = await admin
+    .from("transaksi")
+    .select("id", { count: "exact", head: true })
+    .eq("status_pencocokan", "menunggu_pencocokan");
+  ringkas.transaksi.menunggu_pencocokan = count ?? 0;
 
   return ringkas;
 }

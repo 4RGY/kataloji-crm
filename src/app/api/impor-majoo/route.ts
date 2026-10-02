@@ -21,7 +21,7 @@ import { getKlienAdmin } from "@/lib/supabase/admin";
 import { parseMajoo } from "@/lib/impor-majoo";
 import { tulisImporMajoo } from "@/lib/tulis-impor-majoo";
 
-/** Ukuran maksimum file (10 MB) — cukup untuk ekspor harian Majoo. */
+/** Ukuran maksimum file (10 MB), cukup untuk ekspor harian Majoo. */
 const MAKS_BYTE = 10 * 1024 * 1024;
 
 /**

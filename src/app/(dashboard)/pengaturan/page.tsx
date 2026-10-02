@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { MIN_REDEEM, NILAI_POIN, POIN_PER_RUPIAH } from "@/lib/poin";
+import { PanelAturanPoin } from "@/components/panel-aturan-poin";
 import { Button } from "@/components/ui/button";
 import {
   ringkasPemeriksaan,
@@ -12,55 +12,10 @@ import {
 import {
   AlertTriangle,
   ArrowUpRight,
-  Coins,
   Database,
-  Lock,
   ShieldCheck,
   UserCog,
 } from "lucide-react";
-
-const rupiah = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
-
-/** Masa berlaku poin, mengikuti interval '12 months' di ledger-poin.sql. */
-const MASA_BERLAKU_BULAN = 12;
-
-interface Aturan {
-  label: string;
-  nilai: string;
-  arti: string;
-}
-
-const ATURAN_POIN: Aturan[] = [
-  {
-    label: "Poin per belanja",
-    nilai: `1 poin / ${rupiah.format(POIN_PER_RUPIAH)}`,
-    arti: `Belanja ${rupiah.format(POIN_PER_RUPIAH * 3)} menghasilkan 3 poin. Sisa belanja yang belum genap tidak dibulatkan ke atas.`,
-  },
-  {
-    label: "Nilai satu poin",
-    nilai: rupiah.format(NILAI_POIN),
-    arti: `Menukar 10 poin memotong tagihan ${rupiah.format(NILAI_POIN * 10)}.`,
-  },
-  {
-    label: "Minimal penukaran",
-    nilai: `${MIN_REDEEM} poin`,
-    arti: "Di bawah jumlah ini poin belum bisa dipakai.",
-  },
-  {
-    label: "Masa berlaku poin",
-    nilai: `${MASA_BERLAKU_BULAN} bulan`,
-    arti: "Dihitung sejak poin didapat. Poin tertua dipakai lebih dulu saat menukar.",
-  },
-  {
-    label: "Dasar perhitungan",
-    nilai: "Sebelum potongan poin",
-    arti: "Poin dihitung dari tagihan setelah diskon promo, tetapi sebelum dipotong penukaran poin. Menukar poin tidak mengurangi poin yang didapat.",
-  },
-];
 
 export default function Halaman() {
   const supabase = useMemo(() => createClient(), []);
@@ -169,68 +124,30 @@ export default function Halaman() {
             )}
           </section>
 
-          {/* Aturan poin */}
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Coins className="h-4 w-4" />
-                </span>
-                <div>
-                  <h2 className="text-sm font-bold">Aturan poin</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Berlaku untuk seluruh transaksi
-                  </p>
-                </div>
-              </div>
-              <span className="flex shrink-0 items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                <Lock className="h-3 w-3" />
-                Baca saja
-              </span>
-            </div>
+          {/* Aturan poin: panel berversi. Admin bisa menambah periode;
+              poin lama tidak dihitung ulang. Tampilan tetap jujur kalau
+              tabel aturan_poin belum di-migrasi (lihat PanelAturanPoin). */}
+          <PanelAturanPoin peran={peran} />
 
-            <dl className="divide-y divide-border">
-              {ATURAN_POIN.map((a) => (
-                <div key={a.label} className="px-5 py-4">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <dt className="text-sm font-semibold">{a.label}</dt>
-                    <dd className="text-sm font-bold tabular-nums text-primary">
-                      {a.nilai}
-                    </dd>
-                  </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {a.arti}
-                  </p>
-                </div>
-              ))}
-            </dl>
-          </section>
-
-          {/* Alasan angka di atas tidak bisa diubah dari layar ini. Ditulis
-              terbuka supaya tidak terbaca sebagai fitur yang belum jadi. */}
+          {/* Tetap dijelaskan kenapa hitungannya ada di database, supaya
+              panel yang bisa diubah ini tidak terbaca sebagai "angka bebas". */}
           <section className="rounded-xl border border-border bg-muted/30 px-5 py-4">
             <h2 className="flex items-center gap-2 text-sm font-bold">
               <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              Kenapa angka di atas tidak bisa diubah di sini
+              Kenapa aturan ini dihitung database
             </h2>
             <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted-foreground">
               <p>
-                Poin dihitung oleh database, bukan oleh aplikasi. Ini disengaja:
-                kalau perhitungannya ada di aplikasi, siapa pun yang bisa
-                memanggil database dapat menuliskan poin sesukanya.
+                Setiap transaksi memakai aturan yang berlaku pada tanggal
+                transaksinya. Aturan baru tidak mengubah poin yang sudah
+                terbit di masa lalu, dan transaksi yang belum tertaut
+                pelanggan tidak menerbitkan poin sampai dicocokkan.
               </p>
               <p>
-                Akibatnya, mengubah rasio berarti mengubah cara hitung untuk
-                seluruh transaksi berikutnya. Kalau perubahan itu tidak dicatat
-                beserta tanggal berlakunya, poin lama dan poin baru memakai
-                aturan berbeda tanpa ada yang bisa menjelaskan yang mana dipakai
-                kapan. Saat pelanggan bertanya kenapa poinnya berbeda, tidak ada
-                jawaban yang bisa dipertanggungjawabkan.
-              </p>
-              <p>
-                Sampai aturan berversi itu dibuat, mengubah rasio dilakukan lewat
-                perubahan kode dan migrasi database, bukan lewat satu kolom isian
-                yang tampak sederhana.
+                Karena perhitungannya ada di database, perubahan aturan selalu
+                tercatat siapa dan kapan (kolom dibuat_oleh di tabel
+                aturan_poin). Itu yang membuat riwayat poin tetap bisa
+                dipertanggungjawabkan.
               </p>
             </div>
           </section>
@@ -287,10 +204,6 @@ export default function Halaman() {
               <li>
                 Rekonsiliasi dengan majoo. Permintaan akses API ditolak, jadi
                 pencocokan omzet masih manual.
-              </li>
-              <li>
-                Aturan poin berversi, supaya rasio bisa diubah tanpa membuat
-                poin lama kehilangan penjelasan.
               </li>
               <li>
                 Profil kedai seperti jam buka. Belum ada yang membacanya, jadi

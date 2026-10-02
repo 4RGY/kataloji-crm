@@ -19,10 +19,11 @@ import {
 import { Loader2, RefreshCw, ShieldAlert, Star, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type RangeKey = "today" | "3d" | "7d" | "30d" | "all" | "custom";
+type RangeKey = "today" | "yesterday" | "3d" | "7d" | "30d" | "all" | "custom";
 
 const RANGES: { key: RangeKey; label: string; hari: number | null }[] = [
   { key: "today", label: "Hari ini", hari: 1 },
+  { key: "yesterday", label: "Kemarin", hari: 1 },
   { key: "3d", label: "3 hari", hari: 3 },
   { key: "7d", label: "7 hari", hari: 7 },
   { key: "30d", label: "30 hari", hari: 30 },
@@ -200,6 +201,16 @@ export default function DashboardPage() {
       const selesai = to ? new Date(to + "T23:59:59.999") : null;
       return { mulai, selesai };
     }
+    if (range === "yesterday") {
+      // "Kemarin" = satu hari kalender penuh: mulai = tengah malam kemarin,
+      // selesai = tengah malam hari ini (batas atas eksklusif). Dipakai
+      // data impor Majoo H+1: transaksi kemarin tercatat hari ini, jadi
+      // filter ini menggenapi alur harian operasional.
+      const mulai = new Date(hariIni);
+      mulai.setDate(mulai.getDate() - 1);
+      const selesai = new Date(hariIni);
+      return { mulai, selesai };
+    }
     const cfg = RANGES.find((r) => r.key === range);
     if (!cfg || cfg.hari === null) return { mulai: null, selesai: null };
     const mulai = new Date(hariIni);
@@ -319,6 +330,7 @@ export default function DashboardPage() {
       return "pilih tanggal";
     }
     if (range === "all") return "sepanjang waktu";
+    if (range === "yesterday") return "kemarin";
     if (range === "today") return "hari ini";
     return RANGES.find((r) => r.key === range)?.label.toLowerCase() ?? "";
   }, [range, from, to]);

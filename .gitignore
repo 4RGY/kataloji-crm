@@ -43,3 +43,8 @@ next-env.d.ts
 
 # supabase cli local state
 supabase/.temp/
+
+# fixture uji impor Majoo: berisi data sampel (bisa PII), digenerate ulang
+# oleh scripts/buat-berkas-contoh-majoo.mts, jangan commit
+/assets/
+/contoh-majoo/
