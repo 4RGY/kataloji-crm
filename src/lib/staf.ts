@@ -205,6 +205,8 @@ export interface MenuKhusus {
   impor: boolean;
   /** Pencocokan transaksi impor ke pelanggan CRM, hanya admin. */
   pencocokan: boolean;
+  /** Log transaksi detail (seluruh riwayat + poin + sumber), hanya admin. */
+  logTransaksi: boolean;
   /** Campaign dan Analitik, keputusan tingkat pengelola. */
   pemasaran: boolean;
 }
@@ -216,6 +218,7 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
       staf: true,
       impor: true,
       pencocokan: true,
+      logTransaksi: true,
       pemasaran: true,
     };
   if (role === "manager")
@@ -224,6 +227,7 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
       staf: false,
       impor: false,
       pencocokan: false,
+      logTransaksi: false,
       pemasaran: true,
     };
   return {
@@ -231,6 +235,7 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
     staf: false,
     impor: false,
     pencocokan: false,
+    logTransaksi: false,
     pemasaran: false,
   };
 }
@@ -255,4 +260,14 @@ export function bolehLihatPemasaran(role: string | null | undefined): boolean {
  */
 export function bolehLihatRekap(role: string | null | undefined): boolean {
   return menuUntukPeran(role).rekap;
+}
+
+/**
+ * Boleh tidaknya membuka halaman Log Transaksi.
+ *
+ * WAJIB sama dengan menuUntukPeran().logTransaksi, alasan yang sama seperti
+ * bolehLihatRekap: menu dan halaman tidak boleh berbeda pendapat.
+ */
+export function bolehLihatLogTransaksi(role: string | null | undefined): boolean {
+  return menuUntukPeran(role).logTransaksi;
 }

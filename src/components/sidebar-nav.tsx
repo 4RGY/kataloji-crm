@@ -19,6 +19,7 @@ import {
   UserCog,
   FileUp,
   UserCheck,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -90,6 +91,12 @@ const MENU_PENCOCOKAN = {
   href: "/pencocokan",
   label: "Pencocokan",
   icon: UserCheck,
+};
+
+const MENU_LOG_TRANSAKSI = {
+  href: "/log-transaksi",
+  label: "Log Transaksi",
+  icon: ScrollText,
 };
 
 const LABEL_ROLE: Record<string, string> = {
@@ -230,6 +237,7 @@ export function SidebarNav() {
                   ...(hakMenu.staf ? [MENU_STAF] : []),
                   ...(hakMenu.impor ? [MENU_IMPOR] : []),
                   ...(hakMenu.pencocokan ? [MENU_PENCOCOKAN] : []),
+                  ...(hakMenu.logTransaksi ? [MENU_LOG_TRANSAKSI] : []),
                 ]
               : kelompok.menu;
 
