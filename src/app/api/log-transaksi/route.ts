@@ -43,21 +43,9 @@ function tanggalValid(iso: string | null | undefined): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(iso));
 }
 
-/** Susun klausa OR untuk pencarian bebas di kolom teks. */
-function orCari(kataKunci: string): string {
-  const k = kataKunci.replace(/[(),]/g, " ").trim();
-  if (!k) return "";
-  const pola = `%${k}%`;
-  return [
-    `external_ref.ilike.${pola}`,
-    `kode_pelanggan_majoo.ilike.${pola}`,
-    `nama_pelanggan_majoo.ilike.${pola}`,
-    `pelanggan.nama.ilike.${pola}`,
-  ].join(",");
-}
-
 type BarisTransaksiLog = {
   id: string;
+  pelanggan_id: string | null;
   total: number;
   diskon: number;
   poin_dipakai: number;
@@ -150,6 +138,11 @@ export async function GET(request: Request) {
 
   const admin = getKlienAdmin();
 
+  // Filter sumber/status/tanggal dijalankan PostgREST; filter teks bebas
+  // diterapkan di sisi server. Satu klausa .or() PostgREST tidak bisa
+  // mencampur kolom tabel utama dan kolom tabel join (pelanggan.nama),
+  // sehingga pencarian bebas dipindah ke penapisan lokal atas hasil
+  // ambilSemua agar lintas tabel tetap bisa dicocokkan.
   const { data, error, terpotong } = await ambilSemua<BarisTransaksiLog>(
     (batasDari, batasSampai) => {
       let q = admin
@@ -162,8 +155,6 @@ export async function GET(request: Request) {
       if (status) q = q.eq("status_pencocokan", status);
       if (dari) q = q.gte("tanggal_majoo", dari);
       if (sampai) q = q.lte("tanggal_majoo", sampai);
-      const orKunci = orCari(cari);
-      if (orKunci) q = q.or(orKunci, { foreignTable: "pelanggan" });
 
       return q;
     },
@@ -173,9 +164,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error }, { status: 500 });
   }
 
+  let hasil = data;
+  if (cari) {
+    const k = cari.toLowerCase();
+    hasil = hasil.filter((t) =>
+      [
+        t.external_ref,
+        t.kode_pelanggan_majoo,
+        t.nama_pelanggan_majoo,
+        t.pelanggan?.nama,
+      ].some((nilai) => nilai && nilai.toLowerCase().includes(k)),
+    );
+  }
+
   return NextResponse.json({
-    transaksi: data,
-    total: data.length,
+    transaksi: hasil,
+    total: hasil.length,
     terpotong,
   });
 }

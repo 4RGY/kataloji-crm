@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { NILAI_POIN } from "@/lib/poin";
+import { hitungPoinDiberikan } from "@/lib/dashboard-tampilan";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +49,7 @@ import {
 
 interface BarisLog {
   id: string;
+  pelanggan_id: string | null;
   total: number;
   diskon: number;
   poin_dipakai: number;
@@ -113,6 +116,20 @@ const TIPE_LEDGER_LABEL: Record<string, string> = {
   adjust: "Koreksi",
 };
 
+/**
+ * Omzet bersih satu transaksi: uang yang benar-benar masuk = total
+ * dikurangi diskon promo dan potongan poin, tak boleh di bawah nol.
+ * Rumus sama dengan dashboard supaya angka per baris, ringkasan, dan
+ * halaman lain saling cocok.
+ */
+function omzetBersih(t: {
+  total: number;
+  diskon: number;
+  poin_dipakai: number;
+}): number {
+  return Math.max(0, t.total - t.diskon - t.poin_dipakai * NILAI_POIN);
+}
+
 function waktuPenuh(iso: string | null): string {
   if (!iso) return "Tidak tercatat";
   const d = new Date(iso);
@@ -125,7 +142,6 @@ function waktuPenuh(iso: string | null): string {
     minute: "2-digit",
   })
     .format(d)
-    .replace(" ", " ")
     .replace(".", ":");
 }
 
@@ -262,9 +278,17 @@ export default function HalamanLogTransaksi() {
   }
 
   // Ringkasan ringan dari baris yang sedang terfilter.
+  // Pakai rumus yang sama dengan dashboard supaya angka omzet dan poin
+  // tidak nyimpang antar-halaman. Omzet bersih = uang yang benar-benar
+  // masuk (total minus diskon promo dan potongan poin); poin terbit hanya
+  // dihitung untuk transaksi yang punya pelanggan (yang memang masuk buku
+  // poin), bukan penjumlahan mentah kolom poin_didapat.
   const ringkasan = useMemo(() => {
-    const omzet = daftar.reduce((n, t) => n + t.total - t.diskon, 0);
-    const poin = daftar.reduce((n, t) => n + t.poin_didapat, 0);
+    const omzet = daftar.reduce(
+      (n, t) => n + Math.max(0, t.total - t.diskon - t.poin_dipakai * NILAI_POIN),
+      0,
+    );
+    const poin = hitungPoinDiberikan(daftar);
     return { omzet, poin, jumlah: daftar.length };
   }, [daftar]);
 
@@ -466,11 +490,16 @@ export default function HalamanLogTransaksi() {
                   </td>
                   <td className="px-4 py-3 text-right align-top">
                     <p className="font-semibold tabular-nums">
-                      {rupiah.format(t.total - t.diskon)}
+                      {rupiah.format(omzetBersih(t))}
                     </p>
                     {t.diskon > 0 && (
                       <p className="text-xs text-muted-foreground">
                         diskon {rupiah.format(t.diskon)}
+                      </p>
+                    )}
+                    {t.poin_dipakai > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        poin {rupiah.format(t.poin_dipakai * NILAI_POIN)}
                       </p>
                     )}
                   </td>
@@ -582,11 +611,17 @@ export default function HalamanLogTransaksi() {
                     Total dibayar
                   </dt>
                   <dd className="text-lg font-bold tabular-nums">
-                    {rupiah.format(detail.transaksi.total - detail.transaksi.diskon)}
+                    {rupiah.format(omzetBersih(detail.transaksi))}
                   </dd>
                   {detail.transaksi.diskon > 0 && (
                     <dd className="text-xs text-muted-foreground">
                       diskon {rupiah.format(detail.transaksi.diskon)}
+                    </dd>
+                  )}
+                  {detail.transaksi.poin_dipakai > 0 && (
+                    <dd className="text-xs text-muted-foreground">
+                      potongan poin{" "}
+                      {rupiah.format(detail.transaksi.poin_dipakai * NILAI_POIN)}
                     </dd>
                   )}
                 </div>
