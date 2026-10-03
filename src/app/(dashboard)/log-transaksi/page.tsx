@@ -114,7 +114,7 @@ const TIPE_LEDGER_LABEL: Record<string, string> = {
 };
 
 function waktuPenuh(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "Tidak tercatat";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat("id-ID", {
@@ -130,7 +130,7 @@ function waktuPenuh(iso: string | null): string {
 }
 
 function tanggalMajoo(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "Tidak ada";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat("id-ID", {
@@ -462,7 +462,7 @@ export default function HalamanLogTransaksi() {
                     )}
                   </td>
                   <td className="px-4 py-3 align-top tabular-nums">
-                    {t.external_ref ?? "—"}
+                    {t.external_ref ?? "Belum ada"}
                   </td>
                   <td className="px-4 py-3 text-right align-top">
                     <p className="font-semibold tabular-nums">
@@ -480,7 +480,7 @@ export default function HalamanLogTransaksi() {
                         +{t.poin_didapat}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="tabular-nums text-muted-foreground">0</span>
                     )}
                   </td>
                   <td className="px-4 py-3 align-top">
@@ -515,7 +515,7 @@ export default function HalamanLogTransaksi() {
                   </td>
                   <td className="px-4 py-3 align-top">
                     <Badge variant="secondary" className="tabular-nums">
-                      {SUMBER_LABEL[t.source ?? ""] ?? t.source ?? "—"}
+                      {SUMBER_LABEL[t.source ?? ""] ?? t.source ?? "Tidak tercatat"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 align-top">
@@ -533,7 +533,9 @@ export default function HalamanLogTransaksi() {
                           t.status_pencocokan}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">
+                        Tidak impor
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right align-top">
@@ -616,7 +618,7 @@ export default function HalamanLogTransaksi() {
                   <dd className="text-sm font-medium">
                     {detail.transaksi.tanggal_majoo
                       ? tanggalMajoo(detail.transaksi.tanggal_majoo)
-                      : "—"}
+                      : "Tidak ada"}
                   </dd>
                 </div>
               </dl>
@@ -633,15 +635,15 @@ export default function HalamanLogTransaksi() {
                       : detail.transaksi.nama_pelanggan_majoo ?? "Anonim"}
                   </BarisKunci>
                   <BarisKunci label="Kode Majoo">
-                    {detail.transaksi.kode_pelanggan_majoo ?? "—"}
+                    {detail.transaksi.kode_pelanggan_majoo ?? "Tidak ada"}
                   </BarisKunci>
                   <BarisKunci label="Cara bayar">
-                    {detail.transaksi.metode_bayar ?? "—"}
+                    {detail.transaksi.metode_bayar ?? "Tidak tercatat"}
                   </BarisKunci>
                   <BarisKunci label="Sumber">
                     {SUMBER_LABEL[detail.transaksi.source ?? ""] ??
                       detail.transaksi.source ??
-                      "—"}
+                      "Tidak tercatat"}
                   </BarisKunci>
                   <BarisKunci label="Pencatat">
                     {detail.transaksi.dicatat_oleh_nama ?? "Sistem"}
