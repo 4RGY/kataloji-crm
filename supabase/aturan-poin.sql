@@ -105,6 +105,12 @@ create policy "aturan_poin tulis (admin)"
   with check (public.staff_role() = 'admin');
 
 grant select on public.aturan_poin to authenticated, service_role;
+-- Panel aturan poin menulis lewat klien (role authenticated). Tanpa grant
+-- tulis, Postgres menolak INSERT/UPDATE/DELETE sebelum RLS sempat dicek,
+-- jadi kebijakan admin di atas tidak akan pernah bisa dijalankan.
+-- Siapa yang benar-benar boleh menulis tetap dibatasi RLS (hanya admin);
+-- grant di sini hanya membuka pintunya, RLS yang menjaga.
+grant insert, update, delete on public.aturan_poin to authenticated, service_role;
 revoke all on public.aturan_poin from anon;
 
 -- ---------- 3. Fungsi aturan + hitung poin ----------
