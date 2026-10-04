@@ -9,12 +9,16 @@
 // dibutuhkan, bukan grafiknya.
 // ============================================================
 
+import { hariLaporanAtauNull } from "./hari-laporan";
+
 export interface TransaksiAnalitik {
   total: number;
   diskon: number;
   poin_dipakai: number;
   pelanggan_id: string | null;
   created_at: string;
+  /** Tanggal transaksi di Majoo (H+1), null untuk transaksi manual. */
+  tanggal_majoo?: string | null;
 }
 
 export interface PelangganAnalitik {
@@ -37,6 +41,17 @@ export const JAM_BUKA = { mulai: 7, selesai: 22 };
 function waktuLokal(iso: string): Date | null {
   const d = new Date(iso);
   return Number.isFinite(d.getTime()) ? d : null;
+}
+
+/**
+ * Hari sebuah transaksi (untuk pengelompokan per hari / hari minggu).
+ *
+ * Basisnya `hariLaporan`: transaksi impor Majoo H+1 mengikuti tanggal
+ * transaksinya (`tanggal_majoo`), bukan waktu catat (`created_at`),
+ * supaya Omzet per hari tidak menggeser satu hari ke depan.
+ */
+function hariTransaksi(t: TransaksiAnalitik): Date | null {
+  return hariLaporanAtauNull(t);
 }
 
 /** Nilai yang benar-benar masuk laci: total dikurangi diskon dan potongan poin. */
@@ -126,7 +141,7 @@ export function sebaranHari(
     peta.set(h, { hari: h, nama: NAMA_HARI[h], jumlah: 0, omzet: 0 });
   }
   for (const t of transaksi || []) {
-    const d = waktuLokal(t.created_at);
+    const d = hariTransaksi(t);
     if (!d) continue;
     const baris = peta.get(d.getDay());
     if (!baris) continue;
@@ -241,7 +256,7 @@ export function ultahBulanIni(
 export function hariBeroperasi(transaksi: TransaksiAnalitik[]): number {
   const hari = new Set<string>();
   for (const t of transaksi || []) {
-    const d = waktuLokal(t.created_at);
+    const d = hariTransaksi(t);
     if (!d) continue;
     hari.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
   }

@@ -71,7 +71,7 @@ export default function HalamanRekapKasir() {
     return ambilSemua<BarisTransaksiRekap>((dari, sampai) =>
       supabase
         .from("transaksi")
-        .select("total, dicatat_oleh, dicatat_oleh_nama, created_at")
+        .select("total, dicatat_oleh, dicatat_oleh_nama, created_at, tanggal_majoo")
         .order("created_at", { ascending: false })
         .range(dari, sampai),
     );

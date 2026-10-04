@@ -209,6 +209,48 @@ sama("periode 7 hari memuat semuanya", susunRekap(trxAsli, 7, KINI).length, 2);
 sama("periode 30 hari memuat semuanya", susunRekap(trxAsli, 30, KINI).length, 2);
 
 sama("daftar kosong menghasilkan rekap kosong", susunRekap([], null, KINI).length, 0);
+
+// ===================== aturan hari laporan (impor H+1) =====================
+// Transaksi impor Majoo: terjadi 14 Sep, tercatat 15 Sep (created_at 2026-09-15).
+// Dengan KINI = 2026-09-15T20:00, jangkauan "2 hari" = kunci 2026-09-14 sampai
+// hari ini. Transaksi yang terjadi 14 Sep masuk (berdasarkan tanggal transaksi,
+// bukan waktu catat), sementara "1 hari" (kunci 2026-09-15) menyingkirkannya.
+sama(
+  "impor H+1: jangkauan 2 hari memakai tanggal transaksinya (14 Sep)",
+  susunRekap(
+    [
+      {
+        total: 47000,
+        dicatat_oleh: "sistem",
+        dicatat_oleh_nama: LABEL_SISTEM,
+        created_at: "2026-09-15T05:00:00",
+        tanggal_majoo: "2026-09-14",
+      },
+    ],
+    2,
+    KINI,
+  ).length,
+  1,
+);
+// "1 hari" dari 15 Sep = kunci 2026-09-15; transaksi yang terjadi 14 Sep
+// berada di luar jangkauan (kunci 2026-09-14 < 2026-09-15) dan dibuang.
+sama(
+  "impor H+1 di luar jangkauan 1 hari dibuang, tidak dibuatkan hari",
+  susunRekap(
+    [
+      {
+        total: 47000,
+        dicatat_oleh: "sistem",
+        dicatat_oleh_nama: LABEL_SISTEM,
+        created_at: "2026-09-15T05:00:00",
+        tanggal_majoo: "2026-09-14",
+      },
+    ],
+    1,
+    KINI,
+  ).length,
+  0,
+);
 sama(
   "tanggal ngawur dilewati, bukan bikin baris palsu",
   susunRekap(

@@ -223,6 +223,35 @@ sama(
   1,
 );
 
+// ===================== aturan hari laporan (impor H+1) =====================
+// Transaksi impor Majoo: terjadi Selasa 15 Sep, tercatat Rabu 16 Sep pagi.
+// Semua pengelompokan per hari harus mengikuti tanggal transaksinya,
+// bukan waktu catat. 2026-09-15 = Selasa.
+const hPlusSatu = [
+  trx({
+    total: 47000,
+    created_at: "2026-09-16T05:00:00", // Rabu pagi: waktu impor
+    tanggal_majoo: "2026-09-15", // Selasa: waktu transaksi sesungguhnya
+  }),
+];
+sama(
+  "impor H+1 masuk ke hari transaksinya (Selasa), bukan hari impor",
+  sebaranHari(hPlusSatu, NILAI_POIN).find((h) => h.nama === "Selasa")?.jumlah,
+  1,
+);
+sama(
+  "impor H+1 tidak muncul di hari impornya (Rabu)",
+  sebaranHari(hPlusSatu, NILAI_POIN).find((h) => h.nama === "Rabu")?.jumlah,
+  0,
+);
+sama("impor H+1 menambah satu hari jualan di tanggal transaksinya", hariBeroperasi(hPlusSatu), 1);
+sama(
+  "transaksi manual tanpa tanggal_majoo tetap memakai hari catatnya",
+  sebaranHari([trx({ total: 47000, created_at: "2026-09-15T10:00:00" })], NILAI_POIN)
+    .find((h) => h.nama === "Selasa")?.jumlah,
+  1,
+);
+
 // ===================== tinggiBatang & labelJam =====================
 sama("batang penuh", tinggiBatang(100, 100), 100);
 sama("batang separuh", tinggiBatang(50, 100), 50);

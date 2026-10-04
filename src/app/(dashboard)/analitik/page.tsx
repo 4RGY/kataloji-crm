@@ -84,7 +84,7 @@ export default function HalamanAnalitik() {
       ambilSemua<TransaksiAnalitik>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("total, diskon, poin_dipakai, pelanggan_id, created_at")
+          .select("total, diskon, poin_dipakai, pelanggan_id, created_at, tanggal_majoo")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),

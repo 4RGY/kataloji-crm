@@ -21,6 +21,8 @@
  * saat audit tidak ada yang salah membaca keduanya sebagai nama staf.
  */
 
+import { kunciHariLaporanAtauNull } from "./hari-laporan";
+
 /** Nilai penanda dari database. Ditulis sekali agar tidak salah ketik. */
 export const LABEL_SEBELUM_FITUR = "Sebelum fitur jejak pencatat";
 export const LABEL_SISTEM = "Sistem (tanpa sesi staf)";
@@ -135,6 +137,8 @@ export interface BarisTransaksiRekap {
   dicatat_oleh: string | null;
   dicatat_oleh_nama: string | null;
   created_at: string;
+  /** Tanggal transaksi di Majoo (H+1), null untuk transaksi manual. */
+  tanggal_majoo?: string | null;
 }
 
 /**
@@ -149,26 +153,33 @@ export interface BarisTransaksiRekap {
  * Pengelompokan memakai `dicatat_oleh` (id staf) kalau ada. Kalau kosong,
  * barulah namanya dipakai sebagai kunci, supaya baris "sebelum fitur ini"
  * tidak pecah menjadi banyak baris.
+ *
+ * Batas periode dibandingkan sebagai HARI (kunci YYYY-MM-DD), dengan basis
+ * hariLaporan: impor H+1 yang dicatat hari ini untuk transaksi kemarin masuk
+ * ke periode berdasarkan tanggal transaksinya, bukan waktu catatnya.
  */
 export function susunRekap(
   transaksi: BarisTransaksiRekap[],
   hari: number | null,
   sekarang: Date,
 ): BarisRekapPencatat[] {
-  let batas: number | null = null;
+  let batasKunci: string | null = null;
   if (hari !== null) {
     const d = new Date(sekarang);
-    d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - (hari - 1));
-    batas = d.getTime();
+    const p = (n: number) => String(n).padStart(2, "0");
+    batasKunci = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
   const peta = new Map<string, BarisRekapPencatat>();
 
   for (const t of transaksi || []) {
-    const waktu = new Date(t.created_at).getTime();
-    if (!Number.isFinite(waktu)) continue;
-    if (batas !== null && waktu < batas) continue;
+    const kunciLaporan = kunciHariLaporanAtauNull(t);
+    // Data tanggal rusak dilewati, tidak dibuatkan hari (prinsip audit:
+    // yang tidak valid jangan ditebak). Ini sama dengan perilaku lama
+    // "waktu tak terbaca -> skip".
+    if (kunciLaporan === null) continue;
+    if (batasKunci !== null && kunciLaporan < batasKunci) continue;
 
     const nama = t.dicatat_oleh_nama ?? LABEL_SEBELUM_FITUR;
     const kunci = t.dicatat_oleh ?? `nama:${nama}`;

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import { NILAI_POIN } from "@/lib/poin";
+import { kunciHariLaporanAtauNull } from "@/lib/hari-laporan";
 import { namaPanggilan } from "@/lib/staf";
 import { catatGalat } from "@/lib/pesan-galat";
 import {
@@ -47,12 +48,6 @@ function kunciHari(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function awalHari(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
 interface Transaksi {
   id: string;
   total: number;
@@ -60,6 +55,8 @@ interface Transaksi {
   poin_dipakai: number;
   poin_didapat: number;
   created_at: string;
+  /** Tanggal transaksi di Majoo (H+1: kemarin), null untuk transaksi manual. */
+  tanggal_majoo: string | null;
   pelanggan_id: string | null;
 }
 
@@ -128,7 +125,7 @@ export default function DashboardPage() {
       ambilSemua<Transaksi>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, pelanggan_id")
+          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -194,35 +191,38 @@ export default function DashboardPage() {
   }
 
   // ---- batas periode ----
+  // Dibandingkan sebagai kunci hari (YYYY-MM-DD), bukan Date, karena basis
+  // hari laporannya hariLaporan: transaksi impor H+1 yang dicatat hari ini
+  // tetapi terjadi kemarin masuk ke "kemarin", bukan "hari ini". Perbandingan
+  // leksikografis string YYYY-MM-DD = perbandingan kronologis.
+  function kunciRelatif(nRelatif: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + nRelatif);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
   const batas = useMemo(() => {
-    const hariIni = awalHari(new Date());
     if (range === "custom") {
-      const mulai = from ? awalHari(new Date(from + "T00:00:00")) : null;
-      const selesai = to ? new Date(to + "T23:59:59.999") : null;
-      return { mulai, selesai };
+      return { mulai: from || null, selesai: to || null };
     }
     if (range === "yesterday") {
-      // "Kemarin" = satu hari kalender penuh: mulai = tengah malam kemarin,
-      // selesai = tengah malam hari ini (batas atas eksklusif). Dipakai
-      // data impor Majoo H+1: transaksi kemarin tercatat hari ini, jadi
-      // filter ini menggenapi alur harian operasional.
-      const mulai = new Date(hariIni);
-      mulai.setDate(mulai.getDate() - 1);
-      const selesai = new Date(hariIni);
-      return { mulai, selesai };
+      return { mulai: kunciRelatif(-1), selesai: kunciRelatif(-1) };
+    }
+    if (range === "today") {
+      return { mulai: kunciRelatif(0), selesai: kunciRelatif(0) };
     }
     const cfg = RANGES.find((r) => r.key === range);
     if (!cfg || cfg.hari === null) return { mulai: null, selesai: null };
-    const mulai = new Date(hariIni);
-    mulai.setDate(mulai.getDate() - (cfg.hari - 1));
-    return { mulai, selesai: null };
+    return { mulai: kunciRelatif(-(cfg.hari - 1)), selesai: kunciRelatif(0) };
   }, [range, from, to]);
 
   const tersaring = useMemo(() => {
     return transaksi.filter((t) => {
-      const d = new Date(t.created_at);
-      if (batas.mulai && d < batas.mulai) return false;
-      if (batas.selesai && d > batas.selesai) return false;
+      const k = kunciHariLaporanAtauNull(t);
+      if (k === null) return false;
+      if (batas.mulai && k < batas.mulai) return false;
+      if (batas.selesai && k > batas.selesai) return false;
       return true;
     });
   }, [transaksi, batas]);
@@ -248,14 +248,16 @@ export default function DashboardPage() {
     const poinDiberikan = hitungPoinDiberikan(tersaring);
     const poinDitukar = tersaring.reduce((s, t) => s + (t.poin_dipakai ?? 0), 0);
 
-    const hariUnik = new Set(tersaring.map((t) => kunciHari(new Date(t.created_at))));
+    const hariUnik = new Set(
+      tersaring.map((t) => kunciHariLaporanAtauNull(t)).filter((k) => k !== null),
+    );
     const rataHarian = hariUnik.size > 0 ? Math.round(omzet / hariUnik.size) : 0;
     const terbesar = tersaring.reduce((m, t) => Math.max(m, t.total), 0);
 
     const pelangganBaru = pelanggan.filter((p) => {
-      const d = new Date(p.created_at);
-      if (batas.mulai && d < batas.mulai) return false;
-      if (batas.selesai && d > batas.selesai) return false;
+      const k = kunciHari(new Date(p.created_at));
+      if (batas.mulai && k < batas.mulai) return false;
+      if (batas.selesai && k > batas.selesai) return false;
       return true;
     }).length;
 
@@ -281,7 +283,8 @@ export default function DashboardPage() {
     if (tersaring.length === 0) return [];
     const peta = new Map<string, number>();
     for (const t of tersaring) {
-      const k = kunciHari(new Date(t.created_at));
+      const k = kunciHariLaporanAtauNull(t);
+      if (k === null) continue;
       const netto = Math.max(
         0,
         t.total - (t.diskon ?? 0) - (t.poin_dipakai ?? 0) * NILAI_POIN,
