@@ -3,11 +3,13 @@
 // 2. Susun cookie SSR Supabase
 // 3. POST /api/impor-majoo?mode=preview, apply, apply (ulang -> idempoten)
 // 4. GET /api/pencocokan
+// 5. Bersihkan residue run ini (hanya baris created >= RUN_START + berkode
+//    fixture) via REST service role, supaya DB produksi kembali ke data user.
 import fs from "node:fs";
 
 const ENV = fs.readFileSync(".env.local", "utf8")
   .split("\n")
-  .filter((l) => l.startsWith("NEXT_PUBLIC_SUPABASE_"))
+  .filter((l) => l.startsWith("NEXT_PUBLIC_SUPABASE_") || l.startsWith("SUPABASE_SERVICE_ROLE_KEY"))
   .map((l) => l.split("="))
   .reduce((acc, [k, v]) => {
     acc[k.trim()] = (v ?? "").trim();
@@ -16,8 +18,13 @@ const ENV = fs.readFileSync(".env.local", "utf8")
 
 const SUPABASE_URL = ENV["NEXT_PUBLIC_SUPABASE_URL"];
 const ANON_KEY = ENV["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
+const SERVICE_KEY = ENV["SUPABASE_SERVICE_ROLE_KEY"];
 
 async function main() {
+  // Tandai awal run: residue yang dihapus di akhir = baris created ATAS ini.
+  // Data user (created sebelumnya) tidak pernah tersentuh.
+  const RUN_START = new Date().toISOString();
+
   // 1. Login
   const authRes = await fetch(
     `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
@@ -103,6 +110,49 @@ async function main() {
   console.log("preview transaksi siap:", jumlahPreview?.jumlah, "| dilewati:", JSON.stringify(jumlahPreview?.dilewati));
   console.log("apply ke-1:", JSON.stringify(ring1));
   console.log("apply ke-2 (harus 0 baru):", JSON.stringify(ring2));
+
+  // 5. Bersihkan residue run ini. Hanya baris yang lahir SETELAH RUN_START
+  //    (data user lahir sebelumnya, jadi tidak pernah masuk kumpulan ini).
+  //    Urutan hapus mengikuti FK: ledger -> transaksi -> pelanggan.
+  if (!SERVICE_KEY) {
+    console.log("\nPERINGATAN: SUPABASE_SERVICE_ROLE_KEY tidak ada; residue run ini TIDAK dibersihkan.");
+    return;
+  }
+  const rest = {
+    apikey: SERVICE_KEY,
+    Authorization: `Bearer ${SERVICE_KEY}`,
+    "Content-Type": "application/json",
+    Prefer: "return=representation",
+  };
+  async function restGet(path: string) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: rest });
+    return (await r.json()) as unknown[];
+  }
+  async function restDel(path: string) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method: "DELETE", headers: rest });
+    if (!r.ok) throw new Error(`cleanup ${r.status}: ${await r.text()}`);
+  }
+
+  const ts = encodeURIComponent(RUN_START);
+  const trxSisa = await restGet(`transaksi?created_at=gt.${ts}&select=id,external_ref`);
+  const pelSisa = await restGet(`pelanggan?created_at=gt.${ts}&select=id,kode_majoo`);
+  const ledSisa = await restGet(`point_ledger?created_at=gt.${ts}&select=id`);
+  console.log(
+    `\n=== BERSIH RESIDUE RUN INI (${trxSisa.length} trx, ${pelSisa.length} pel, ${ledSisa.length} ledger) ===`,
+  );
+  if (ledSisa.length)
+    await restDel(`point_ledger?id=in.(${ledSisa.map((l) => (l as { id: string }).id).join(",")})`);
+  if (trxSisa.length)
+    await restDel(`transaksi?id=in.(${trxSisa.map((t) => (t as { id: string }).id).join(",")})`);
+  if (pelSisa.length)
+    await restDel(`pelanggan?id=in.(${pelSisa.map((p) => (p as { id: string }).id).join(",")})`);
+
+  const sisa = (await restGet(`transaksi?created_at=gt.${ts}&select=id`)).length;
+  const sisaPel = (await restGet(`pelanggan?created_at=gt.${ts}&select=id`)).length;
+  if (sisa === 0 && sisaPel === 0)
+    console.log("Residue bersih: DB produksi kembali ke data user.");
+  else
+    console.log(`PERHATIAN: masih tersisa transaksi=${sisa} pelanggan=${sisaPel} sejak RUN_START.`);
 }
 
 main().catch((e) => {
