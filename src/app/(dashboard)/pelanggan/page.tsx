@@ -15,6 +15,7 @@ import {
 import { DialogKonfirmasi } from "@/components/dialog-konfirmasi";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
+import { NILAI_POIN } from "@/lib/poin";
 import {
   cocokCari,
   formatWhatsapp,
@@ -909,7 +910,7 @@ function PanelDetail({
             </span>
           </p>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Setara potongan tagihan {rupiahPenuh(pelanggan.poin * 1000)}.
+            Setara potongan tagihan {rupiahPenuh(pelanggan.poin * NILAI_POIN)}.
             {hangus
               ? ` Sebagian poin hangus ${tanggalSingkat(hangus + "T00:00:00")} kalau tidak dipakai.`
               : " Tidak ada poin yang mendekati hangus."}

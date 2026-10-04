@@ -98,7 +98,7 @@ export function PanelAturanPoin({ peran }: Props) {
     mode: "per_kunjungan",
     mulai: HARI_INI(),
     selesai: "",
-    nominal: "20000",
+    nominal: String(NOMINAL_FALLBACK),
     keterangan: "",
   });
   const [menyimpan, setMenyimpan] = useState(false);
@@ -181,7 +181,7 @@ export function PanelAturanPoin({ peran }: Props) {
       mode: "per_kunjungan",
       mulai: HARI_INI(),
       selesai: "",
-      nominal: "20000",
+      nominal: String(NOMINAL_FALLBACK),
       keterangan: "",
     });
     await muat();
