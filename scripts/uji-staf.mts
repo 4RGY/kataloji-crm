@@ -17,6 +17,7 @@ import {
   menuUntukPeran,
   bolehLihatRekap,
   bolehLihatPemasaran,
+  bolehLihatLogTransaksi,
 } from "../src/lib/staf.ts";
 
 let gagal = 0;
@@ -250,13 +251,13 @@ sama("inisial dengan titik", inisial("sinta.dewi"), "SD");
 // untuk halaman yang boleh dibuka membuat fiturnya seperti tidak ada.
 // Syarat menu dan syarat halaman sekarang memakai fungsi yang sama.
 
-sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, staf: true, impor: true, pencocokan: true, pemasaran: true });
-sama("manajer melihat rekap dan pemasaran tapi bukan kelola staf/impor", menuUntukPeran("manager"), { rekap: true, staf: false, impor: false, pencocokan: false, pemasaran: true });
-sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
+sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, staf: true, impor: true, pencocokan: true, logTransaksi: true, pemasaran: true });
+sama("manajer melihat rekap dan pemasaran tapi bukan kelola staf/impor", menuUntukPeran("manager"), { rekap: true, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: true });
+sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
 
-sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
-sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
-sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false, impor: false, pencocokan: false, pemasaran: false });
+sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
 
 // Kelola akun staf adalah satu-satunya yang benar-benar khusus admin.
 sama("hanya admin yang boleh kelola staf",
@@ -297,6 +298,22 @@ sama(
   "izin rekap juga tetap sepakat dengan menunya",
   ["admin", "manager", "kasir", null].every(
     (r) => bolehLihatRekap(r) === menuUntukPeran(r).rekap,
+  ),
+  true,
+);
+
+// ============ bolehLihatLogTransaksi ============
+// Log transaksi khusus admin (kelompok Sistem). Halaman /log-transaksi
+// di-guard dengan bolehLihatLogTransaksi, WAJIB sepakat dengan menunya.
+sama("bolehLihatLogTransaksi admin", bolehLihatLogTransaksi("admin"), true);
+sama("bolehLihatLogTransaksi manajer", bolehLihatLogTransaksi("manager"), false);
+sama("bolehLihatLogTransaksi kasir", bolehLihatLogTransaksi("kasir"), false);
+sama("bolehLihatLogTransaksi peran kosong", bolehLihatLogTransaksi(null), false);
+sama("bolehLihatLogTransaksi peran tak dikenal", bolehLihatLogTransaksi("tukang_parkir"), false);
+sama(
+  "izin log transaksi sepakat dengan menunya",
+  ["admin", "manager", "kasir", "tukang_parkir", null].every(
+    (r) => bolehLihatLogTransaksi(r) === menuUntukPeran(r).logTransaksi,
   ),
   true,
 );
