@@ -90,6 +90,23 @@ async function buatAturan(row: {
   return data.id as string;
 }
 
+// Tanggal yang DIJAMIN tanpa aturan aktif (untuk uji fallback model lama).
+// Syarat "tanpa aturan": harus sebelum `mulai` aturan tersingkat, karena
+// aturan hanya menjangkau rentang [mulai, selesai]. Kalau tabel kosong,
+// sembarang tanggal aman. Ini bikin uji tahan terhadap aturan produksi
+// (mis. aturan per_kunjungan tim yang mulai 2026-10-02, tak bertepi).
+async function tglTanpaAturan(): Promise<string> {
+  const { data } = await admin
+    .from("aturan_poin")
+    .select("mulai")
+    .order("mulai", { ascending: true });
+  const minMulai = data?.[0]?.mulai as string | undefined;
+  if (!minMulai) return "2020-01-01";
+  const d = new Date(minMulai + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 async function run() {
   // ============ A. per_kunjungan ============
   console.log("\n--- A. MODE per_kunjungan ---");
@@ -108,8 +125,12 @@ async function run() {
     // Hapus aturan -> transaksi baru pakai fallback model lama.
     await admin.from("aturan_poin").delete().eq("id", aturanIds[aturanIds.length - 1]);
     aturanIds.pop();
-    const t4 = await buatTransaksi(p1, 40000, "2026-10-10");
-    cek("A5 aturan tak berlaku -> fallback 20rb (40000/20000=2)", t4.poin_didapat === 2, String(t4.poin_didapat));
+    // Tanggal uji WAJIB di luar rentang aturan mana pun (produksi bisa
+    // punya aturan tim yang masih aktif), bukan tanggal mutlak: fallback
+    // hanya terjadi jika aturan_poin_aktif() memang mengembalikan NULL.
+    const tglKosong = await tglTanpaAturan();
+    const t4 = await buatTransaksi(p1, 40000, tglKosong);
+    cek(`A5 aturan tak berlaku (${tglKosong}) -> fallback 20rb (40000/20000=2)`, t4.poin_didapat === 2, String(t4.poin_didapat));
   }
 
   // ============ B. per_transaksi ============

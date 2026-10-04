@@ -48,3 +48,7 @@ supabase/.temp/
 # oleh scripts/buat-berkas-contoh-majoo.mts, jangan commit
 /assets/
 /contoh-majoo/
+/contoh-majoo-dummy/
+
+# hasil download / artefak uji sekali pakai di root
+/cek-download.xlsx
