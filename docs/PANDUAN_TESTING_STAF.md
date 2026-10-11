@@ -115,10 +115,10 @@ Pengamanannya adalah pemeriksaan peran di dalam halaman itu sendiri.
 | 15a | Coba simpan tanpa mengisi tanggal lahir | Ditolak: "Tanggal lahir wajib diisi." Tanggal lahir memang wajib (BR-CUS-01), dan labelnya sudah diberi tanda bintang |
 | 16 | Buka **Transaksi** | Kolom pencarian pelanggan aktif |
 | 17 | Cari `Uji Kasir`, pilih pelanggannya | Nama pelanggan menempel di transaksi |
-| 18 | Isi total belanja `100000` | Menampilkan perolehan **5 poin** (Rp 20.000 per poin) |
-| 19 | Simpan transaksi | Berhasil, poin pelanggan naik, nomor struk muncul |
-| 20 | Ulangi dengan total `50000` | Perolehan **2 poin** (pembulatan ke bawah) |
-| 21 | Buka **Loyalitas** | Pelanggan tampil dengan total 7 poin |
+| 18 | Isi total belanja `100000` | Menampilkan perolehan **1 poin** (aturan per kunjungan: 1 poin per pelanggan per hari) |
+| 19 | Simpan transaksi | Berhasil, poin pelanggan naik 1, nomor struk muncul |
+| 20 | Ulangi dengan total `50000` pada hari yang sama | Tercatat, tetapi **0 poin** (transaksi susulan di hari yang sama tidak menambah poin) |
+| 21 | Buka **Loyalitas** | Pelanggan tampil dengan total 1 poin |
 
 ### 1.4 Boleh mengarsipkan pelanggan?
 
@@ -215,7 +215,7 @@ tidak bisa dikelola lagi oleh siapa pun.
 | # | Langkah | Hasil yang diharapkan |
 |---|---|---|
 | 18 | Buka **Pengaturan** | Menampilkan aturan poin yang sedang berlaku |
-| 19 | Baca aturan | Rp 20.000 per poin, 1 poin = Rp 1.000, minimal tukar 5 poin |
+| 19 | Baca aturan | Mode per kunjungan, 1 poin per pelanggan per hari. Nilai tukar 1 poin = Rp 1.000, minimal tukar 5 poin |
 | 20 | Periksa bagian pembukuan | Tertulis **tidak ada selisih** |
 | 21 | Bandingkan dengan data | Jumlah poin masuk dikurangi keluar sama dengan saldo pelanggan |
 
@@ -316,7 +316,7 @@ Tulis dengan enam bagian ini supaya masalahnya bisa langsung ditelusuri:
 Peran       : kasir
 Halaman     : /transaksi
 Langkah     : isi total 100000 lalu simpan
-Diharapkan  : poin bertambah 5
+Diharapkan  : poin bertambah 1
 Terjadi     : muncul pesan gagal menyimpan
 Waktu       : 16 Sep 2026, 14:20
 ```
@@ -351,7 +351,7 @@ Cetak atau salin bagian ini saat pengujian.
 - [ ] Nama pencatat tampil benar
 
 ### Admin
-- [ ] Sidebar tepat 9 menu
+- [ ] Sidebar tepat **12 menu** (Dashboard, Transaksi, Pelanggan, Loyalitas, Campaign, Analitik, Pengaturan, Rekap kasir, Staf, Impor Majoo, Pencocokan, Log Transaksi)
 - [ ] Bisa menambah akun staf
 - [ ] Email ganda ditolak
 - [ ] Sandi lemah ditolak
@@ -444,5 +444,5 @@ belum bisa dipastikan sebagai cacat. Perlu diperhatikan kalau muncul lagi:
 ### 9.4 Data uji yang tertinggal
 
 Pengujian ini membuat satu pelanggan bernama `Uji Arsip` beserta satu
-transaksi Rp 100.000 dan 5 poin. Hapus lewat halaman Pelanggan bila tidak
+transaksi Rp 100.000 dan 1 poin. Hapus lewat halaman Pelanggan bila tidak
 diperlukan lagi, atau biarkan sebagai contoh saat menunjukkannya ke client.
