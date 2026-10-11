@@ -19,6 +19,8 @@ export interface TransaksiAnalitik {
   created_at: string;
   /** Tanggal transaksi di Majoo (H+1), null untuk transaksi manual. */
   tanggal_majoo?: string | null;
+  /** Daftar item `{nama, qty}`, dipakai untuk ranking menu. */
+  items?: unknown;
 }
 
 export interface PelangganAnalitik {
@@ -276,6 +278,111 @@ export function jamTeramai(baris: BarisJam[]): BarisJam | null {
   const maks = Math.max(...terisi.map((b) => b.jumlah));
   const juara = terisi.filter((b) => b.jumlah === maks);
   return juara.length === 1 ? juara[0] : null;
+}
+
+export interface ItemTransaksi {
+  nama: string;
+  qty: number;
+}
+
+export interface TransaksiMenu {
+  items?: unknown;
+}
+
+export interface BarisMenu {
+  nama: string;
+  qty: number;
+  /** Bagian dari seluruh item terjual, 0 sampai 100. */
+  persen: number;
+}
+
+/** Ambang minimum item terjual sebelum ranking menu layak dibaca. */
+export const AMBANG_MENU = 20;
+
+/**
+ * Menu terlaris berdasarkan jumlah item terjual (qty).
+ *
+ * Item dibaca dari kolom `items` (array `{nama, qty}`). Baris yang bentuknya
+ * tidak sesuai dilewati, bukan ditebak. Nama dinormalkan (huruf kecil dan
+ * spasi dirapikan) supaya "Kopi Susu" dan "kopi susu " dihitung satu menu.
+ */
+export function menuTerlaris(
+  transaksi: TransaksiMenu[],
+  batas = 5,
+): BarisMenu[] {
+  const peta = new Map<string, { nama: string; qty: number }>();
+  let totalQty = 0;
+
+  for (const t of transaksi || []) {
+    if (!Array.isArray(t.items)) continue;
+    for (const raw of t.items as unknown[]) {
+      if (!raw || typeof raw !== "object") continue;
+      const it = raw as Partial<ItemTransaksi>;
+      const nama = typeof it.nama === "string" ? it.nama.trim().replace(/\s+/g, " ") : "";
+      const qty = Number(it.qty);
+      if (!nama || !Number.isFinite(qty) || qty <= 0) continue;
+      const kunci = nama.toLowerCase();
+      const ada = peta.get(kunci);
+      if (ada) {
+        ada.qty += qty;
+      } else {
+        peta.set(kunci, { nama, qty });
+      }
+      totalQty += qty;
+    }
+  }
+
+  return [...peta.values()]
+    .sort((a, b) => b.qty - a.qty || a.nama.localeCompare(b.nama, "id"))
+    .slice(0, batas)
+    .map((m) => ({
+      nama: m.nama,
+      qty: m.qty,
+      persen: totalQty > 0 ? Math.round((m.qty / totalQty) * 100) : 0,
+    }));
+}
+
+export interface PelangganSetia {
+  pelangganId: string;
+  /** Jumlah hari berbeda pelanggan ini datang. Ini yang dihitung sebagai kunjungan. */
+  kunjungan: number;
+  omzet: number;
+}
+
+/**
+ * Pelanggan paling sering datang.
+ *
+ * Kunjungan dihitung sebagai hari berbeda, sejalan dengan aturan poin
+ * `per_kunjungan`: dua struk di hari yang sama tetap satu kunjungan.
+ * Transaksi tanpa pelanggan diabaikan.
+ */
+export function pelangganSetia(
+  transaksi: TransaksiAnalitik[],
+  nilaiPoin: number,
+  batas = 5,
+): PelangganSetia[] {
+  const hari = new Map<string, Set<string>>();
+  const omzet = new Map<string, number>();
+
+  for (const t of transaksi || []) {
+    if (!t.pelanggan_id) continue;
+    const d = hariTransaksi(t);
+    if (!d) continue;
+    const kunciHari = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const set = hari.get(t.pelanggan_id) ?? new Set<string>();
+    set.add(kunciHari);
+    hari.set(t.pelanggan_id, set);
+    omzet.set(t.pelanggan_id, (omzet.get(t.pelanggan_id) ?? 0) + nilaiBersih(t, nilaiPoin));
+  }
+
+  return [...hari.entries()]
+    .map(([pelangganId, set]) => ({
+      pelangganId,
+      kunjungan: set.size,
+      omzet: omzet.get(pelangganId) ?? 0,
+    }))
+    .sort((a, b) => b.kunjungan - a.kunjungan || b.omzet - a.omzet)
+    .slice(0, batas);
 }
 
 /** Format jam menjadi "18.00". */

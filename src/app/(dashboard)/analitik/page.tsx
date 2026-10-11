@@ -18,6 +18,9 @@ import {
   sebaranJam,
   tinggiBatang,
   ultahBulanIni,
+  menuTerlaris,
+  pelangganSetia,
+  AMBANG_MENU,
   type PelangganAnalitik,
   type TransaksiAnalitik,
 } from "@/lib/analitik";
@@ -84,7 +87,7 @@ export default function HalamanAnalitik() {
       ambilSemua<TransaksiAnalitik>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("total, diskon, poin_dipakai, pelanggan_id, created_at, tanggal_majoo")
+          .select("total, diskon, poin_dipakai, pelanggan_id, created_at, tanggal_majoo, items")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -152,6 +155,15 @@ export default function HalamanAnalitik() {
   const belanja = useMemo(() => sebaranBelanja(transaksi, NILAI_POIN), [transaksi]);
   const pel = useMemo(() => ringkasPelanggan(transaksi, NILAI_POIN), [transaksi]);
   const ultah = useMemo(() => ultahBulanIni(pelanggan, kini), [pelanggan, kini]);
+  const menu = useMemo(() => menuTerlaris(transaksi, 5), [transaksi]);
+  const setia = useMemo(() => pelangganSetia(transaksi, NILAI_POIN, 5), [transaksi]);
+  const namaPelanggan = useMemo(
+    () => new Map(pelanggan.map((p) => [p.id, p.nama])),
+    [pelanggan],
+  );
+  const yakinMenu = periksaKeyakinan(menu.reduce((s, m) => s + m.qty, 0), AMBANG_MENU, "item terjual");
+  const yakinSetia = periksaKeyakinan(setia.length, 3, "pelanggan yang datang");
+
 
   const yakinPola = periksaKeyakinan(transaksi.length, AMBANG_POLA);
   const yakinHari = periksaKeyakinan(hariBeroperasi(transaksi), AMBANG_HARI, "hari jualan");
@@ -338,6 +350,85 @@ export default function HalamanAnalitik() {
             )}
           </section>
         </div>
+      </div>
+
+      {/* Menu terlaris dan pelanggan paling sering datang. Keduanya ditahan
+          sampai datanya cukup, sama seperti bagian lain halaman ini. */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <section
+          aria-label="Menu terlaris"
+          className="rounded-xl border border-border bg-card p-6"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Menu terlaris
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {yakinMenu.cukup
+              ? `Dari ${yakinMenu.jumlah} porsi terjual, diurutkan jumlah porsi`
+              : yakinMenu.pesan}
+          </p>
+          {!yakinMenu.cukup || menu.length === 0 ? (
+            <div className="mt-5">
+              <Tertahan pesan="Ranking menu muncul setelah cukup item tercatat, supaya tidak menyimpulkan dari sedikit data." />
+            </div>
+          ) : (
+            <ol className="mt-5 space-y-3">
+              {menu.map((m, i) => (
+                <li key={m.nama} className="space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="truncate font-semibold">
+                      <span className="mr-2 tabular-nums text-muted-foreground">{i + 1}.</span>
+                      {m.nama}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {m.qty} porsi, {m.persen}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${tinggiBatang(m.qty, menu[0].qty)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
+        <section
+          aria-label="Pelanggan paling sering datang"
+          className="rounded-xl border border-border bg-card p-6"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Pelanggan paling sering datang
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Dihitung per hari kunjungan, sejalan dengan aturan poin per kunjungan.
+          </p>
+          {!yakinSetia.cukup ? (
+            <div className="mt-5">
+              <Tertahan pesan={yakinSetia.pesan} />
+            </div>
+          ) : (
+            <ol className="mt-5 space-y-3">
+              {setia.map((s, i) => (
+                <li
+                  key={s.pelangganId}
+                  className="flex items-baseline justify-between gap-3 text-sm"
+                >
+                  <span className="truncate font-semibold">
+                    <span className="mr-2 tabular-nums text-muted-foreground">{i + 1}.</span>
+                    {namaPelanggan.get(s.pelangganId) ?? "Pelanggan"}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {s.kunjungan} kunjungan, {rupiah.format(s.omzet)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       </div>
 
       {/* Jam ramai memakai lebar penuh: sumbunya 16 kolom, dipadatkan ke

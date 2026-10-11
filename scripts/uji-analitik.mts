@@ -17,7 +17,9 @@ import {
   jamTeramai,
   JAM_BUKA,
   labelJam,
+  menuTerlaris,
   nilaiBersih,
+  pelangganSetia,
   periksaKeyakinan,
   ringkasPelanggan,
   sebaranBelanja,
@@ -261,6 +263,42 @@ sama("tidak melebihi seratus", tinggiBatang(200, 100), 100);
 sama("tidak negatif", tinggiBatang(-50, 100), 0);
 sama("label jam dua digit", labelJam(9), "09.00");
 sama("label jam sore", labelJam(18), "18.00");
+
+// ===================== menuTerlaris =====================
+// Hitungan manual: Kopi Susu 3+2=5, Es Teh 4, Pisang 1. Total 10.
+const menuUji = [
+  { items: [{ nama: "Kopi Susu", qty: 3 }, { nama: "Es Teh", qty: 4 }] },
+  { items: [{ nama: "kopi  susu ", qty: 2 }, { nama: "Pisang Goreng", qty: 1 }] },
+  { items: "bukan array" },
+  { items: [null, { nama: "", qty: 9 }, { nama: "Rusak", qty: "x" }, { nama: "Nol", qty: 0 }] },
+];
+const rankMenu = menuTerlaris(menuUji, 5);
+sama("menu: nama dinormalkan, kopi susu dan kopi  susu  digabung", rankMenu[0].nama, "Kopi Susu");
+sama("menu: qty digabung dari dua transaksi (3+2)", rankMenu[0].qty, 5);
+sama("menu: urutan terbanyak dulu", rankMenu.map((m) => m.nama), ["Kopi Susu", "Es Teh", "Pisang Goreng"]);
+sama("menu: persen dihitung dari total qty (5 dari 10)", rankMenu[0].persen, 50);
+sama("menu: baris rusak dan qty nol dilewati, tidak ditebak", rankMenu.length, 3);
+sama("menu: batas jumlah dihormati", menuTerlaris(menuUji, 1).length, 1);
+sama("menu: data kosong tidak error", menuTerlaris([], 5), []);
+
+// ===================== pelangganSetia =====================
+// Pelanggan A: dua struk di hari yang sama (satu kunjungan) + satu hari lain = 2 kunjungan.
+// Pelanggan B: tiga hari berbeda = 3 kunjungan. Transaksi tanpa pelanggan diabaikan.
+const setiaUji = [
+  trx({ pelanggan_id: "A", total: 20000, created_at: "2026-09-15T10:00:00" }),
+  trx({ pelanggan_id: "A", total: 30000, created_at: "2026-09-15T15:00:00" }),
+  trx({ pelanggan_id: "A", total: 40000, created_at: "2026-09-17T11:00:00" }),
+  trx({ pelanggan_id: "B", total: 50000, created_at: "2026-09-14T10:00:00" }),
+  trx({ pelanggan_id: "B", total: 50000, created_at: "2026-09-15T10:00:00" }),
+  trx({ pelanggan_id: "B", total: 50000, created_at: "2026-09-16T10:00:00" }),
+  trx({ pelanggan_id: null, total: 99000, created_at: "2026-09-16T12:00:00" }),
+];
+const rankSetia = pelangganSetia(setiaUji, NILAI_POIN, 5);
+sama("setia: pelanggan terbanyak kunjungan dulu", rankSetia[0].pelangganId, "B");
+sama("setia: kunjungan B = 3 hari berbeda", rankSetia[0].kunjungan, 3);
+sama("setia: dua struk di hari sama dihitung satu kunjungan (A = 2)", rankSetia[1].kunjungan, 2);
+sama("setia: transaksi tanpa pelanggan tidak ikut", rankSetia.length, 2);
+sama("setia: omzet B = 150000 (poin 0)", rankSetia[0].omzet, 150000);
 
 console.log("");
 console.log(`=== ${lulus} LULUS, ${gagal} GAGAL ===`);

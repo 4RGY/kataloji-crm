@@ -17,7 +17,8 @@ import {
   sebaranJam,
   type BarisLedger,
 } from "@/lib/dashboard-tampilan";
-import { Loader2, RefreshCw, ShieldAlert, Star, TrendingUp } from "lucide-react";
+import { RefreshCw, ShieldAlert, Star, TrendingUp } from "lucide-react";
+import { LoaderBrand } from "@/components/loader-brand";
 import { Button } from "@/components/ui/button";
 
 type RangeKey = "today" | "yesterday" | "3d" | "7d" | "30d" | "all" | "custom";
@@ -448,9 +449,8 @@ export default function DashboardPage() {
       </div>
 
       {memuat ? (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-24">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Memuat data…</p>
+        <div className="rounded-xl border border-border bg-card">
+          <LoaderBrand />
         </div>
       ) : galat ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card py-24 text-center">

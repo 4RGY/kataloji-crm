@@ -86,6 +86,12 @@ interface TransaksiRingkas extends BarisTransaksi {
 
 const KOSONG = { nama: "", whatsapp: "", tgl_lahir: "" };
 
+const rupiah = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
+
 /** Warna lencana per jenis. Dijaga di satu tempat supaya tidak berpencar. */
 const GAYA_LENCANA: Record<JenisLencana, string> = {
   aktif: "bg-[oklch(0.655_0.078_127.8_/_0.15)] text-[oklch(0.45_0.07_127.8)]",
@@ -663,10 +669,12 @@ export default function PelangganPage() {
                           </span>
                           {p.kunjungan}
                         </p>
-                        <p className="text-sm font-bold tabular-nums text-primary lg:text-right">
-                          {p.poin}
+                        <p className="text-sm tabular-nums text-primary lg:text-right">
+                          <span className="font-bold text-foreground lg:hidden">Poin: </span>
+                          <span className="font-bold">{p.poin}</span>
                         </p>
                         <p className="text-xs text-muted-foreground lg:text-right">
+                          <span className="font-bold text-foreground lg:hidden">Terakhir: </span>
                           {terakhirDatang(p.terakhirIso, hariIni)}
                         </p>
                       </button>
@@ -977,13 +985,7 @@ function PanelDetail({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="flex items-baseline justify-between gap-2 text-[13px] font-semibold">
-                      <span className="tabular-nums">
-                        {new Intl.NumberFormat("id-ID", {
-                          style: "currency",
-                          currency: "IDR",
-                          maximumFractionDigits: 0,
-                        }).format(t.total)}
-                      </span>
+                      <span className="tabular-nums">{rupiah.format(t.total)}</span>
                     </p>
                     <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Clock3 className="h-3 w-3 shrink-0" aria-hidden />

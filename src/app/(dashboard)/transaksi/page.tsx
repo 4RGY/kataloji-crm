@@ -742,16 +742,16 @@ export default function TransaksiPage() {
                   {riwayat.map((t) => (
                     <li key={t.id} className="px-5 py-3">
                       <div className="flex items-baseline justify-between gap-3">
-                        <p className="text-sm font-bold tabular-nums">
-                          {rupiah.format(t.total)}
+                        <p className="min-w-0 truncate text-sm font-semibold">
+                          {t.pelanggan?.nama ?? "Tanpa pelanggan"}
                         </p>
-                        <p className="text-xs text-muted-foreground tabular-nums">
-                          {waktuRingkas(t.created_at)}
+                        <p className="shrink-0 text-right text-sm font-bold tabular-nums">
+                          {rupiah.format(t.total)}
                         </p>
                       </div>
                       <div className="mt-1 flex items-center justify-between gap-2">
-                        <p className="truncate text-xs text-muted-foreground">
-                          {t.pelanggan?.nama ?? "Tanpa pelanggan"}
+                        <p className="truncate text-xs tabular-nums text-muted-foreground">
+                          {waktuRingkas(t.created_at)}
                           {t.external_ref ? ` · ${t.external_ref}` : ""}
                         </p>
                         {poinDiterimaPelanggan(
