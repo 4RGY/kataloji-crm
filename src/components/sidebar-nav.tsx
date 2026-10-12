@@ -230,17 +230,24 @@ export function SidebarNav() {
         aria-label="Menu"
       >
         {KELOMPOK_NAV.map((kelompok, iKelompok) => {
+          // Pencocokan dan Log Transaksi adalah pekerjaan harian yang
+          // menyentuh transaksi, jadi ikut Operasional. Staf, Impor, dan
+          // Rekap tetap di Sistem.
           const menu =
-            kelompok.judul === "Sistem"
+            kelompok.judul === "Operasional"
               ? [
                   ...kelompok.menu,
-                  ...(hakMenu.rekap ? [MENU_REKAP] : []),
-                  ...(hakMenu.staf ? [MENU_STAF] : []),
-                  ...(hakMenu.impor ? [MENU_IMPOR] : []),
                   ...(hakMenu.pencocokan ? [MENU_PENCOCOKAN] : []),
                   ...(hakMenu.logTransaksi ? [MENU_LOG_TRANSAKSI] : []),
                 ]
-              : kelompok.menu;
+              : kelompok.judul === "Sistem"
+                ? [
+                    ...kelompok.menu,
+                    ...(hakMenu.rekap ? [MENU_REKAP] : []),
+                    ...(hakMenu.staf ? [MENU_STAF] : []),
+                    ...(hakMenu.impor ? [MENU_IMPOR] : []),
+                  ]
+                : kelompok.menu;
 
           // Kelompok Pemasaran disembunyikan seluruhnya dari kasir, bukan
           // disisakan sebagai judul tanpa isi. Judul kosong justru
