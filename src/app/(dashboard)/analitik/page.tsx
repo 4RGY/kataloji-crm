@@ -20,6 +20,7 @@ import {
   ultahBulanIni,
   menuTerlaris,
   pelangganSetia,
+  nilaiBersih,
   AMBANG_MENU,
   type PelangganAnalitik,
   type TransaksiAnalitik,
@@ -27,7 +28,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { AksesDitolak } from "@/components/akses-ditolak";
 import { bolehLihatPemasaran } from "@/lib/staf";
-import { Cake, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { Cake, Download, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { rentangPeriode, saringPeriode, type Periode } from "@/lib/periode-laporan";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -164,6 +166,63 @@ export default function HalamanAnalitik() {
   const yakinMenu = periksaKeyakinan(menu.reduce((s, m) => s + m.qty, 0), AMBANG_MENU, "item terjual");
   const yakinSetia = periksaKeyakinan(setia.length, 3, "pelanggan yang datang");
 
+  const [periodeUnduh, setPeriodeUnduh] = useState<Periode>({ jenis: "bulan_ini" });
+  const [tanggalUnduh, setTanggalUnduh] = useState("");
+  const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
+
+  async function unduhLaporan() {
+    const kini = new Date();
+    const periodePakai: Periode =
+      periodeUnduh.jenis === "tanggal" ? { jenis: "tanggal", tanggal: tanggalUnduh } : periodeUnduh;
+    const rentang = rentangPeriode(periodePakai, kini);
+    if (!rentang) {
+      setGalatUnduh("Pilih tanggal dulu, format tanggal belum benar.");
+      return;
+    }
+    setGalatUnduh(null);
+
+    const dipilih = saringPeriode(transaksi, rentang);
+    if (dipilih.length === 0) {
+      setGalatUnduh(`Belum ada transaksi di ${rentang.label.toLowerCase()}.`);
+      return;
+    }
+
+    // Hitung ulang dari transaksi yang sudah disaring, supaya PDF hanya memuat periode itu.
+    const jamP = sebaranJam(dipilih, NILAI_POIN);
+    const hariP = sebaranHari(dipilih, NILAI_POIN);
+    const menuP = menuTerlaris(dipilih, 5);
+    const setiaP = pelangganSetia(dipilih, NILAI_POIN, 5);
+    const omzetP = dipilih.reduce((s, t) => s + nilaiBersih(t, NILAI_POIN), 0);
+
+    const { buatPdfLaporan } = await import("@/lib/laporan-pdf");
+    const blob = buatPdfLaporan({
+      periodeLabel: rentang.label,
+      dibuatPada: kini.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
+      jumlahTransaksi: dipilih.length,
+      omzet: omzetP,
+      jam: jamP,
+      hari: hariP.map((h) => ({ nama: h.nama, omzet: h.omzet })),
+      menu: menuP.map((m) => ({ nama: m.nama, qty: m.qty, persen: m.persen })),
+      totalItemTerjual: menuP.reduce((s, m) => s + m.qty, 0),
+      setia: setiaP.map((s) => ({
+        nama: namaPelanggan.get(s.pelangganId) ?? "Pelanggan",
+        kunjungan: s.kunjungan,
+        omzet: s.omzet,
+      })),
+      jumlahPelangganDatang: setiaP.length,
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    // Tanggal lokal, bukan toISOString: di WIB, 1 Okt 00.00 jadi 30 Sep di UTC.
+    const p = (n: number) => String(n).padStart(2, "0");
+    const d = rentang.dari;
+    a.download = `laporan-analitik-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
 
   const yakinPola = periksaKeyakinan(transaksi.length, AMBANG_POLA);
   const yakinHari = periksaKeyakinan(hariBeroperasi(transaksi), AMBANG_HARI, "hari jualan");
@@ -221,10 +280,47 @@ export default function HalamanAnalitik() {
               : `Baru ${transaksi.length} transaksi. Sebagian pola masih ditahan sampai datanya cukup.`}
           </p>
         </div>
-        <Button variant="outline" className="h-11 gap-2" onClick={muatUlang}>
-          <RefreshCw className="h-4 w-4" />
-          Muat ulang
-        </Button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label="Periode laporan"
+              className="h-11 rounded-md border border-border bg-background px-3 text-sm"
+              value={periodeUnduh.jenis}
+              onChange={(e) => {
+                setGalatUnduh(null);
+                setPeriodeUnduh({ jenis: e.target.value as Periode["jenis"] });
+              }}
+            >
+              <option value="hari_ini">Hari ini</option>
+              <option value="kemarin">Kemarin</option>
+              <option value="minggu_ini">Minggu ini</option>
+              <option value="bulan_ini">Bulan ini</option>
+              <option value="tanggal">Pertanggal</option>
+            </select>
+            {periodeUnduh.jenis === "tanggal" && (
+              <input
+                type="date"
+                aria-label="Pilih tanggal laporan"
+                className="h-11 rounded-md border border-border bg-background px-3 text-sm"
+                value={tanggalUnduh}
+                onChange={(e) => setTanggalUnduh(e.target.value)}
+              />
+            )}
+            <Button variant="outline" className="h-11 gap-2" onClick={() => void unduhLaporan()} disabled={transaksi.length === 0}>
+              <Download className="h-4 w-4" />
+              Unduh PDF
+            </Button>
+            <Button variant="outline" className="h-11 gap-2" onClick={muatUlang}>
+              <RefreshCw className="h-4 w-4" />
+              Muat ulang
+            </Button>
+          </div>
+          {galatUnduh && (
+            <p role="alert" className="text-sm text-muted-foreground">
+              {galatUnduh}
+            </p>
+          )}
+        </div>
       </header>
 
       {/* Baris atas dibuat timpang 2:1. Kiri memegang satu angka yang paling
