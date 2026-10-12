@@ -100,11 +100,33 @@ export async function POST(request: Request) {
 
   // ---------- Tahap tinjau (preview) ----------
   if (mode === "preview") {
+    // Hitung yang sudah ada di DB (hanya baca). Ini yang akan DILEWATI, bukan ditimpa.
+    const admin = getKlienAdmin();
+    const kodeP = hasil.pelanggan.map((p) => p.kode_majoo);
+    const refT = hasil.transaksi.map((t) => t.external_ref);
+    const { data: pelSudah } = kodeP.length
+      ? await admin.from("pelanggan").select("kode_majoo").in("kode_majoo", kodeP)
+      : { data: [] as { kode_majoo: string }[] };
+    const { data: trxSudah } = refT.length
+      ? await admin.from("transaksi").select("external_ref").in("external_ref", refT)
+      : { data: [] as { external_ref: string }[] };
+    const setPel = new Set((pelSudah ?? []).map((r) => r.kode_majoo));
+    const setTrx = new Set((trxSudah ?? []).map((r) => r.external_ref));
+    const pelBaru = hasil.pelanggan.filter((p) => !setPel.has(p.kode_majoo)).length;
+    const trxBaru = hasil.transaksi.filter((t) => !setTrx.has(t.external_ref)).length;
+
     return NextResponse.json({
       jumlah: {
         pelanggan: hasil.pelanggan.length,
         transaksi: hasil.transaksi.length,
         dilewati: hasil.dilewati.length,
+      },
+      // Rincian untuk popup: yang baru akan ditulis, dan yang sudah ada akan dilewati.
+      rincian: {
+        pelangganBaru: pelBaru,
+        pelangganSudahAda: hasil.pelanggan.length - pelBaru,
+        transaksiBaru: trxBaru,
+        transaksiSudahAda: hasil.transaksi.length - trxBaru,
       },
       pelanggan: hasil.pelanggan,
       transaksi: hasil.transaksi,

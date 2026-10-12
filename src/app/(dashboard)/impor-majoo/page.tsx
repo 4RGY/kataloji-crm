@@ -34,6 +34,12 @@ import { cn } from "@/lib/utils";
 
 interface HasilPreview {
   jumlah: { pelanggan: number; transaksi: number; dilewati: number };
+  rincian: {
+    pelangganBaru: number;
+    pelangganSudahAda: number;
+    transaksiBaru: number;
+    transaksiSudahAda: number;
+  };
   pelanggan: {
     kode_majoo: string;
     nama: string;
@@ -488,9 +494,17 @@ export default function ImporMajooPage() {
         judul="Terapkan impor?"
         keterangan={
           <>
-            {totalPreview} baris akan ditulis ke CRM. Baris yang sudah ada akan
-            diperbarui, bukan digandakan. Poin tetap dihitung CRM, bukan dari
-            Majoo.
+            <span className="block">
+              Baru ditulis: {preview?.rincian.pelangganBaru ?? 0} pelanggan,{" "}
+              {preview?.rincian.transaksiBaru ?? 0} transaksi.
+            </span>
+            <span className="block">
+              Sudah ada, dilewati (tidak ditimpa): {preview?.rincian.pelangganSudahAda ?? 0} pelanggan,{" "}
+              {preview?.rincian.transaksiSudahAda ?? 0} transaksi.
+            </span>
+            <span className="mt-2 block text-muted-foreground">
+              Data CRM yang sudah tercatat tidak diubah. Poin tetap dihitung CRM.
+            </span>
           </>
         }
         labelAksi="Terapkan"

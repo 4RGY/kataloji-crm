@@ -88,10 +88,11 @@ async function tulisPelanggan(
     alamat: b.alamat || null,
   };
 
+  // Sudah ada (dikenali lewat kode_majoo): JANGAN ditimpa. Data CRM yang
+  // sudah tercatat (nama, WA, tanggal lahir) dibiarkan. Dilewati, bukan update.
   const sudahAda = await cariPelangganByKode(admin, b.kode_majoo);
   if (sudahAda) {
-    const { error } = await admin.from("pelanggan").update(kolom).eq("id", sudahAda);
-    return error ? "gagal" : "diperbarui";
+    return "dilewati";
   }
 
   const { error } = await admin.from("pelanggan").insert(kolom);
@@ -154,31 +155,10 @@ async function tulisTransaksi(
 
   const terkait = await ambilTransaksiTerkait(admin, b.external_ref);
   if (terkait) {
-    const pembaruan: Record<string, unknown> = { ...kolom };
-    if (!terkait.pelanggan_id) {
-      // Belum tertaut: coba cocokkan sekarang (pelanggan mungkin baru
-      // masuk lewat impor Data Pelanggan setelah transaksi ini).
-      if (b.kode_pelanggan_majoo) {
-        const { data: p } = await admin
-          .from("pelanggan")
-          .select("id")
-          .eq("kode_majoo", b.kode_pelanggan_majoo)
-          .maybeSingle();
-        if (p) {
-          pembaruan.pelanggan_id = p.id;
-          // trg_transaksi_pencocokan menghitung poin + status terhubung.
-        } else {
-          pembaruan.status_pencocokan = "menunggu_pencocokan";
-        }
-      } else {
-        pembaruan.status_pencocokan = "anonim";
-      }
-    }
-    const { error } = await admin
-      .from("transaksi")
-      .update(pembaruan)
-      .eq("id", terkait.id);
-    return error ? "gagal" : "diperbarui";
+    // Sudah ada: JANGAN disentuh. Nilai, tautan pelanggan, dan poin yang sudah
+    // diterbitkan tidak berubah. Transaksi yang belum tertaut bisa ditautkan
+    // lewat halaman Pencocokan, bukan lewat impor.
+    return "dilewati";
   }
 
   const { error } = await admin.from("transaksi").insert(kolom);
