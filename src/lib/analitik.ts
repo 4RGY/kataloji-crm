@@ -80,8 +80,16 @@ function hariTransaksi(t: TransaksiAnalitik): Date | null {
   return hariLaporanAtauNull(t);
 }
 
-/** Nilai yang benar-benar masuk laci: total dikurangi diskon dan potongan poin. */
-export function nilaiBersih(t: TransaksiAnalitik, nilaiPoin: number): number {
+/**
+ * Nilai yang benar-benar masuk laci: total dikurangi diskon dan potongan poin.
+ *
+ * Dipakai bersama oleh Dashboard, Analitik, dan Laporan penjualan supaya
+ * ketiganya selalu menyebut angka yang sama.
+ */
+export function nilaiBersih(
+  t: { total: number; diskon: number | null; poin_dipakai: number | null },
+  nilaiPoin: number,
+): number {
   const total = Math.max(0, Number(t.total) || 0);
   const diskon = Math.max(0, Number(t.diskon) || 0);
   const potongan = Math.max(0, Number(t.poin_dipakai) || 0) * (Number(nilaiPoin) || 0);
