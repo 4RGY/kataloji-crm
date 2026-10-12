@@ -1,4 +1,5 @@
 // Read-only: struktur baris transaksi beneran.
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

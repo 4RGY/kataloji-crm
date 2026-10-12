@@ -1,5 +1,6 @@
 // Probe keadaan DB nyata sebelum uji UI end-to-end.
 // Tidak menulis apa pun, hanya membaca.
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

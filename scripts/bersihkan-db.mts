@@ -1,4 +1,5 @@
 // Script cepat: hapus semua pelanggan + transaksi lama, reset ledger
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

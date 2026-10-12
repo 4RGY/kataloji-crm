@@ -13,7 +13,9 @@ for baris in (akar / ".env.local").read_text(encoding="utf-8").splitlines():
         env[m.group(1)] = m.group(2).strip().strip('"')
 
 URL, ANON = env["NEXT_PUBLIC_SUPABASE_URL"], env["NEXT_PUBLIC_SUPABASE_ANON_KEY"]
-SANDI = "kataloji123"
+# Sandi dibaca dari .env.local (kunci SANDI_UJI), bukan ditulis di berkas ini,
+# supaya sandi tidak pernah ikut ter-commit ke git.
+SANDI = env["SANDI_UJI"]
 AKUN = {"kasir": "anggara@kataloji.id", "manager": "sinta@kataloji.id", "admin": "wahyu@kataloji.id"}
 
 

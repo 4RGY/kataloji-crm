@@ -1,4 +1,5 @@
 // Read-only: daftar kolom tabel transaksi (live DB).
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

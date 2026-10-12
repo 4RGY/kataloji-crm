@@ -1,4 +1,5 @@
 // Bersih-bersih data test yang tersisa
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

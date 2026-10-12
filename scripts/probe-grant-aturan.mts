@@ -9,7 +9,7 @@ import fs from "node:fs";
 
 const ENV = fs.readFileSync(".env.local", "utf8")
   .split("\n")
-  .filter((l) => l.startsWith("NEXT_PUBLIC_SUPABASE_") || l.startsWith("SUPABASE_SERVICE_ROLE_KEY"))
+  .filter((l) => l.startsWith("NEXT_PUBLIC_SUPABASE_") || l.startsWith("SUPABASE_SERVICE_ROLE_KEY") || l.startsWith("SANDI_UJI"))
   .map((l) => l.split("="))
   .reduce((acc, [k, v]) => {
     acc[k.trim()] = (v ?? "").trim();
@@ -19,6 +19,9 @@ const ENV = fs.readFileSync(".env.local", "utf8")
 const SUPABASE_URL = ENV["NEXT_PUBLIC_SUPABASE_URL"];
 const ANON_KEY = ENV["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
 const SERVICE_KEY = ENV["SUPABASE_SERVICE_ROLE_KEY"];
+// Sandi akun uji dibaca dari .env.local, bukan ditulis di berkas ini, supaya
+// sandi tidak pernah ikut ter-commit ke git.
+const SANDI_UJI = ENV["SANDI_UJI"];
 if (!SUPABASE_URL || !ANON_KEY || !SERVICE_KEY) {
   console.log("GAGAL: env belum lengkap. Jalankan dengan .env.local ter-load.");
   process.exit(1);
@@ -29,7 +32,7 @@ async function main() {
   const login = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "wahyu@kataloji.id", password: "kataloji123" }),
+    body: JSON.stringify({ email: "wahyu@kataloji.id", password: SANDI_UJI }),
   });
   if (!login.ok) throw new Error(`login admin gagal: HTTP ${login.status}`);
   const { access_token: jwt } = (await login.json()) as { access_token: string };

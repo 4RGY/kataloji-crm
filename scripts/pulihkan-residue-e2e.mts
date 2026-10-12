@@ -3,6 +3,7 @@
 // CS/23/261002/*, ledger yang menunjuk mereka. Data user (created 10-03)
 // TIDAK DISENTUH. Jalan dua fase: --dry-run (cetak yang akan dihapus,
 // tidak menghapus) lalu eksekusi.
+import "./muat-env.mts";
 const { getKlienAdmin } = await import("../src/lib/supabase/admin.ts");
 const admin = getKlienAdmin();
 

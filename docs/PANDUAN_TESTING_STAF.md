@@ -30,7 +30,12 @@ Tunggu sampai muncul `Ready in ...`. Buka `http://localhost:3000`.
 
 ### 0.2 Akun yang dipakai
 
-Ketiga akun memakai sandi yang sama: `kataloji123`
+Ketiga akun memakai sandi yang sama. Sandinya **tidak ditulis di dokumen ini**;
+nilainya ada di `.env.local` pada kunci `SANDI_UJI`, berkas yang tidak ikut
+ter-commit ke git.
+
+Minta sandi ke penanggung jawab proyek, atau ganti sendiri lewat dashboard
+Supabase > Authentication > Users kalau lupa.
 
 | Peran | Email | Nama tampil |
 |---|---|---|

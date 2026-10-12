@@ -1,4 +1,5 @@
 // Final verification: test full workflow with dummy data
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

@@ -58,7 +58,7 @@ peran yang tembus, dan tidak ada data yang bocor ke peran tak berhak.
 | Browser uji | Chromium, tiga lebar: **1262 px** (laptop), **834 px** (iPad tegak), **390 px** (telepon) |
 | Basis data uji | **Basis data yang sama dengan data asli** (tidak ada staging terpisah) |
 | Akun uji | `wahyu@kataloji.id` (Admin), `sinta@kataloji.id` (Manager), `anggara@kataloji.id` (Kasir) |
-| Sandi akun uji | `kataloji123` |
+| Sandi akun uji | Dibaca dari `.env.local` (kunci `SANDI_UJI`), tidak ditulis di dokumen ini |
 | Commit yang diuji | `716f50d` (7 Oktober 2026), pohon kerja bersih |
 
 **Catatan penting:** tidak ada environment staging, jadi pengujian ini
@@ -622,7 +622,7 @@ for f in scripts/uji-*.mts; do npx tsx --env-file=.env.local "$f"; done
 #    Harus <= 390 pada viewport 390. Saat ini 429 (BUG-07).
 
 # 4. Akun uji: wahyu@kataloji.id / sinta@kataloji.id / anggara@kataloji.id
-#    Sandi semuanya: kataloji123
+#    Sandi semuanya: ada di .env.local (kunci SANDI_UJI), tidak ditulis di sini
 ```
 
 **Peringatan:** langkah 2 dan 3 menyentuh basis data produksi. Periksa

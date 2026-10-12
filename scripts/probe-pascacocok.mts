@@ -1,4 +1,5 @@
 // Read-only: ledger Budi + pelanggan, pasca pencocokan KA099.
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

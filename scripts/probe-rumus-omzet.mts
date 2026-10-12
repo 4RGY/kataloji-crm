@@ -1,4 +1,5 @@
 // Read-only: periksa hubungan diskon vs poin_dipakai per transaksi.
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

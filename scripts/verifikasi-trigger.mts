@@ -1,4 +1,5 @@
 // Verifikasi: cek trigger trg_pelanggan_cocokkan_menunggu
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

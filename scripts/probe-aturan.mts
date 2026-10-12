@@ -1,4 +1,5 @@
 // Lihat isi + struktur tabel aturan_poin (read-only).
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();

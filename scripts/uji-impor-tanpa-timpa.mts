@@ -2,6 +2,7 @@
 // Membuktikan: (1) baru dibuat, (2) impor ulang TIDAK menimpa nilai,
 // (3) impor ulang TIDAK menggandakan. Hanya baris uji yang dibuat skrip ini
 // yang dihapus di akhir, dilacak lewat ID.
+import "./muat-env.mts";
 const { getKlienAdmin } = await import("../src/lib/supabase/admin.ts");
 const { parseMajoo } = await import("../src/lib/impor-majoo.ts");
 const { tulisImporMajoo } = await import("../src/lib/tulis-impor-majoo.ts");

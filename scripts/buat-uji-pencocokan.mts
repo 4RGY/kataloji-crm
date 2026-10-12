@@ -2,6 +2,7 @@
 // - 1 baris kode pelanggan BELUM ada di CRM (KA099) -> transaksi harus masuk
 //   status_pencocokan 'menunggu_pencocokan' (poin ditahan)
 // - 1 baris walk-in tanpa kode -> 'anonim'
+import "./muat-env.mts";
 import XLSX from "xlsx";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
