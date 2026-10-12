@@ -12,7 +12,6 @@ import {
 import {
   AlertTriangle,
   ArrowUpRight,
-  Database,
   ShieldCheck,
   UserCog,
 } from "lucide-react";
@@ -63,15 +62,12 @@ export default function Halaman() {
 
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
-      <header className="mb-8">
+      <header className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight">Pengaturan</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Aturan yang sedang berlaku di Kataloji, dan di mana masing-masing
-          bisa diubah.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Aturan poin yang berlaku.</p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-6">
           {/* Pemeriksaan pembukuan. Ditaruh di atas penjelasan aturan karena
               ini satu satunya bagian halaman yang bisa menuntut tindakan. */}
@@ -129,29 +125,6 @@ export default function Halaman() {
               tabel aturan_poin belum di-migrasi (lihat PanelAturanPoin). */}
           <PanelAturanPoin peran={peran} />
 
-          {/* Tetap dijelaskan kenapa hitungannya ada di database, supaya
-              panel yang bisa diubah ini tidak terbaca sebagai "angka bebas". */}
-          <section className="rounded-xl border border-border bg-muted/30 px-5 py-4">
-            <h2 className="flex items-center gap-2 text-sm font-bold">
-              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              Kenapa aturan ini dihitung database
-            </h2>
-            <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted-foreground">
-              <p>
-                Setiap transaksi memakai aturan yang berlaku pada tanggal
-                transaksinya. Aturan baru tidak mengubah poin yang sudah
-                terbit di masa lalu, dan transaksi yang belum tertaut
-                pelanggan tidak menerbitkan poin sampai dicocokkan.
-              </p>
-              <p>
-                Karena perhitungannya ada di database, perubahan aturan selalu
-                tercatat siapa dan kapan (kolom dibuat_oleh di tabel
-                aturan_poin). Itu yang membuat riwayat poin tetap bisa
-                dipertanggungjawabkan.
-              </p>
-            </div>
-          </section>
-
           {/* Kelola staf: menautkan, bukan menyalin */}
           <section className="rounded-xl border border-border bg-card px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -195,22 +168,6 @@ export default function Halaman() {
             </dl>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              <Database className="h-3.5 w-3.5" />
-              Yang belum ada
-            </h2>
-            <ul className="space-y-2.5 text-sm leading-relaxed text-muted-foreground">
-              <li>
-                Rekonsiliasi dengan majoo. Permintaan akses API ditolak, jadi
-                pencocokan omzet masih manual.
-              </li>
-              <li>
-                Profil kedai seperti jam buka. Belum ada yang membacanya, jadi
-                menyimpannya sekarang hanya menambah kolom yang tidak dipakai.
-              </li>
-            </ul>
-          </section>
         </aside>
       </div>
     </div>
