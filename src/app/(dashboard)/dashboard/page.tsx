@@ -17,9 +17,19 @@ import {
   sebaranJam,
   type BarisLedger,
 } from "@/lib/dashboard-tampilan";
-import { RefreshCw, ShieldAlert, Star, TrendingUp } from "lucide-react";
+import { RefreshCw, ShieldAlert, Star } from "lucide-react";
 import { LoaderBrand } from "@/components/loader-brand";
 import { Button } from "@/components/ui/button";
+import {
+  menuTeratas,
+  komposisiMetode,
+  trenOmzet,
+} from "@/lib/dashboard-grafik";
+import {
+  GrafikTrenOmzet,
+  DonutMetode,
+  BatangMenuHorizontal,
+} from "@/components/grafik-dashboard";
 
 type RangeKey = "today" | "yesterday" | "3d" | "7d" | "30d" | "all" | "custom";
 
@@ -59,6 +69,10 @@ interface Transaksi {
   /** Tanggal transaksi di Majoo (H+1: kemarin), null untuk transaksi manual. */
   tanggal_majoo: string | null;
   pelanggan_id: string | null;
+  /** Metode bayar; null untuk transaksi lama yang belum mencatatnya. */
+  metode_bayar: string | null;
+  /** Rincian menu `{nama, qty}`; hanya ada pada transaksi yang mencatatnya. */
+  items: unknown;
 }
 
 interface PelangganRingkas {
@@ -126,7 +140,7 @@ export default function DashboardPage() {
       ambilSemua<Transaksi>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id")
+          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id, metode_bayar, items")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -300,10 +314,36 @@ export default function DashboardPage() {
     }));
   }, [tersaring]);
 
-  const maksSeri = useMemo(
-    () => seri.reduce((m, s) => Math.max(m, s.nilai), 0),
-    [seri],
-  );
+  // ---- menu teratas, komposisi metode bayar, dan tren omzet ----
+  // Ketiganya dihitung dari data yang sudah diambil untuk grafik omzet,
+  // jadi tidak ada permintaan jaringan tambahan.
+  const menu = useMemo(() => menuTeratas(tersaring), [tersaring]);
+
+  const metode = useMemo(() => komposisiMetode(tersaring), [tersaring]);
+
+  // Titik tren memakai nilai NETTO yang sama dengan kartu omzet
+  // (total - diskon - nilai poin dipakai). Kalau memakai total mentah,
+  // angka puncak di grafik akan berbeda dari kartu di atasnya.
+  const titikTren = useMemo(() => {
+    if (seri.length === 0) return [];
+    const baris = tersaring
+      .map((t) => {
+        const k = kunciHariLaporanAtauNull(t);
+        if (k === null) return null;
+        return {
+          hari: k,
+          nilai: Math.max(
+            0,
+            t.total - (t.diskon ?? 0) - (t.poin_dipakai ?? 0) * NILAI_POIN,
+          ),
+        };
+      })
+      .filter((b): b is { hari: string; nilai: number } => b !== null);
+    // Rentang diisi penuh dari hari pertama sampai terakhir pada periode,
+    // bukan hanya hari yang ada transaksi, supaya jeda terlihat di garis.
+    const hariUnik = [...new Set(baris.map((b) => b.hari))].sort();
+    return trenOmzet(baris, hariUnik[0], hariUnik[hariUnik.length - 1]);
+  }, [seri, tersaring]);
 
   // Sebaran transaksi per jam pada periode terpilih. Dihitung dari data yang
   // sudah diambil untuk grafik omzet, jadi tidak ada permintaan tambahan.
@@ -577,7 +617,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Grafik omzet harian
+                    Tren omzet harian
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground capitalize">
                     {period}
@@ -586,83 +626,13 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4 text-xs">
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
-                    Omzet harian
+                    Omzet harian bersih
                   </span>
-                  {maksSeri > 0 && (
-                    <span className="flex items-center gap-1.5 font-semibold tabular-nums">
-                      <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                      puncak {rupiah.format(maksSeri)}
-                    </span>
-                  )}
                 </div>
               </div>
 
               <div className="p-6">
-                {seri.length === 0 ? (
-                  <div className="flex h-52 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Grafik terisi otomatis setelah transaksi tercatat
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Sumbu horizontal tanggal, sumbu vertikal omzet harian
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Batang dibatasi lebarnya, bukan flex-1 murni.
-                        Dengan flex-1 saja, satu hari data membuat batangnya
-                        melebar mengikuti kartu (terukur 892px) sehingga tidak
-                        lagi terbaca sebagai batang, melainkan sebagai blok
-                        warna yang tampak seperti kegagalan memuat grafik.
-                        basis-11 + max-w-[72px] menjaga bentuk batang tetap
-                        batang, berapa pun jumlah harinya. */}
-                    <div className="flex h-52 items-end gap-1.5">
-                      {seri.map((s) => {
-                        const tinggi = maksSeri > 0 ? (s.nilai / maksSeri) * 100 : 0;
-                        const d = new Date(s.hari + "T00:00:00");
-                        const label = new Intl.DateTimeFormat("id-ID", {
-                          day: "numeric",
-                          month: "short",
-                        }).format(d);
-                        return (
-                          <div
-                            key={s.hari}
-                            className="group relative flex h-full min-w-0 flex-1 basis-11 flex-col items-center justify-end sm:max-w-[72px]"
-                          >
-                            {/* tooltip sederhana saat disorot */}
-                            <span className="pointer-events-none absolute -top-1 z-10 hidden -translate-y-full whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[11px] font-semibold tabular-nums text-popover-foreground shadow-md group-hover:block">
-                              {label} · {rupiah.format(s.nilai)}
-                            </span>
-                            <div
-                              className="w-full rounded-t-sm bg-primary/85 transition-colors group-hover:bg-primary"
-                              style={{ height: `${Math.max(tinggi, 1.5)}%` }}
-                            />
-                            <span className="mt-2 max-w-full truncate text-[10px] text-muted-foreground">
-                              {label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {/* Sisa ruang diisi penanda bergaris yang menyatakan
-                          dirinya belum berisi, bukan dibiarkan kosong atau
-                          diisi batang melar yang membohongi pembaca. */}
-                      {seri.length < 7 && (
-                        <div
-                          aria-hidden
-                          className="flex h-full flex-[2] items-center justify-center rounded-lg border border-dashed border-border/70"
-                        >
-                          <p className="px-3 text-center text-[11px] leading-snug text-muted-foreground/70">
-                            Hari berikutnya akan terisi di sini
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-                      Menampilkan {seri.length} hari terakhir yang ada transaksi.
-                      Omzet dihitung setelah diskon promo dan potongan poin.
-                    </p>
-                  </>
-                )}
+                <GrafikTrenOmzet titik={titikTren} />
               </div>
             </div>
           </section>
@@ -790,7 +760,48 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          {/* Ringkas tambahan */}
+          {/* Menu teratas + metode bayar. Dua hal yang paling sering
+              ditanyakan pemilik: apa yang paling laku, dan bagaimana
+              pelanggan membayar. */}
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+            <section aria-label="Menu teratas">
+              <div className="h-full rounded-xl border border-border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Menu paling sering dipesan
+                  </p>
+                  <p className="text-xs text-muted-foreground">{period}</p>
+                </div>
+                <div className="p-6">
+                  <BatangMenuHorizontal
+                    daftar={menu.daftar}
+                    totalPorsi={menu.totalPorsi}
+                    cukupData={menu.cukupData}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section aria-label="Metode bayar">
+              <div className="h-full rounded-xl border border-border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Metode bayar
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {tersaring.length} transaksi
+                  </p>
+                </div>
+                <div className="p-6">
+                  <DonutMetode irisan={metode} />
+                  <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                    Dipakai untuk menimbang biaya layanan penyedia pembayaran
+                    terhadap uang tunai.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
           {adaData && (
             <div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border bg-border/60 sm:grid-cols-2">
               <div className="bg-card px-6 py-5">
