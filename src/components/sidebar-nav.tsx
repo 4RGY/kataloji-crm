@@ -223,9 +223,10 @@ export function SidebarNav() {
 
       <div className="mx-4 h-px bg-sidebar-border lg:mx-5" />
 
-      {/* Nav utama, dikelompokkan */}
+      {/* Nav utama. Rapat: tanpa judul kelompok, jarak antar item kecil.
+          Tujuannya muat tanpa scroll di layar laptop biasa. */}
       <nav
-        className="flex-1 space-y-4 overflow-y-auto px-3 py-4 lg:px-4"
+        className="scrollbar-tersembunyi flex-1 space-y-2 overflow-y-auto px-3 py-3 lg:px-3"
         aria-label="Menu"
       >
         {KELOMPOK_NAV.map((kelompok, iKelompok) => {
@@ -249,16 +250,9 @@ export function SidebarNav() {
 
           return (
             <div key={kelompok.judul ?? "utama"}>
-              {/* Judul kelompok hanya tampil saat sidebar melebar. Saat
-                  menyempit jadi ikon, batang pemisah di bawah ini yang
-                  menggantikan perannya supaya kelompoknya tetap terbaca. */}
-              {kelompok.judul && (
-                <p className="hidden px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/40 lg:block">
-                  {kelompok.judul}
-                </p>
-              )}
+              {/* Judul kelompok dihapus (rapat). Pemisah tipis antar kelompok saja. */}
               {iKelompok > 0 && (
-                <div className="mx-3 mb-2 h-px bg-sidebar-border lg:hidden" />
+                <div className="mx-2 my-1 h-px bg-sidebar-border" />
               )}
 
               <div className="space-y-1">
@@ -280,10 +274,7 @@ export function SidebarNav() {
                       href={item.href}
                       title={item.label}
                       className={cn(
-                        // min-h-11: menu ini yang paling sering diketuk kasir
-                        // untuk pindah halaman. Dengan py-2 saja tingginya
-                        // hanya 36px karena ikut ukuran huruf text-sm.
-                        "group relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                        "group relative flex h-8 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
                         active
                           ? "text-sidebar-accent-foreground"
                           : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",

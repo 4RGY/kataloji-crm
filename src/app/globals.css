@@ -146,3 +146,11 @@
     pointer-events: none;
   }
 }
+
+/* Scroll tetap bisa, tapi scrollbar tidak tampil (navbar rapi). */
+.scrollbar-tersembunyi {
+  scrollbar-width: none;
+}
+.scrollbar-tersembunyi::-webkit-scrollbar {
+  display: none;
+}
