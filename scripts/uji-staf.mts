@@ -251,13 +251,23 @@ sama("inisial dengan titik", inisial("sinta.dewi"), "SD");
 // untuk halaman yang boleh dibuka membuat fiturnya seperti tidak ada.
 // Syarat menu dan syarat halaman sekarang memakai fungsi yang sama.
 
-sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, staf: true, impor: true, pencocokan: true, logTransaksi: true, pemasaran: true });
-sama("manajer melihat rekap dan pemasaran tapi bukan kelola staf/impor", menuUntukPeran("manager"), { rekap: true, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: true });
-sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+// Catatan 12 Okt 2026: kunci "penjualan" (Laporan penjualan, omzet) masuk pada
+// commit 245bf1a tapi harness ini belum ikut diperbarui, jadi enam asersi di
+// bawah gagal sejak saat itu. Pelajaran: menambah kunci MenuKhusus WAJIB
+// diikuti kunci yang sama di sini.
+sama("admin melihat semua menu", menuUntukPeran("admin"), { rekap: true, penjualan: true, staf: true, impor: true, pencocokan: true, logTransaksi: true, pemasaran: true });
+sama("manajer melihat rekap, penjualan, dan pemasaran tapi bukan kelola staf/impor", menuUntukPeran("manager"), { rekap: true, penjualan: true, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: true });
+sama("kasir tidak melihat satu pun menu khusus", menuUntukPeran("kasir"), { rekap: false, penjualan: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
 
-sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
-sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
-sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+sama("peran kosong tidak diberi menu khusus", menuUntukPeran(null), { rekap: false, penjualan: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+sama("peran tak dikenal tidak diberi menu khusus", menuUntukPeran("tukang_parkir"), { rekap: false, penjualan: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+sama("peran undefined aman", menuUntukPeran(undefined), { rekap: false, penjualan: false, staf: false, impor: false, pencocokan: false, logTransaksi: false, pemasaran: false });
+
+// Laporan penjualan berisi omzet: kasir tidak boleh, sama seperti rekap.
+// Halaman /laporan-penjualan memakai pagar yang sama dengan kunci ini.
+sama("hanya admin dan manajer yang boleh lihat laporan penjualan",
+  ["admin", "manager", "kasir", null].map((r) => menuUntukPeran(r).penjualan),
+  [true, true, false, false]);
 
 // Kelola akun staf adalah satu-satunya yang benar-benar khusus admin.
 sama("hanya admin yang boleh kelola staf",
