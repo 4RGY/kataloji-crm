@@ -42,13 +42,35 @@ const ringkas = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 1,
 });
 
-/** Panel yang isinya ditahan sampai datanya cukup. */
-function Tertahan({ pesan }: { pesan: string }) {
+/**
+ * Panel yang isinya ditahan sampai datanya cukup.
+ *
+ * Sengaja ringkas (bukan kotak tinggi berisi satu kalimat): bagian yang
+ * ditahan bisa beberapa sekaligus, dan kotak setinggi itu membuat halaman
+ * penuh ruang kosong yang tidak memberi informasi apa pun.
+ */
+function Tertahan({ pesan, progres }: { pesan: string; progres?: number }) {
   return (
-    <div className="flex min-h-32 items-center justify-center rounded-lg border border-dashed border-border px-5 py-8">
-      <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
-        {pesan}
-      </p>
+    <div className="rounded-lg border border-dashed border-border px-4 py-3.5">
+      <div className="flex items-start gap-2.5">
+        <ShieldAlert
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+        <p className="text-xs leading-relaxed text-muted-foreground">{pesan}</p>
+      </div>
+      {progres !== undefined && (
+        <div
+          className="mt-2.5 h-1 overflow-hidden rounded-full bg-muted"
+          role="img"
+          aria-label={`${Math.round(progres)} persen menuju ambang`}
+        >
+          <div
+            className="h-full rounded-full bg-primary/60"
+            style={{ width: `${Math.max(2, Math.min(100, progres))}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -89,7 +111,7 @@ export default function HalamanAnalitik() {
       ambilSemua<TransaksiAnalitik>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("total, diskon, poin_dipakai, pelanggan_id, created_at, tanggal_majoo, items")
+          .select("total, diskon, poin_dipakai, pelanggan_id, created_at, tanggal_majoo, items, source")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -152,7 +174,11 @@ export default function HalamanAnalitik() {
     setMemuat(false);
   }
 
-  const jam = useMemo(() => sebaranJam(transaksi, NILAI_POIN), [transaksi]);
+  // sebaranJam mengembalikan {baris, dihitung, dilewati}: hanya transaksi
+  // yang jam kedatangannya diketahui yang dihitung. Transaksi impor Majoo
+  // hanya punya tanggal, jadi jamnya bukan jam ramai dan sengaja dilewati.
+  const jamHasil = useMemo(() => sebaranJam(transaksi, NILAI_POIN), [transaksi]);
+  const jam = jamHasil.baris;
   const hari = useMemo(() => sebaranHari(transaksi, NILAI_POIN), [transaksi]);
   const belanja = useMemo(() => sebaranBelanja(transaksi, NILAI_POIN), [transaksi]);
   const pel = useMemo(() => ringkasPelanggan(transaksi, NILAI_POIN), [transaksi]);
@@ -188,7 +214,7 @@ export default function HalamanAnalitik() {
     }
 
     // Hitung ulang dari transaksi yang sudah disaring, supaya PDF hanya memuat periode itu.
-    const jamP = sebaranJam(dipilih, NILAI_POIN);
+    const jamP = sebaranJam(dipilih, NILAI_POIN).baris;
     const hariP = sebaranHari(dipilih, NILAI_POIN);
     const menuP = menuTerlaris(dipilih, 5);
     const setiaP = pelangganSetia(dipilih, NILAI_POIN, 5);
@@ -383,29 +409,76 @@ export default function HalamanAnalitik() {
 
         <div className="flex flex-col gap-4">
           <section
-            aria-label="Jam teramai"
+            aria-label="Besar belanja"
             className="flex-1 rounded-xl border border-border bg-card p-6"
           >
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Jam teramai
+              Besar belanja
             </p>
-            {puncak ? (
-              <>
-                <p className="mt-3 text-3xl font-extrabold tabular-nums">
-                  {labelJam(puncak.jam)}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {puncak.jumlah} transaksi, {ringkas.format(puncak.omzet)}
-                </p>
-              </>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {transaksi.length} struk
+            </p>
+            {belanjaTertinggi === 0 ? (
+              <div className="mt-4">
+                <Tertahan pesan="Belum ada transaksi untuk dikelompokkan." />
+              </div>
             ) : (
               <>
-                <p className="mt-3 text-3xl font-extrabold text-muted-foreground">
-                  belum ada
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Belum ada satu jam yang menonjol dari yang lain.
-                </p>
+                {/* Satu batang bertumpuk: lebih ringkas daripada daftar, dan
+                    proporsinya langsung terbaca tanpa membaca angka. */}
+                <div
+                  className="mt-4 flex h-6 overflow-hidden rounded-md"
+                  role="img"
+                  aria-label={belanja
+                    .map((k) => `${k.label} ${k.jumlah} struk`)
+                    .join(", ")}
+                >
+                  {belanja.map((k, i) => (
+                    <div
+                      key={k.label}
+                      className={
+                        "h-full " +
+                        [
+                          "bg-primary",
+                          "bg-primary/65",
+                          "bg-primary/40",
+                          "bg-primary/22",
+                          "bg-foreground/18",
+                        ][i % 5]
+                      }
+                      style={{ width: `${(k.jumlah / transaksi.length) * 100}%` }}
+                      title={`${k.label}: ${k.jumlah} struk`}
+                    />
+                  ))}
+                </div>
+                <ul className="mt-3 space-y-1.5">
+                  {belanja.map((k, i) => (
+                    <li key={k.label} className="flex items-center gap-2 text-xs">
+                      <span
+                        aria-hidden
+                        className={
+                          "h-2 w-2 shrink-0 rounded-sm " +
+                          [
+                            "bg-primary",
+                            "bg-primary/65",
+                            "bg-primary/40",
+                            "bg-primary/22",
+                            "bg-foreground/18",
+                          ][i % 5]
+                        }
+                      />
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                        {k.label}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {Math.round((k.jumlah / transaksi.length) * 100)}%
+                      </span>
+                      <span className="w-5 shrink-0 text-right font-semibold tabular-nums">
+                        {k.jumlah}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </>
             )}
           </section>
@@ -450,7 +523,7 @@ export default function HalamanAnalitik() {
 
       {/* Menu terlaris dan pelanggan paling sering datang. Keduanya ditahan
           sampai datanya cukup, sama seperti bagian lain halaman ini. */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
         <section
           aria-label="Menu terlaris"
           className="rounded-xl border border-border bg-card p-6"
@@ -461,14 +534,17 @@ export default function HalamanAnalitik() {
           <p className="mt-1 text-xs text-muted-foreground">
             {yakinMenu.cukup
               ? `Dari ${yakinMenu.jumlah} porsi terjual, diurutkan jumlah porsi`
-              : yakinMenu.pesan}
+              : "Diurutkan setelah datanya cukup, supaya tidak menyimpulkan dari sedikit struk."}
           </p>
           {!yakinMenu.cukup || menu.length === 0 ? (
-            <div className="mt-5">
-              <Tertahan pesan="Ranking menu muncul setelah cukup item tercatat, supaya tidak menyimpulkan dari sedikit data." />
+            <div className="mt-4">
+              <Tertahan
+                pesan={`Baru ${yakinMenu.jumlah} dari ${yakinMenu.ambang} porsi terjual.`}
+                progres={(yakinMenu.jumlah / yakinMenu.ambang) * 100}
+              />
             </div>
           ) : (
-            <ol className="mt-5 space-y-3">
+            <ol className="mt-4 space-y-2.5">
               {menu.map((m, i) => (
                 <li key={m.nama} className="space-y-1.5">
                   <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -503,11 +579,14 @@ export default function HalamanAnalitik() {
             Dihitung per hari kunjungan, sejalan dengan aturan poin per kunjungan.
           </p>
           {!yakinSetia.cukup ? (
-            <div className="mt-5">
-              <Tertahan pesan={yakinSetia.pesan} />
+            <div className="mt-4">
+              <Tertahan
+                pesan={yakinSetia.pesan}
+                progres={(yakinSetia.jumlah / yakinSetia.ambang) * 100}
+              />
             </div>
           ) : (
-            <ol className="mt-5 space-y-3">
+            <ol className="mt-4 space-y-2.5">
               {setia.map((s, i) => (
                 <li
                   key={s.pelangganId}
@@ -538,15 +617,26 @@ export default function HalamanAnalitik() {
             Sebaran per jam
           </p>
           <p className="text-xs text-muted-foreground">
-            {yakinPola.cukup
-              ? "Dipakai menyusun jadwal staf dan memilih jam promo"
-              : yakinPola.pesan}
+            {puncak
+              ? `Teramai ${labelJam(puncak.jam)}, ${puncak.jumlah} transaksi`
+              : "Belum ada jam yang menonjol"}
           </p>
         </div>
 
+        {/* Keterbukaan soal data yang tidak ikut dihitung. Tanpa kalimat ini,
+            grafik yang tipis terlihat seperti kedai yang sepi, padahal
+            transaksinya ada dan hanya jamnya yang tidak tercatat. */}
+        {jamHasil.dilewati > 0 && (
+          <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            {jamHasil.dihitung === 0
+              ? `Belum ada transaksi yang jam kedatangannya tercatat. ${jamHasil.dilewati} transaksi hanya punya tanggal (impor laporan), jadi jamnya tidak ikut dihitung.`
+              : `${jamHasil.dilewati} dari ${jamHasil.dilewati + jamHasil.dihitung} transaksi tidak ikut dihitung karena hanya punya tanggal (impor laporan), bukan jam kedatangan.`}
+          </p>
+        )}
+
         {jamTertinggi === 0 ? (
-          <div className="mt-5">
-            <Tertahan pesan="Belum ada transaksi yang tercatat pada jam buka." />
+          <div className="mt-4">
+            <Tertahan pesan="Belum ada transaksi yang jam kedatangannya tercatat." />
           </div>
         ) : (
           <div className="mt-6 flex items-end gap-1.5">
@@ -584,7 +674,7 @@ export default function HalamanAnalitik() {
         )}
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4">
         <section
           aria-label="Sebaran hari"
           className="rounded-xl border border-border bg-card p-6"
@@ -602,8 +692,11 @@ export default function HalamanAnalitik() {
               hari data, "Senin paling ramai" hanya berarti Senin kebetulan
               yang tercatat. */}
           {!yakinHari.cukup ? (
-            <div className="mt-5">
-              <Tertahan pesan={yakinHari.pesan} />
+            <div className="mt-4">
+              <Tertahan
+                pesan={yakinHari.pesan}
+                progres={(yakinHari.jumlah / yakinHari.ambang) * 100}
+              />
             </div>
           ) : (
             <ul className="mt-5 space-y-2.5">
@@ -621,45 +714,6 @@ export default function HalamanAnalitik() {
                   <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                     {h.omzet > 0 ? ringkas.format(h.omzet) : "0"}
                   </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section
-          aria-label="Sebaran belanja"
-          className="rounded-xl border border-border bg-card p-6"
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Besar belanja
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {transaksi.length} struk
-            </p>
-          </div>
-
-          {belanjaTertinggi === 0 ? (
-            <div className="mt-5">
-              <Tertahan pesan="Belum ada transaksi untuk dikelompokkan." />
-            </div>
-          ) : (
-            <ul className="mt-5 space-y-3">
-              {belanja.map((k) => (
-                <li key={k.label}>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-sm font-semibold">{k.label}</span>
-                    <span className="text-sm tabular-nums text-muted-foreground">
-                      {k.jumlah} struk
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${tinggiBatang(k.jumlah, belanjaTertinggi)}%` }}
-                    />
-                  </div>
                 </li>
               ))}
             </ul>

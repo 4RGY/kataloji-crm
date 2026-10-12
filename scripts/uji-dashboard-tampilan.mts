@@ -16,6 +16,7 @@ import {
   JAM_SELESAI,
   JUMLAH_JAM,
   sebaranJam,
+  jamKedatanganDiketahui,
   jamLokal,
   jamTeramai,
   ringkasJamTeramai,
@@ -70,12 +71,15 @@ benar(
 sama("jamLokal waktu tidak sah jadi 0", jamLokal("bukan-tanggal"), 0);
 
 // ======================= sebaranJam: sumbu utuh =======================
+// Semua transaksi di sini memakai source yang JAM-nya diketahui (kasir
+// mencatat saat pelanggan membayar). Transaksi impor laporan dilewati dan
+// diuji terpisah di bagian bawah.
 const tigaJam18 = [
-  { created_at: padaJam(14, 18, 10) },
-  { created_at: padaJam(14, 18, 40) },
-  { created_at: padaJam(14, 18, 55) },
+  { created_at: padaJam(14, 18, 10), source: "crm_manual" },
+  { created_at: padaJam(14, 18, 40), source: "crm_manual" },
+  { created_at: padaJam(14, 18, 55), source: "majoo_parallel" },
 ];
-const satuJam19 = [{ created_at: padaJam(14, 19, 14) }];
+const satuJam19 = [{ created_at: padaJam(14, 19, 14), source: "crm_manual" }];
 const data = [...tigaJam18, ...satuJam19];
 
 const batang = sebaranJam(data);
@@ -99,8 +103,8 @@ sama("porsi jam 19 sepertiga", Number(jam19?.porsi.toFixed(4)), Number((1 / 3).t
 
 // Jam di luar rentang operasional tidak boleh hilang
 const luarJam = sebaranJam([
-  { created_at: padaJam(14, 3, 0) },
-  { created_at: padaJam(14, 23, 0) },
+  { created_at: padaJam(14, 3, 0), source: "crm_manual" },
+  { created_at: padaJam(14, 23, 0), source: "crm_manual" },
 ]);
 sama("jam di bawah rentang dilekatkan ke jam mulai", luarJam[0].jumlah, 1);
 sama("jam di atas rentang dilekatkan ke jam selesai", luarJam[luarJam.length - 1].jumlah, 1);
@@ -108,8 +112,8 @@ sama("total tidak ada yang hilang", luarJam.reduce((s, b) => s + b.jumlah, 0), 2
 
 // Beberapa jam dengan jumlah sama: penanda puncak hanya satu
 const seri = sebaranJam([
-  { created_at: padaJam(14, 10) },
-  { created_at: padaJam(14, 11) },
+  { created_at: padaJam(14, 10), source: "crm_manual" },
+  { created_at: padaJam(14, 11), source: "crm_manual" },
 ]);
 sama("penanda puncak hanya satu saat seri", seri.filter((b) => b.puncak).length, 1);
 
@@ -129,8 +133,43 @@ sama(
   "Belum ada transaksi pada periode ini",
 );
 // Jam satu digit harus tampil dua digit supaya kolomnya rata
-const pagi = sebaranJam([{ created_at: padaJam(14, 8) }]);
+const pagi = sebaranJam([{ created_at: padaJam(14, 8), source: "crm_manual" }]);
 sama("jam satu digit diberi nol depan", ringkasJamTeramai(pagi), "Paling ramai 08.00, 1 transaksi");
+
+// ======================= jamKedatanganDiketahui =======================
+// Inti perbaikan: transaksi impor laporan hanya punya TANGGAL, jadi jamnya
+// adalah jam impor. Kalau ikut dihitung, "jam ramai" menggambarkan jam admin
+// mengimpor, bukan jam kedai ramai.
+benar("crm_manual jamnya diketahui", jamKedatanganDiketahui({ source: "crm_manual" }));
+benar("majoo_parallel jamnya diketahui", jamKedatanganDiketahui({ source: "majoo_parallel" }));
+benar("majoo_import jamnya TIDAK diketahui", !jamKedatanganDiketahui({ source: "majoo_import" }));
+benar("csv_import jamnya TIDAK diketahui", !jamKedatanganDiketahui({ source: "csv_import" }));
+benar("tanpa source dianggap tidak diketahui", !jamKedatanganDiketahui({}));
+benar("source kosong dianggap tidak diketahui", !jamKedatanganDiketahui({ source: "  " }));
+
+// Sembilan struk yang diimpor sekaligus berstempel jam yang sama. Sebelum
+// perbaikan, jam 16 itu muncul sebagai jam paling ramai.
+const hasilImpor = sebaranJam([
+  { created_at: padaJam(14, 16, 48), source: "majoo_import" },
+  { created_at: padaJam(14, 16, 48), source: "majoo_import" },
+  { created_at: padaJam(14, 16, 48), source: "csv_import" },
+  { created_at: padaJam(14, 13, 17), source: "majoo_parallel" },
+]);
+sama("jam impor tidak dihitung", hasilImpor.reduce((s, b) => s + b.jumlah, 0), 1);
+sama("jam 16 hasil impor tetap nol", hasilImpor.find((b) => b.jam === 16)?.jumlah, 0);
+sama("jam teramai jadi jam kedatangan asli", jamTeramai(hasilImpor)?.jam, 13);
+sama(
+  "ringkasan tidak lagi menyebut jam impor",
+  ringkasJamTeramai(hasilImpor),
+  "Paling ramai 13.00, 1 transaksi",
+);
+sama(
+  "semua impor berarti belum ada jam kedatangan",
+  ringkasJamTeramai(
+    sebaranJam([{ created_at: padaJam(14, 16, 48), source: "majoo_import" }]),
+  ),
+  "Belum ada transaksi pada periode ini",
+);
 
 // ======================= hitungPapanLoyalitas =======================
 const sekarang = new Date(2026, 8, 14, 20, 0, 0);

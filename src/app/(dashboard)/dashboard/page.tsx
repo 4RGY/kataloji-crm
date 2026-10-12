@@ -14,6 +14,7 @@ import {
   hitungPoinDiberikan,
   rataPerStruk,
   ringkasJamTeramai,
+  jamKedatanganDiketahui,
   sebaranJam,
   type BarisLedger,
 } from "@/lib/dashboard-tampilan";
@@ -73,6 +74,8 @@ interface Transaksi {
   metode_bayar: string | null;
   /** Rincian menu `{nama, qty}`; hanya ada pada transaksi yang mencatatnya. */
   items: unknown;
+  /** Asal transaksi: crm_manual | majoo_import | majoo_parallel | csv_import. */
+  source?: string | null;
 }
 
 interface PelangganRingkas {
@@ -140,7 +143,7 @@ export default function DashboardPage() {
       ambilSemua<Transaksi>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id, metode_bayar, items")
+          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id, metode_bayar, items, source")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -350,6 +353,14 @@ export default function DashboardPage() {
   const batangJam = useMemo(() => sebaranJam(tersaring), [tersaring]);
 
   const ringkasJam = useMemo(() => ringkasJamTeramai(batangJam), [batangJam]);
+
+  // Berapa transaksi yang jam kedatangannya tidak tercatat (hasil impor
+  // laporan hanya membawa tanggal). Disebutkan di kartu supaya grafik yang
+  // tipis tidak terbaca sebagai kedai sepi.
+  const jamTakTercatat = useMemo(
+    () => tersaring.filter((t) => !jamKedatanganDiketahui(t)).length,
+    [tersaring],
+  );
 
   // Papan loyalitas sengaja memakai SELURUH buku besar, bukan yang tersaring
   // periode. Poin beredar adalah saldo yang berlaku hari ini; kalau dibatasi
@@ -653,6 +664,15 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="p-6">
+                  {/* Keterbukaan: transaksi impor tidak punya jam kedatangan,
+                      jadi grafiknya bisa tipis walau transaksinya banyak. */}
+                  {jamTakTercatat > 0 && (
+                    <p className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                      {jamTakTercatat === tersaring.length
+                        ? `${jamTakTercatat} transaksi hanya punya tanggal (impor laporan), jadi jam kedatangannya belum tercatat.`
+                        : `${jamTakTercatat} dari ${tersaring.length} transaksi tidak ikut dihitung karena hanya punya tanggal (impor laporan), bukan jam kedatangan.`}
+                    </p>
+                  )}
                   <div className="flex h-32 items-end gap-[3px]">
                     {batangJam.map((b) => (
                       <div

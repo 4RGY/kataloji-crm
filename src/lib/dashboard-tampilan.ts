@@ -83,20 +83,42 @@ export interface BatangJam {
 }
 
 /**
+ * Sumber yang JAM kedatangannya benar-benar diketahui (kasir mencatat saat itu).
+ */
+const SUMBER_JAM_DIKETAHUI = new Set(["crm_manual", "majoo_parallel"]);
+
+/**
+ * Apakah jam sebuah transaksi berarti jam kedatangan pelanggan.
+ *
+ * Transaksi hasil impor laporan hanya membawa TANGGAL, sehingga created_at-nya
+ * adalah jam impor: struk yang diimpor sekaligus berstempel jam yang sama.
+ * Kalau ikut dihitung, grafik "jam ramai" menggambarkan jam kerja admin
+ * mengimpor, bukan jam kedai ramai. Transaksi tanpa `source` (data lama)
+ * dianggap tidak diketahui: lebih jujur daripada menebaknya.
+ */
+export function jamKedatanganDiketahui(t: { source?: string | null }): boolean {
+  return SUMBER_JAM_DIKETAHUI.has((t.source ?? "").trim());
+}
+
+/**
  * Susun sebaran transaksi per jam untuk grafik jam ramai.
  *
  * Mengembalikan SATU batang untuk setiap jam pada rentang operasional,
  * termasuk jam yang nol transaksi. Jam kosong sengaja tetap dikembalikan
  * supaya sumbu waktunya utuh: kalau jam kosong dibuang, batang jam 18 dan 22
  * akan tampak bersebelahan dan grafiknya berbohong soal jarak waktu.
+ *
+ * Hanya transaksi yang jam kedatangannya diketahui yang dihitung; transaksi
+ * impor laporan dilewati supaya jam impor tidak tampil sebagai jam ramai.
  */
 export function sebaranJam(
-  transaksi: { created_at: string }[],
+  transaksi: { created_at: string; source?: string | null }[],
   mulai = JAM_MULAI,
   selesai = JAM_SELESAI,
 ): BatangJam[] {
   const hitung = new Map<number, number>();
   for (const t of transaksi) {
+    if (!jamKedatanganDiketahui(t)) continue;
     const j = jamLokal(t.created_at);
     // Jam di luar rentang dilipat ke ujung terdekat, bukan dibuang. Data yang
     // ada tidak boleh hilang hanya karena di luar jam yang biasa ditampilkan.

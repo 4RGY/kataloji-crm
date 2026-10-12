@@ -21,6 +21,30 @@ export interface TransaksiAnalitik {
   tanggal_majoo?: string | null;
   /** Daftar item `{nama, qty}`, dipakai untuk ranking menu. */
   items?: unknown;
+  /** Asal transaksi: crm_manual | majoo_import | majoo_parallel | csv_import. */
+  source?: string | null;
+}
+
+/**
+ * Sumber yang JAM transaksinya benar-benar diketahui.
+ *
+ * Kasir yang mencatat saat pelanggan membayar (crm_manual, majoo_parallel)
+ * menghasilkan created_at yang berarti jam kedatangan. Impor Majoo dan CSV
+ * hanya membawa TANGGAL laporan, sehingga created_at-nya adalah jam impor:
+ * sembilan struk yang diimpor sekaligus semuanya berstempel jam yang sama.
+ * Jam itu bukan jam ramai, jadi tidak boleh ikut dihitung.
+ */
+const SUMBER_JAM_DIKETAHUI = new Set(["crm_manual", "majoo_parallel"]);
+
+/**
+ * Apakah jam sebuah transaksi benar-benar jam kedatangan pelanggan.
+ *
+ * Transaksi lama tanpa `source` dianggap TIDAK diketahui: menebaknya sebagai
+ * jam kedatangan berarti menampilkan jam impor sebagai jam ramai.
+ */
+export function jamTransaksiDiketahui(t: TransaksiAnalitik): boolean {
+  const s = (t.source ?? "").trim();
+  return SUMBER_JAM_DIKETAHUI.has(s);
 }
 
 export interface PelangganAnalitik {
@@ -104,25 +128,49 @@ export interface BarisJam {
   omzet: number;
 }
 
-/** Sebaran transaksi per jam, hanya pada rentang jam buka. */
+export interface SebaranJamHasil {
+  baris: BarisJam[];
+  /** Jumlah transaksi yang jamnya diketahui dan ikut dihitung. */
+  dihitung: number;
+  /** Jumlah transaksi yang jamnya tidak diketahui, sengaja dilewati. */
+  dilewati: number;
+}
+
+/**
+ * Sebaran transaksi per jam, hanya pada rentang jam buka.
+ *
+ * Hanya transaksi yang jam kedatangannya diketahui yang dihitung (lihat
+ * `jamTransaksiDiketahui`). Sisanya dilaporkan lewat `dilewati`, bukan
+ * dibuang diam-diam dan bukan ditebak sebagai jam kedatangan.
+ */
 export function sebaranJam(
   transaksi: TransaksiAnalitik[],
   nilaiPoin: number,
-): BarisJam[] {
-  const hasil: BarisJam[] = [];
+): SebaranJamHasil {
+  const baris: BarisJam[] = [];
   for (let j = JAM_BUKA.mulai; j <= JAM_BUKA.selesai; j++) {
-    hasil.push({ jam: j, jumlah: 0, omzet: 0 });
+    baris.push({ jam: j, jumlah: 0, omzet: 0 });
   }
+  let dihitung = 0;
+  let dilewati = 0;
   for (const t of transaksi || []) {
+    if (!jamTransaksiDiketahui(t)) {
+      dilewati += 1;
+      continue;
+    }
     const d = waktuLokal(t.created_at);
-    if (!d) continue;
+    if (!d) {
+      dilewati += 1;
+      continue;
+    }
     const j = d.getHours();
     if (j < JAM_BUKA.mulai || j > JAM_BUKA.selesai) continue;
-    const baris = hasil[j - JAM_BUKA.mulai];
-    baris.jumlah += 1;
-    baris.omzet += nilaiBersih(t, nilaiPoin);
+    const barisJam = baris[j - JAM_BUKA.mulai];
+    barisJam.jumlah += 1;
+    barisJam.omzet += nilaiBersih(t, nilaiPoin);
+    dihitung += 1;
   }
-  return hasil;
+  return { baris, dihitung, dilewati };
 }
 
 export interface BarisHari {

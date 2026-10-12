@@ -85,35 +85,67 @@ sama("ambang pola masuk akal", AMBANG_POLA >= 15 && AMBANG_POLA <= 50, true);
 sama("ambang hari minimal seminggu", AMBANG_HARI >= 7, true);
 
 // ===================== sebaranJam =====================
+// Hanya transaksi yang JAM kedatangannya diketahui yang boleh dihitung.
+// Sumber yang jamnya diketahui: crm_manual dan majoo_parallel (kasir mencatat
+// saat pelanggan membayar). Impor Majoo/CSV hanya membawa tanggal, jadi
+// created_at-nya adalah jam impor dan sengaja dilewati.
 const trxJam = [
-  trx({ total: 47000, created_at: "2026-09-15T11:02:00" }),
-  trx({ total: 32000, created_at: "2026-09-14T18:15:00" }),
-  trx({ total: 100000, created_at: "2026-09-14T18:33:00" }),
-  trx({ total: 32000, created_at: "2026-09-14T18:26:00" }),
-  trx({ total: 47000, created_at: "2026-09-14T19:14:00" }),
+  trx({ total: 47000, created_at: "2026-09-15T11:02:00", source: "majoo_parallel" }),
+  trx({ total: 32000, created_at: "2026-09-14T18:15:00", source: "crm_manual" }),
+  trx({ total: 100000, created_at: "2026-09-14T18:33:00", source: "crm_manual" }),
+  trx({ total: 32000, created_at: "2026-09-14T18:26:00", source: "majoo_parallel" }),
+  trx({ total: 47000, created_at: "2026-09-14T19:14:00", source: "crm_manual" }),
 ];
 
 const jam = sebaranJam(trxJam, NILAI_POIN);
-sama("sumbu memakai jam buka saja", jam.length, JAM_BUKA.selesai - JAM_BUKA.mulai + 1);
-sama("jam pertama adalah jam buka", jam[0].jam, JAM_BUKA.mulai);
-sama("jam 18 punya tiga transaksi", jam.find((j) => j.jam === 18)?.jumlah, 3);
-sama("jam 18 menjumlah omzetnya", jam.find((j) => j.jam === 18)?.omzet, 164000);
-sama("jam 11 punya satu", jam.find((j) => j.jam === 11)?.jumlah, 1);
-sama("jam kosong tetap ada di sumbu", jam.find((j) => j.jam === 9)?.jumlah, 0);
+sama("sumbu memakai jam buka saja", jam.baris.length, JAM_BUKA.selesai - JAM_BUKA.mulai + 1);
+sama("jam pertama adalah jam buka", jam.baris[0].jam, JAM_BUKA.mulai);
+sama("jam 18 punya tiga transaksi", jam.baris.find((j) => j.jam === 18)?.jumlah, 3);
+sama("jam 18 menjumlah omzetnya", jam.baris.find((j) => j.jam === 18)?.omzet, 164000);
+sama("jam 11 punya satu", jam.baris.find((j) => j.jam === 11)?.jumlah, 1);
+sama("jam kosong tetap ada di sumbu", jam.baris.find((j) => j.jam === 9)?.jumlah, 0);
+sama("semua transaksi jam diketahui dihitung", jam.dihitung, 5);
+sama("tidak ada yang dilewati di data ini", jam.dilewati, 0);
 sama(
   "transaksi di luar jam buka tidak merusak",
-  sebaranJam([trx({ total: 5000, created_at: "2026-09-15T03:00:00" })], NILAI_POIN)
-    .reduce((n, j) => n + j.jumlah, 0),
+  sebaranJam([trx({ total: 5000, created_at: "2026-09-15T03:00:00", source: "crm_manual" })], NILAI_POIN)
+    .baris.reduce((n, j) => n + j.jumlah, 0),
   0,
 );
 sama(
   "tanggal ngawur dilewati",
-  sebaranJam([trx({ created_at: "bukan-tanggal" })], NILAI_POIN).reduce((n, j) => n + j.jumlah, 0),
+  sebaranJam([trx({ created_at: "bukan-tanggal", source: "crm_manual" })], NILAI_POIN).baris.reduce(
+    (n, j) => n + j.jumlah,
+    0,
+  ),
   0,
 );
 
+// Inti perbaikan: jam impor BUKAN jam ramai, jadi harus dilewati.
+const adaImpor = sebaranJam(
+  [
+    trx({ total: 10000, created_at: "2026-10-03T09:48:20", source: "majoo_import" }),
+    trx({ total: 10000, created_at: "2026-10-03T09:48:21", source: "majoo_import" }),
+    trx({ total: 10000, created_at: "2026-10-03T09:48:22", source: "csv_import" }),
+    trx({ total: 20000, created_at: "2026-10-03T13:17:00", source: "majoo_parallel" }),
+  ],
+  NILAI_POIN,
+);
+sama("jam impor dilewati, tidak dihitung", adaImpor.dihitung, 1);
+sama("tiga transaksi impor dicatat sebagai dilewati", adaImpor.dilewati, 3);
+sama(
+  "jam ramai hanya dari transaksi yang jamnya diketahui",
+  jamTeramai(adaImpor.baris)?.jam,
+  13,
+);
+sama(
+  "transaksi tanpa sumber dianggap jam tidak diketahui",
+  sebaranJam([trx({ total: 5000, created_at: "2026-10-03T16:00:00" })], NILAI_POIN).dilewati,
+  1,
+);
+
 // ===================== jamTeramai =====================
-sama("jam teramai ditemukan", jamTeramai(jam)?.jam, 18);
+sama("jam teramai ditemukan", jamTeramai(jam.baris)?.jam, 18);
 sama("daftar kosong menghasilkan null", jamTeramai([]), null);
 sama(
   "semua nol menghasilkan null",
