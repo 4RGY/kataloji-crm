@@ -291,6 +291,13 @@ export default function HalamanLogTransaksi() {
     return { omzet, poin, jumlah: daftar.length };
   }, [daftar]);
 
+  // Berapa filter yang sedang menyala. Dipakai untuk memutuskan apakah baris
+  // "Reset" dan chip filter aktif perlu muncul, supaya tabel yang sedikit
+  // tidak tertukar dengan tabel yang tersaring.
+  const jumlahFilter = [cari, source, status, dari, sampai].filter(
+    (v) => v.trim() !== "",
+  ).length;
+
   if (peran !== null && peran !== "admin") {
     return (
       <div className="px-6 pb-10 pt-4 lg:px-8">
@@ -321,112 +328,167 @@ export default function HalamanLogTransaksi() {
 
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          Log Transaksi
-        </h1>
-        <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
-          Riwayat seluruh transaksi beserta sumber, poin, dan pencatatnya.
-          Gunakan filter untuk menyaring, lalu buka detail tiap baris untuk
-          rincian item dan jejak poin.
-        </p>
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            Log Transaksi
+          </h1>
+          <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
+            Riwayat seluruh transaksi beserta sumber, poin, dan pencatatnya.
+          </p>
+        </div>
+        {/* Ringkasan ikut header supaya angka yang dibaca selalu
+            berdampingan dengan baris yang sedang tersaring, bukan
+            menggantung di baris sendiri di bawah filter. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <ChipRingkas label="Transaksi" nilai={String(ringkasan.jumlah)} />
+          <ChipRingkas
+            label="Omzet"
+            nilai={rupiah.format(ringkasan.omzet)}
+          />
+          <ChipRingkas label="Poin terbit" nilai={String(ringkasan.poin)} aksen />
+        </div>
       </header>
 
-      {/* Filter */}
-      <div className="mb-4 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_1fr_1fr_1fr_1fr]">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={cari}
-            onChange={(e) => setCari(e.target.value)}
-            placeholder="Cari struk, kode, atau nama pelanggan"
-            className="pl-9"
-            aria-label="Cari transaksi"
-          />
+      {/* Bar filter: satu baris, semua kontrol tinggi dan sejajar.
+          Sebelumnya kotak pencarian tidak punya label sehingga duduk 21px
+          lebih tinggi daripada empat kontrol lain, dan tingginya 44px
+          sedangkan select 36px. */}
+      <div className="mb-3 rounded-xl border border-border bg-card p-3">
+        <div className="grid items-end gap-2.5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_1fr_1fr_1fr_1fr_auto]">
+          <div>
+            <Label className="mb-1 block h-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Cari
+            </Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={cari}
+                onChange={(e) => setCari(e.target.value)}
+                placeholder="Struk, kode, atau nama"
+                className="h-9 pl-9"
+                aria-label="Cari transaksi"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="mb-1 block h-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Sumber
+            </Label>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+              aria-label="Filter sumber"
+            >
+              <option value="">Semua sumber</option>
+              {Object.entries(SUMBER_LABEL).map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label className="mb-1 block h-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Pencocokan
+            </Label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+              aria-label="Filter status pencocokan"
+            >
+              <option value="">Semua status</option>
+              {Object.entries(STATUS_LABEL).map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label className="mb-1 block h-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Dari
+            </Label>
+            <Input
+              type="date"
+              value={dari}
+              onChange={(e) => setDari(e.target.value)}
+              className="h-9"
+              aria-label="Tanggal awal"
+            />
+          </div>
+          <div>
+            <Label className="mb-1 block h-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Sampai
+            </Label>
+            <Input
+              type="date"
+              value={sampai}
+              onChange={(e) => setSampai(e.target.value)}
+              className="h-9"
+              aria-label="Tanggal akhir"
+            />
+          </div>
+          {/* Reset duduk di dalam baris filter, hanya muncul saat ada yang
+              perlu direset, supaya tidak jadi baris kosong tersendiri. */}
+          <div className="flex h-9 items-center">
+            {jumlahFilter > 0 ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilter}
+                className="w-full lg:w-auto"
+              >
+                <X />
+                Reset
+              </Button>
+            ) : (
+              <span className="hidden text-[11px] text-muted-foreground lg:block">
+                Tanpa filter
+              </span>
+            )}
+          </div>
         </div>
-        <div>
-          <Label className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
-            Sumber
-          </Label>
-          <select
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-            aria-label="Filter sumber"
-          >
-            <option value="">Semua sumber</option>
-            {Object.entries(SUMBER_LABEL).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
-            Pencocokan
-          </Label>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-            aria-label="Filter status pencocokan"
-          >
-            <option value="">Semua status</option>
-            {Object.entries(STATUS_LABEL).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
-            Dari
-          </Label>
-          <Input
-            type="date"
-            value={dari}
-            onChange={(e) => setDari(e.target.value)}
-            aria-label="Tanggal awal"
-          />
-        </div>
-        <div>
-          <Label className="mb-1 block text-[11px] uppercase tracking-wider text-muted-foreground">
-            Sampai
-          </Label>
-          <Input
-            type="date"
-            value={sampai}
-            onChange={(e) => setSampai(e.target.value)}
-            aria-label="Tanggal akhir"
-          />
-        </div>
-      </div>
 
-      {/* Ringkasan + reset */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-5 text-sm">
-          <span className="font-semibold tabular-nums">
-            {ringkasan.jumlah} transaksi
-          </span>
-          <span className="text-muted-foreground">
-            Omzet{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              {rupiah.format(ringkasan.omzet)}
+        {/* Filter aktif ditampilkan sebagai chip yang bisa dicabut satu-satu.
+            Tanpa ini, daftar yang sedikit sulit dibedakan dari data yang
+            memang cuma sedikit. */}
+        {jumlahFilter > 0 && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Filter aktif
             </span>
-          </span>
-          <span className="text-muted-foreground">
-            Poin terbit{" "}
-            <span className="font-semibold tabular-nums text-primary">
-              {ringkasan.poin}
-            </span>
-          </span>
-        </div>
-        <Button variant="ghost" size="sm" onClick={resetFilter}>
-          <X />
-          Reset filter
-        </Button>
+            {cari.trim() && (
+              <ChipAktif label={`Cari: ${cari.trim()}`} onHapus={() => setCari("")} />
+            )}
+            {source && (
+              <ChipAktif
+                label={`Sumber: ${SUMBER_LABEL[source] ?? source}`}
+                onHapus={() => setSource("")}
+              />
+            )}
+            {status && (
+              <ChipAktif
+                label={`Pencocokan: ${STATUS_LABEL[status] ?? status}`}
+                onHapus={() => setStatus("")}
+              />
+            )}
+            {dari && (
+              <ChipAktif
+                label={`Dari: ${tanggalMajoo(dari)}`}
+                onHapus={() => setDari("")}
+              />
+            )}
+            {sampai && (
+              <ChipAktif
+                label={`Sampai: ${tanggalMajoo(sampai)}`}
+                onHapus={() => setSampai("")}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {terpotong && (
@@ -743,6 +805,54 @@ export default function HalamanLogTransaksi() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+/** Chip angka ringkasan di header (transaksi, omzet, poin terbit). */
+function ChipRingkas({
+  label,
+  nilai,
+  aksen = false,
+}: {
+  label: string;
+  nilai: string;
+  aksen?: boolean;
+}) {
+  return (
+    <span className="inline-flex items-baseline gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5">
+      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={
+          "text-sm font-bold tabular-nums " +
+          (aksen ? "text-primary" : "text-foreground")
+        }
+      >
+        {nilai}
+      </span>
+    </span>
+  );
+}
+
+/** Chip filter yang sedang aktif, bisa dicabut sendiri tanpa reset semua. */
+function ChipAktif({
+  label,
+  onHapus,
+}: {
+  label: string;
+  onHapus: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onHapus}
+      className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 py-0.5 pl-2 pr-1 text-xs text-foreground transition-colors hover:bg-muted"
+      aria-label={`Hapus filter ${label}`}
+    >
+      {label}
+      <X className="h-3 w-3 text-muted-foreground" aria-hidden />
+    </button>
   );
 }
 
