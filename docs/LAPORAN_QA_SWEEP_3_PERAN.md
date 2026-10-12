@@ -36,11 +36,17 @@ Empat yang tidak tampil: Pencocokan, Log Transaksi, Staf, Impor Majoo.
 Semua 12 penolakan memakai kalimat yang menjelaskan **sebabnya** dan **apa yang
 harus dilakukan**, bukan "403" mentah. Pagar tampilan bekerja penuh.
 
-## 3. TEMUAN: pagar tampilan bukan pagar data
+## 3. TEMUAN: pagar halaman, bukan pagar data (dan ini memang disengaja)
 
-Halaman melarang kasir melihat omzet. Tetapi **kasir tetap bisa membaca seluruh
-transaksi lewat REST API langsung** dengan tokennya sendiri, karena policy RLS
-`transaksi baca` mengizinkan `kasir`, `manager`, dan `admin`.
+> Ringkas: kasir bisa membaca baris transaksi lewat REST walau halaman omzet
+> ditolak. Setelah diperiksa, ini **bukan celah**: dashboard kasir sendiri
+> menampilkan omzet, jadi policy yang mengizinkan kasir baca transaksi memang
+> diperlukan. Rinciannya di bawah.
+
+Halaman melarang kasir membuka laporan penjualan dan analitik (halaman omzet
+khusus admin/manager). Tetapi **kasir tetap bisa membaca seluruh transaksi lewat
+REST API langsung** dengan tokennya sendiri, karena policy RLS `transaksi baca`
+mengizinkan `kasir`, `manager`, dan `admin`.
 
 Bukti (anon key + token kasir, `Prefer: return=representation`):
 
@@ -53,34 +59,100 @@ Artinya: kasir yang membuka DevTools bisa menjumlahkan omzet bulanan, melihat
 total per struk, dan melihat transaksi yang dicatat orang lain. Yang ia tidak
 bisa: mengubah (PATCH -> 0 baris) atau menghapus.
 
+### Kenapa policy-nya mengizinkan kasir: karena memang disengaja
+
+Ini **bukan** kelalaian, dan halaman kasir memang menampilkan omzet. Diperiksa di
+aplikasi hidup sebagai kasir (`anggara@kataloji.id`):
+
+```
+OMZET · HARI INI          Rp 25.000
+Rata-rata harian          Rp 25.000
+Transaksi terbesar        Rp 25.000
+Rata-rata per struk       Rp 25.000
+TREN OMZET HARIAN         (grafik)
+```
+
+Jadi kasir **memang diberi** ringkasan omzet di dashboard-nya. Yang dibatasi
+hanya halaman analitik dan laporan penjualan (keduanya untuk keputusan usaha,
+wewenang admin/manager).
+
+**Konsekuensinya:** "kasir bisa membaca omzet lewat REST" bukan celah yang bisa
+ditutup dengan mencabut izin baca tabel `transaksi`. Selama dashboard kasir
+sendiri menampilkan omzet, RLS harus mengizinkan kasir membaca baris transaksi.
+Menutupnya berarti membuang fitur yang sudah ada, dan itu keputusan produk, bukan
+keputusan teknis.
+
+Kalau memang ingin kasir **tidak** melihat omzet sama sekali, yang perlu diubah
+adalah hal yang lebih besar dari RLS:
+1. Dashboard kasir dirombak supaya tidak menampilkan omzet (cukup jumlah
+   transaksi dan data pelanggan), **lalu**
+2. RLS diganti dengan view agregat tanpa kolom omzet untuk kasir, **dan**
+3. halaman Transaksi serta Dashboard kasir disesuaikan supaya tidak membaca baris
+   transaksi langsung.
+
+Tiga langkah itu satu paket. Mengerjakan langkah 2 saja akan mematahkan aplikasi.
+
 Pagar di UI tetap berguna (menghalangi akses tidak sengaja), tetapi tidak boleh
 disebut sebagai pengamanan.
 
-## 4. TEMUAN: view rekap kinerja staf bisa dibaca kasir
+## 4. KOREKSI: view rekap kinerja staf TIDAK bocor (klaim awal salah)
 
-`rekap_pencatat_transaksi` adalah view berisi omzet per staf. Yang terlihat
-sebagai kasir:
+> **Bagian ini menggantikan klaim awal yang keliru.** Draf pertama laporan ini
+> menulis bahwa `rekap_pencatat_transaksi` "berdiri sendiri dan terbuka" karena
+> `grant select ... to authenticated` tidak dibatasi peran. **Itu salah.** Grant
+> `authenticated` di situ bukan pagarnya, dan pagarnya memang ada.
 
-```json
-[
-  {"nama": "Wahyu",       "jumlah_transaksi": 1,  "total_omzet": 25000},
-  {"nama": "Impor Majoo", "jumlah_transaksi": 11, "total_omzet": 348000}
-]
+Bukti pengujian ulang (kasir, token sendiri):
+
+```
+transaksi terlihat kasir        : 12 baris
+rekap_pencatat_transaksi        : 2 baris (agregat per staf)
+total transaksi dihitung view   : 12
+-> SAMA: view tidak membocorkan baris yang disembunyikan transaksi
 ```
 
-Halaman `/rekap-kasir` menolak kasir, tetapi view-nya berdiri sendiri dan
-terbuka. Penyebab: `supabase/jejak-pencatat-transaksi.sql:213`
+Penyebabnya terbaca di `supabase/jejak-pencatat-transaksi.sql:200-202`:
 
 ```sql
-grant select on public.rekap_pencatat_transaksi to authenticated, service_role;
+-- security_invoker supaya RLS tabel transaksi tetap berlaku bagi pemanggil.
+create or replace view public.rekap_pencatat_transaksi
+with (security_invoker = true)
 ```
 
-`authenticated` mencakup kasir. View tidak memakai RLS sehingga grant itu
-adalah satu-satunya pagarnya, dan pagarnya tidak ada.
+`security_invoker = true` membuat view dijalankan **sebagai pemanggil**, bukan
+sebagai pemilik. Jadi policy `transaksi baca` tetap berlaku. Jumlah baris di view
+(12) persis sama dengan yang terlihat di tabel (12): view tidak menambah apa pun.
 
-Pola grant yang sama ada di `aturan-poin.sql:107` dan `ledger-poin.sql:240`.
-Keduanya perlu diperiksa dengan pertanyaan yang sama: isinya boleh dilihat
-semua peran atau tidak.
+Grant `to authenticated` itu **wajib** ada. Tanpa grant, peran `authenticated`
+tidak punya izin tabel sama sekali dan RLS tidak pernah dievaluasi; yang muncul
+`permission denied`, bukan penyaringan. Jadi pola `grant` + `RLS` di sini sudah
+benar, bukan celah.
+
+### Pemeriksaan pola grant yang sama (batal)
+
+Draf pertama menandai `aturan-poin.sql:107` dan `ledger-poin.sql:240` sebagai
+"perlu diperiksa". Sudah diperiksa, dan **keduanya juga sudah benar**:
+
+| Tabel | Policy | Boleh dibaca |
+|---|---|---|
+| `point_ledger` | `ledger baca (staf)` | admin, manager, kasir |
+| `aturan_poin` | `aturan_poin baca (staf)` | admin, manager, kasir |
+
+Pemberian akses ke kasir di sini **memang diperlukan**, bukan kelalaian: halaman
+Dashboard, Pelanggan, dan Loyalitas (semuanya boleh dibuka kasir) membaca
+`point_ledger`; halaman Pengaturan (boleh dibuka kasir, mode baca saja) membaca
+`aturan_poin`. Mencabut grant-nya akan mematahkan halaman-halaman itu.
+
+`anon` ditolak 401 di keempat objek (view + 3 tabel). Diperiksa, bukan
+diasumsikan.
+
+### Pelajaran
+
+Grant `select ... to authenticated` dengan sendirinya **bukan** tanda celah. Yang
+menentukan adalah ada tidaknya RLS (`policy` untuk tabel, `security_invoker` untuk
+view). Draf pertama salah menyimpulkan dari grant saja tanpa membaca policy, dan
+kesimpulan itu sempat ditulis ke tiga tempat (docs repo, skill, vault) sebelum
+diperiksa ulang. Bukti: `scripts/uji-rls-ronde3-verifikasi.py`.
 
 ## 5. Yang sudah aman (diuji, bukan diasumsikan)
 
