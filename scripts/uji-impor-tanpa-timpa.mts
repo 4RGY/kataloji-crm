@@ -16,7 +16,8 @@ let lulus = 0;
 let gagal = 0;
 const cek = (nama: string, ok: boolean) => {
   console.log((ok ? "LULUS " : "GAGAL ") + nama);
-  ok ? lulus++ : gagal++;
+  if (ok) lulus++;
+  else gagal++;
 };
 
 const pelRaw = [

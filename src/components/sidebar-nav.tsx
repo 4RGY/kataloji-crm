@@ -99,6 +99,12 @@ const MENU_LOG_TRANSAKSI = {
   icon: ScrollText,
 };
 
+const MENU_PENJUALAN = {
+  href: "/laporan-penjualan",
+  label: "Laporan penjualan",
+  icon: BarChart3,
+};
+
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
   manager: "Manager",
@@ -237,6 +243,7 @@ export function SidebarNav() {
             kelompok.judul === "Operasional"
               ? [
                   ...kelompok.menu,
+                  ...(hakMenu.penjualan ? [MENU_PENJUALAN] : []),
                   ...(hakMenu.pencocokan ? [MENU_PENCOCOKAN] : []),
                   ...(hakMenu.logTransaksi ? [MENU_LOG_TRANSAKSI] : []),
                 ]

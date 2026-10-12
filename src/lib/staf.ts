@@ -200,6 +200,8 @@ export function inisial(nama: string): string {
  */
 export interface MenuKhusus {
   rekap: boolean;
+  /** Laporan penjualan (omzet). Sama dengan rekap: admin dan manajer saja. */
+  penjualan: boolean;
   staf: boolean;
   /** Impor data dari Majoo, hanya admin yang boleh. */
   impor: boolean;
@@ -215,6 +217,7 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
   if (role === "admin")
     return {
       rekap: true,
+      penjualan: true,
       staf: true,
       impor: true,
       pencocokan: true,
@@ -224,6 +227,7 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
   if (role === "manager")
     return {
       rekap: true,
+      penjualan: true,
       staf: false,
       impor: false,
       pencocokan: false,
@@ -232,6 +236,7 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
     };
   return {
     rekap: false,
+    penjualan: false,
     staf: false,
     impor: false,
     pencocokan: false,
