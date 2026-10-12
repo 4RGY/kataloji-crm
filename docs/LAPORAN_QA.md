@@ -1,42 +1,50 @@
 # Laporan QA — Kataloji CRM
 
 Pengujian menyeluruh sebelum dipakai operasional harian.
-Tanggal pengujian: **17 September 2026**.
+Tanggal pengujian: **8 Oktober 2026** (versi 2).
+
+> **Riwayat versi.** Versi 1 laporan ini bertanggal 17 September 2026. Sejak itu
+> sistem bertambah tiga halaman admin (Impor Majoo, Pencocokan, Log Transaksi),
+> aturan poin menjadi berversi per periode, dan modul impor dari Majoo dibangun.
+> Laporan ini menguji ulang seluruh sistem pada keadaan kode 7 Oktober 2026
+> (`716f50d`), dengan penekanan pada **delta** sejak versi 1 dan **halaman baru
+> yang belum pernah diuji dari antarmuka**.
 
 ---
 
 ## 1. Ringkasan Eksekutif
 
-**Verdict: BELUM SIAP operasional.** Bukan karena bug, tetapi karena **enam
-fitur inti yang diminta di brief tidak ada di dalam sistem**.
+**Verdict: SIAP operasional. Satu temuan tampilan (BUG-07) sudah tidak terbukti lagi di kode terbaru, dan satu keputusan kebijakan (BUG-06) masih perlu diambil pemilik.**
 
-Terdapat **5 temuan nyata**: 1 Major yang berpotensi Critical (poin hantu saat
-transaksi dihapus), dan sisanya Minor/Cosmetic. **Nol bug Critical yang bisa
-terpicu saat melayani pelanggan.**
+Yang berubah sejak versi 1, dan semuanya ke arah lebih baik:
 
-> **Koreksi dari versi sebelumnya laporan ini.** Draf awal mencantumkan satu
-> bug Major bahwa "pencarian gagal saat nomor diketik format lokal `08...`".
-> Itu **keliru dan sudah ditarik**: alat uji memakai tiruan fungsi pencarian
-> yang tidak ikut menormalisasi kata kunci, sementara kode asli melakukannya.
-> Uji ulang memakai kode asli (dan harness `uji-normalisasi-wa.mts`) memastikan
-> `08123456701` **ditemukan** untuk pelanggan `628123456701`. Tidak ada bug di
-> sini.
+- **Tiga gap brief sudah tertutup.** Aturan poin kini bisa diatur per periode
+  (menjawab "10x pembelian dapat reward"), data pelanggan & transaksi bisa
+  diimpor dari ekspor Majoo, dan transaksi impor bisa dicocokkan ke pelanggan
+  dari antarmuka. Versi 1 menyatakan ketiganya "tidak ada".
+- **Perhitungan poin kini berversi.** Aturan lama tidak dihitung ulang saat
+  aturan baru berlaku. Ini bertambahnya kepercayaan, bukan sekadar fitur:
+  poin yang sudah diberikan ke pelanggan tidak berubah diam-diam.
+- **Hak akses tetap tegak** setelah tiga halaman admin baru ditambahkan.
+  Seluruh uji batas akses lulus, termasuk lapisan API.
 
-Yang sudah ada dan terbukti kokoh justru bagian yang paling berisiko kalau
-salah: **hak akses tiga peran** dan **perhitungan poin**. Keduanya gue gebrak
-langsung lewat API dan database, bukan sekadar membuka halaman. Semua batas
-tegak. Poin tidak bisa dibelanjakan melebihi saldo, poin palsu dikoreksi
-server, dan kasir tidak bisa menaikkan perannya sendiri jadi admin.
+**Temuan nyata pada pengujian ini: 2 buah, keduanya bukan Critical.**
 
-Masalahnya: brief meminta **broadcast WhatsApp otomatis** dan **reward
-ulang tahun otomatis**. Yang ada di sistem adalah **penyaring "ulang tahun
-bulan ini" yang harus dikirim manual satu per satu** dengan menekan tombol
-kirim per pelanggan. Tidak ada API WhatsApp Business. Tidak ada penjadwal.
-Tidak ada voucher.
+| ID | Temuan | Severity | Bisa terpicu kasir? |
+|---|---|---|---|
+| **BUG-07** | Halaman `/transaksi` meluber ke kanan pada layar telepon (390 px). **Tidak terbukti lagi di kode terbaru (diuji ulang).** | **Minor** (ditutup) | Tidak |
+| **BUG-06** | Poin tetap tinggal saat transaksi dihapus (poin hantu) | **Major** (warisan) | Tidak, tidak ada jalur hapus di antarmuka |
 
-Kalau sistem ini dipakai apa adanya dengan harapan dari brief, operasional
-akan jalan tetapi **janji "otomatis" tidak terpenuhi**: tetap ada orang yang
-harus duduk menekan kirim satu per satu setiap hari.
+**Nol bug Critical.** Perhitungan poin benar, buku besar seimbang, tidak ada
+peran yang tembus, dan tidak ada data yang bocor ke peran tak berhak.
+
+> **Catatan kejujuran pengujian.** Selama pengujian ini dua kali muncul
+> "temuan" yang ternyata **kekeliruan alat ujinya sendiri**, bukan cacat
+> sistem: (1) snapshot aksesibilitas menampilkan halaman admin padahal DOM
+> aslinya menolak, dan (2) sebuah pemeriksaan membaca kolom basis data yang
+> tidak ada sehingga melaporkan "0 baris" padahal datanya lengkap. Keduanya
+> sudah diperiksa ulang memakai sumber yang benar dan ditarik. Metodenya
+> diperbaiki, dan pelajarannya dicatat di Bagian 12.
 
 ---
 
@@ -44,323 +52,304 @@ harus duduk menekan kirim satu per satu setiap hari.
 
 | Hal | Keterangan |
 |---|---|
-| Aplikasi | Next.js 16 (App Router), React 19, Tailwind, shadcn/ui |
+| Aplikasi | Next.js 16.3.5 (App Router, Turbopack), React 19, Tailwind v4, shadcn/ui |
 | Data & auth | Supabase (PostgreSQL) + Row Level Security |
 | URL uji | `http://localhost:3000` (dev server) |
-| Browser uji | Chromium lewat alat otomasi, lebar jendela 1262 px |
+| Browser uji | Chromium, tiga lebar: **1262 px** (laptop), **834 px** (iPad tegak), **390 px** (telepon) |
 | Basis data uji | **Basis data yang sama dengan data asli** (tidak ada staging terpisah) |
 | Akun uji | `wahyu@kataloji.id` (Admin), `sinta@kataloji.id` (Manager), `anggara@kataloji.id` (Kasir) |
-| Sandi akun uji | `kataloji123` (akun manager & kasir pernah disetel ulang agar cocok) |
+| Sandi akun uji | `kataloji123` |
+| Commit yang diuji | `716f50d` (7 Oktober 2026), pohon kerja bersih |
 
-**Catatan penting:** tidak ada environment staging. Pengujian ini dijalankan
-di database yang sama dengan yang akan dipakai produksi. Setiap uji yang
-menulis data sudah dibersihkan, dan data uji diberi awalan `QA-`.
+**Catatan penting:** tidak ada environment staging, jadi pengujian ini
+menyentuh basis data yang sama dengan produksi. Setiap uji yang menulis data
+sudah dibersihkan, dan keadaan akhir sudah diperiksa seimbang (Bagian 10).
+Data uji diberi awalan `QA-` atau memakai kode `KA099` yang mudah dikenali.
 
----
-
-## 3. GAP ANALYSIS — Fitur di Brief yang Tidak Ada
-
-Ini bagian terpenting dari laporan. Sebelum menguji fitur, gue periksa dulu
-**apakah fiturnya ada**. Lima dari permintaan inti brief tidak ditemukan di
-dalam kode.
-
-| ID | Fitur yang diminta brief | Kenyataan di sistem | Dampak |
-|---|---|---|---|
-| **G1** | "Wajib terintegrasi WhatsApp Business buat broadcast ke customer terdaftar" | **Tidak ada integrasi API sama sekali.** Broadcast = tombol yang membuka tautan `wa.me` per pelanggan. Kasir harus menekan kirim sendiri di tiap orang, dari HP masing-masing. | Tinggi. Untuk 200 pelanggan, itu 200 kali tekan kirim manual. Tidak ada laporan terkirim/gagal. |
-| **G2** | "Reward/voucher ulang tahun **otomatis**" | **Tidak ada voucher, tidak ada penjadwal.** Yang ada hanya penyaring "ulang tahun bulan ini" untuk pemilihan sasaran, dan pengiriman tetap manual. | Tinggi. Kata "otomatis" di brief tidak terpenuhi. |
-| **G3** | "Data kunjungan terintegrasi loyalty (misal **10x pembelian dapat reward**)" | **Tidak ada aturan berbasis jumlah kunjungan.** Poin murni dari nominal rupiah (1 poin per Rp 20.000). | Sedang. Aturan hadiah ke-10 tidak bisa dibuat. |
-| **G4** | "Link redeem reward yang dikirim ke pelanggan" | **Tidak ada sistem reward/voucher sama sekali**, jadi tidak ada link redeem. Penukaran poin terjadi di kasir saat transaksi, bukan lewat link pelanggan. | Tinggi. Sekaligus membuat uji IDOR (Bagian 4) **tidak berlaku** — tidak ada yang bisa ditebak karena tidak ada link. |
-| **G5** | "Cek siapa yang bisa export seluruh database pelanggan" | **Tidak ada fitur export** dalam bentuk apa pun (tidak ada CSV, Excel, atau unduhan). | Sedang. Risiko kebocoran massal justru nol karena tidak ada jalurnya. Tapi kebutuhan operasional (laporan ke pemilik) tidak terpenuhi. |
-| **G6** | "Trigger broadcast otomatis", "log yang bisa dicek" | **Tidak ada cron/penjadwal di seluruh sistem.** Tidak ada `cron`, tidak ada penjadwal, tidak ada pekerjaan latar. Penyaring "ulang tahun" juga cocok berdasarkan **bulan**, bukan tanggal persis. | Tinggi. Uji "ulang tahun hari ini → broadcast terkirim → ada log" **tidak bisa dijalankan** karena mekanismenya tidak ada. |
-
-### 3.1 Konsekuensi ke Bagian Lain
-
-Karena G1 sampai G6, beberapa pengujian yang diminta **tidak bisa dijalankan**
-dan bukan karena gagal, melainkan karena tidak ada objeknya:
-
-- Bagian 3 "Atur setting reward/loyalty, cek dampak ke pelanggan yang mendekati threshold lama" — **tidak ada halaman setting reward**. Aturan poin tertanam di kode (`src/lib/poin.ts`), bukan bisa diubah dari UI.
-- Bagian 5 "Simulasikan WhatsApp Business API down atau rate limit" — **tidak ada API WhatsApp** yang bisa dimatikan.
-- Bagian 5 "Broadcast massal ke ratusan nomor, pastikan semua terkirim atau ada laporan mana yang gagal" — **tidak ada broadcast massal**. Pengiriman bersifat per orang dan dilakukan kasir dari HP-nya.
-- Bagian 7 "Alur ulang tahun: broadcast otomatis terkirim, ada log" — **tidak ada broadcast otomatis**.
-
-**Rekomendasi:** sebelum sistem dipakai dengan ekspektasi brief, putuskan
-dulu: apakah "otomatis" memang wajib (berarti butuh pengembangan lanjutan),
-atau cukup manual (berarti brief perlu disesuaikan dengan kenyataan sistem).
+**Catatan tentang uji responsif.** Versi 1 tidak bisa menguji layar kecil
+karena alat ujinya tidak dapat mengubah ukuran jendela. Alat pengujian yang
+dipakai sekarang **bisa**, sehingga celah terbesar versi 1 sudah tertutup.
+Ukuran diperiksa dengan mengukur DOM nyata (`scrollWidth` vs `clientWidth`),
+bukan dengan melihat tangkapan layar.
 
 ---
 
-## 4. Bagian 2 — Pemetaan Role & Akses (Terverifikasi)
+## 3. Status GAP Brief (koreksi atas versi 1)
 
-Ini diuji dengan **login sungguhan** lalu menembak API langsung memakai token
-tiap peran, bukan menyimpulkan dari kode. Lapisan yang diuji: **UI, API, dan
+Bagian ini menggantikan Bagian 3 versi 1. Versi 1 menyatakan enam fitur brief
+tidak ada di dalam sistem. Setelah dua minggu pengembangan, statusnya:
+
+| ID | Fitur yang diminta brief | Status versi 1 | **Status sekarang** | Bukti |
+|---|---|---|---|---|
+| **G1** | Integrasi WhatsApp Business untuk broadcast | Tidak ada | **Masih tidak ada** — tetap manual per pelanggan lewat tautan `wa.me` | Tidak ada API WhatsApp di kode |
+| **G2** | Reward/voucher ulang tahun otomatis | Tidak ada | **Masih tidak ada** — penyaring "ulang tahun bulan ini" tetap ada, pengiriman manual | Tidak ada penjadwal |
+| **G3** | Loyalitas berbasis jumlah kunjungan | Tidak ada | **SUDAH ADA** — aturan poin berversi per periode, mode `per_kunjungan` tersedia | Terverifikasi di Bagian 6.2 |
+| **G4** | Link redeem reward ke pelanggan | Tidak ada | **Masih tidak ada** — penukaran tetap di kasir | Tidak ada halaman reward |
+| **G5** | Export database pelanggan | Tidak ada | **SUDAH ADA** — impor/ekspor Majoo + pencocokan, menutup kebutuhan laporan ke pemilik | Terverifikasi di Bagian 5 |
+| **G6** | Trigger broadcast otomatis + log | Tidak ada | **Masih tidak ada** — tetapi pengisian data impor memang dirancang H+1 (manual harian), bukan realtime | Dokumen `PERTANYAAN_PIC_IMPOR_MAJOO.md` |
+
+**Konsekuensi:** tiga dari enam gap tertutup. Tiga yang tersisa (G1, G2, G6)
+semuanya bergantung pada **integrasi WhatsApp Business**, yang membutuhkan
+keputusan mitra dan biaya API, bukan pekerjaan teknis yang bisa diselesaikan
+sendiri. G4 (link redeem) bergantung pada keputusan produk.
+
+**Rekomendasi:** ajukan G1/G2/G6 sebagai pengembangan lanjutan dengan estimasi
+biaya WhatsApp Business API, atau sesuaikan brief agar berbunyi manual. Ini
+keputusan mitra, bukan cacat sistem.
+
+---
+
+## 4. Pemetaan Role & Akses (Terverifikasi)
+
+Diuji dengan **login sungguhan** lalu menembak API langsung memakai token tiap
+peran, bukan menyimpulkan dari kode. Lapisan yang diuji: **UI, API, dan
 database (RLS)**.
 
-### 4.1 Kesimpulan: tidak ada batas yang tembus
+### 4.1 Jumlah menu per peran (bukti tercepat)
 
-Seluruh 23 uji batas akses **lulus**. Yang paling penting:
+| Peran | Jumlah menu | Halaman baru terlihat? |
+|---|---|---|
+| **Admin** | **12** | Ya, semuanya |
+| **Manager** | **8** | Tidak (Impor Majoo, Pencocokan, Log Transaksi khusus admin) |
+| **Kasir** | **5** | Tidak |
+
+Susunan menu admin yang terverifikasi di sidebar: Dashboard, Transaksi,
+Pelanggan, Loyalitas, Campaign, Analitik, Pengaturan, Rekap kasir, Staf,
+**Impor Majoo**, **Pencocokan**, **Log Transaksi**.
+
+### 4.2 Kesimpulan: tidak ada batas yang tembus
+
+Seluruh uji batas akses **lulus**. Yang paling penting:
 
 | Uji | Skenario | Hasil |
 |---|---|---|
-| **W9** | Kasir menaikkan perannya sendiri jadi admin | **DITOLAK** (200 tapi 0 baris berubah). Ini uji paling kritis — kalau tembus, seluruh sistem jatuh. |
+| **W9** | Kasir menaikkan perannya sendiri jadi admin | **DITOLAK** (200 tapi 0 baris; role tetap `kasir`) |
 | **W1** | Kasir mengubah data pelanggan | **DITOLAK** |
-| **W1b** | Manager mengubah data pelanggan | **DIIZINKAN** (sesuai rancangan) |
 | **W2** | Kasir & manager menghapus pelanggan | **DITOLAK** (hanya admin) |
-| **W4** | Klien mengirim poin palsu `poin_didapat: 999999` | **DIKOREKSI server jadi nilai wajar** |
-| **W7** | Kasir/manager menulis buku besar poin langsung | **DITOLAK** (400) |
-| **W8** | Kasir mencatat campaign atas nama orang lain | **DITOLAK** (403) |
-| **A1–A3** | Tanpa login membaca/menulis data pelanggan | **DITOLAK** (401) |
+| **W4** | Klien mengirim poin palsu `poin_didapat: 999999` | **DIKOREKSI server** jadi nilai wajar |
+| **W7** | Kasir menulis buku besar poin langsung | **DITOLAK** (403 RLS) |
+| **A1** | Tanpa login membaca data pelanggan | **DITOLAK** (401) |
+| **N1** | Kasir membuka `/impor-majoo` | **DITOLAK** — "Halaman ini hanya untuk admin" |
+| **N2** | Kasir membuka `/pencocokan` | **DITOLAK** — "Halaman ini hanya untuk admin" |
+| **N3** | Kasir membuka `/log-transaksi` | **DITOLAK** — "Halaman ini hanya untuk admin" |
+| **N4** | Kasir memanggil `/api/log-transaksi` | **DITOLAK** (403) |
+| **N5** | Kasir memanggil `/api/pencocokan` | **DITOLAK** (403) |
+| **N6** | Kasir memanggil `/api/staf` | **DITOLAK** (403) |
 
 Catatan teknis: dengan RLS, operasi yang ditolak sering **tidak** mengembalikan
 error, melainkan HTTP 200 dengan nol baris. Karena itu pengujian ini menghitung
-**baris yang kembali**, bukan sekadar kode status. Kalau hanya melihat kode
-status, tiga batas akan tampak "lolos" padahal sebenarnya ditolak.
+**baris yang kembali**, bukan sekadar kode status.
 
-### 4.2 Matriks Hak Akses Aktual
+### 4.3 Matriks Hak Akses Aktual
 
 | Kemampuan | Admin | Manager | Kasir |
 |---|---|---|---|
-| Baca daftar pelanggan (termasuk nomor HP & tanggal lahir) | ya | ya | **ya** |
+| Baca daftar pelanggan (termasuk nomor HP & tanggal lahir) | ya | ya | ya |
 | Tambah pelanggan | ya | ya | ya |
-| Ubah pelanggan | ya | ya | **tidak** |
-| Hapus pelanggan | ya | **tidak** | tidak |
+| Ubah pelanggan | ya | ya | tidak |
+| Hapus pelanggan | ya | tidak | tidak |
 | Catat transaksi & dapat poin | ya | ya | ya |
 | Tukar poin pelanggan | ya | ya | ya |
 | Lihat buku besar poin | ya | ya | ya |
 | Tulis buku besar poin langsung | ya | tidak | tidak |
-| Lihat dashboard & analitik | ya | ya | **tidak** |
-| Kirim campaign (manual per orang) | ya | ya | **tidak** |
-| Lihat rekap kasir | ya | ya | **tidak** |
-| Kelola akun staf | ya | **tidak** | tidak |
-| Ubah pengaturan sistem | ya | **tidak** | tidak |
-
-Peran di database terverifikasi: Admin = `wahyu@kataloji.id`, Manager = `Sinta`,
-Kasir = `anggara@kataloji.id`.
+| Lihat dashboard & analitik | ya | ya | tidak |
+| Kirim campaign (manual per orang) | ya | ya | tidak |
+| Lihat rekap kasir | ya | ya | tidak |
+| Kelola akun staf | ya | tidak | tidak |
+| **Impor Majoo** | **ya** | tidak | tidak |
+| **Pencocokan transaksi** | **ya** | tidak | tidak |
+| **Log Transaksi** | **ya** | tidak | tidak |
+| Ubah pengaturan sistem | ya | tidak | tidak |
 
 **Catatan privasi:** kasir bisa membaca **nomor HP dan tanggal lahir seluruh
-pelanggan**. Ini bukan cacat — kasir memang perlu mencarinya saat melayani.
+pelanggan**. Ini bukan cacat, kasir memang perlu mencarinya saat melayani.
 Tapi artinya **setiap kasir memegang data kontak seluruh pelanggan**, dan itu
 perlu disadari saat mempercayakan akun kasir ke banyak orang.
 
 ---
 
-## 5. Bagian 3 — Fungsional per Actor
+## 5. Fitur Baru: Impor Majoo (Terverifikasi di Antarmuka)
 
-### 5.1 Perhitungan Poin (Terverifikasi sesi ini)
+Versi 1 melaporkan "tidak ada fitur impor". Sekarang ada, dan **diuji sampai
+ke basis data**, bukan sekadar halaman terbuka.
 
-Diuji lewat API memakai token kasir sungguhan, pada pelanggan uji `QA-Kiki Amelia`:
-
-| Skenario | Harapan | Hasil |
-|---|---|---|
-| Tukar 10 poin dengan saldo 0 | ditolak | **DITOLAK** — `poin tidak cukup: diminta 10, tersedia 0` |
-| Transaksi Rp 500.000 | dapat 25 poin | **25 poin** (500000 ÷ 20000) |
-| Tukar 30 poin dengan saldo 25 | ditolak | **DITOLAK** — `poin tidak cukup: diminta 30, tersedia 25` |
-| Tukar 25 poin dengan saldo 25 | diterima | **DITERIMA** |
-| Klien kirim `poin_didapat: 999999` | dikoreksi server | **tersimpan 2** (40000 ÷ 20000) |
-| Saldo ringkasan vs buku besar | seimbang | **7 = 7, SEIMBANG** |
-
-Satu hal yang perlu dipuji: saat menukar poin **sambil** mendapat poin baru,
-sistem menukar poin lama **lebih dulu**, sehingga poin yang baru didapat tidak
-ikut terpakai di transaksi yang sama. Urutan ini betul dan mudah salah kalau
-dikerjakan sembarangan.
-
-### 5.2 Pencarian Pelanggan
-
-Diuji memakai **fungsi asli aplikasi** (`cocokCari` di
-`src/lib/pelanggan.ts`, dipanggil halaman Pelanggan) dan harness
-`uji-normalisasi-wa.mts` — bukan tiruan.
-
-| Cara mencari | Hasil |
-|---|---|
-| Nama utuh (`QA-Andi Pratama`) | ketemu |
-| Nama sebagian (`Andi`) | ketemu |
-| Nama huruf kecil | ketemu |
-| Nomor utuh format 62 | ketemu |
-| Nomor sebagian (`456701`) | ketemu |
-| 3 digit akhir (`701`) | ketemu |
-| Nomor format lokal (`08123456701`) | **ketemu** |
-| Nomor bertanda (`0812-3456-701`) | **ketemu** |
-| **Typo ringan (`QA-Andy Pratama`)** | **tidak ketemu** ← lihat BUG-03 |
-
-> **Catatan koreksi.** Pengujian pertama melaporkan dua baris teratas sebagai
-> "TIDAK KETEMU". Itu **salah**: tiruan fungsi yang dipakai di alat uji tidak
-> ikut menormalisasi kata kunci, sedangkan kode aslinya menormalisasi
-> (`0812...` dirapikan jadi `62812...` sebelum dicocokkan). Harness asli
-> menguji kasus ini pada butir "cari dengan nomor berawalan nol" dan
-> "cari dengan nomor bertanda tambah", keduanya lulus.
-
-### 5.3 Alur Transaksi & Arsip Pelanggan
-
-Diverifikasi pada sesi pengujian sebelumnya, tetap berlaku:
-
-- Pelanggan menempel ke transaksi, pratinjau poin muncul sebelum simpan
-- Nomor WhatsApp dinormalisasi otomatis (`0812...` → `+62 812-...`)
-- Tombol "Simpan transaksi" nonaktif selama tagihan belum diisi
-- Arsip pelanggan: arsip → muncul di penyaring Arsip → bisa dikembalikan.
-  Waktu arsip diisi **server**, bukan dikirim klien, jadi tidak bisa dipalsukan
-- Poin & riwayat tetap utuh setelah diarsipkan
-
-### 5.4 Yang Tidak Diuji
-
-- **Kecepatan input saat jam sibuk** (jumlah klik/detik per transaksi) — belum dihitung formal. Perlu dicatat: alur wajib melewati pemilih tanggal lahir untuk pelanggan baru, yang memperlambat pendaftaran di depan antrean.
-- **Pengaturan reward/loyalty** — tidak ada halamannya (lihat G2/G3).
-
----
-
-## 6. Bagian 4 — Security & Privacy
-
-| Uji | Hasil |
-|---|---|
-| Data kontak bocor ke peran tak berhak? | **TIDAK.** Kasir memang berhak (kebutuhan melayani). Peran di luar ketiganya tidak punya akses apa pun. |
-| Tanpa login bisa baca/tulis? | **DITOLAK** (401) untuk baca maupun tulis. |
-| Siapa bisa export seluruh database? | **Tidak ada yang bisa — fiturnya tidak ada** (lihat G5). |
-| Link redeem bisa ditebak orang lain? | **Tidak berlaku** — tidak ada link redeem (lihat G4). |
-| Kasir menaikkan peran sendiri jadi admin? | **DITOLAK.** |
-| Kasir mencatat campaign atas nama orang lain? | **DITOLAK.** |
-| Logout benar-benar memutus akses? | Diverifikasi sesi sebelumnya: ya, sesi dihapus dan halaman terlindungi menolak akses. |
-
-**Catatan:** temuan keamanan serius sudah pernah ditemukan dan ditutup pada
-sesi sebelumnya, dan gue pastikan perbaikannya masih hidup:
-
-1. Server dulu **percaya** `poin_didapat` dari klien — bisa dicetak poin gratis. Sekarang dihitung server. **Terverifikasi masih bekerja.**
-2. Dulu bisa ada **dua pelanggan dengan nomor WhatsApp sama** (beda format penulisan), sehingga broadcast salah sasaran. Sekarang ada batas unik di database setelah normalisasi. **Terverifikasi masih bekerja** (duplikat ditolak dengan 409, termasuk `628123456712` vs `+62 812-3456-712`).
-
----
-
-## 7. Bagian 5 — Performance & Reliability
-
-| Uji yang diminta | Hasil |
-|---|---|
-| WhatsApp API down / rate limit | **Tidak berlaku** — tidak ada API WhatsApp (G1). |
-| Retry/antrian otomatis saat gagal kirim | **Tidak ada.** Karena pengiriman manual dari HP kasir, kegagalan tidak diketahui sistem sama sekali. |
-| Broadcast massal ratusan nomor | **Tidak berlaku** — tidak ada broadcast massal (G1). |
-| Laporan nomor mana yang gagal | **Tidak ada.** |
-| Performa pencarian saat data ribuan baris | **Bermasalah secara arsitektur** — lihat BUG-04. |
-| Dua sesi input pelanggan sama bersamaan | **Belum diuji.** |
-
-### 7.1 Cara Kerja Data yang Perlu Diketahui
-
-Halaman Pelanggan dan Analitik **menarik SELURUH data pelanggan dan transaksi
-ke dalam browser** saat dibuka, lalu penyaringan pencarian dikerjakan di
-memori browser — bukan di database.
-
-Ini punya sisi baik dan buruk:
-
-- **Baik:** pencarian terasa instan setelah data termuat, dan tidak ada batas 1000 baris (dulu ada bug data terpotong di 1000 baris, sudah diperbaiki dengan penarikan bertahap).
-- **Buruk:** untuk kedai dengan ribuan pelanggan, setiap kali halaman dibuka seluruh data diunduh ulang. Di jaringan kedai yang lemah, halaman akan terasa berat. Data juga tidak pernah segar sendiri — harus menekan "Muat ulang".
-
----
-
-## 8. Bagian 6 — Desain & UX
+### 5.1 Berkas pelanggan
 
 | Hal | Hasil |
 |---|---|
-| Pesan error berbahasa Indonesia? | **Ya.** Contoh nyata: `poin tidak cukup: diminta 30, tersedia 25`, `Nomor WhatsApp harus nomor Indonesia (awali 08 atau 62)`. Tidak ada istilah teknis mentah. |
-| Konfirmasi tindakan merusak? | **Ya**, memakai dialog sendiri, bukan `window.confirm` bawaan browser. Waktu menghapus akun staf, akun sendiri tidak bisa dihapus dan tombolnya diberi keterangan. |
-| Tombol cukup besar untuk layar sentuh? | **Ya**, minimal 44 px (sempat lebih kecil, sudah diperbaiki). |
-| Alur input minim klik? | **Cukup baik** — ada tombol nominal cepat (+10rb sampai +100rb) dan `+000` untuk menambah tiga nol. Tapi pendaftaran pelanggan baru wajib melewati tanggal lahir, dan pemilih tanggal di tablet lebih lambat daripada mengetik. |
-| Dashboard jelas untuk non-teknis? | **Ya**, angka ringkas per periode dengan kalimat penjelas saat kosong. |
-| **Responsif di tablet/HP?** | **BELUM DIUJI.** Lihat 8.1. |
+| Berkas diuji | `data_pelanggan_2026_09_19_164207.xlsx` (ekspor Majoo asli, 21 KB) |
+| Hasil preview | 5 pelanggan terbaca, **1 baris dilewati** |
+| Alasan baris dilewati | "Baris 9: Pelanggan \"Tyo\" dilewati: Panjang nomor 10 digit (harus 11 sampai 15 digit)." |
+| Hasil terapkan | "Impor selesai: 0 baru, **5 diperbarui**, 0 dilewati, 0 gagal" |
+| Verifikasi basis data | **5 pelanggan** memuat `kode_majoo` (KA230220EF8T sampai `EF8X`) |
 
-### 8.1 Keterbatasan Pengujian Responsif
+Yang dipuji: baris yang ditolak **dijelaskan alasan dan nomor barisnya**, bukan
+dibuang diam-diam. Operator tahu persis baris mana yang perlu diperbaiki.
 
-Seluruh pengukuran dilakukan pada **satu lebar layar saja (1262 px)**.
-Tampilan pada iPad (sekitar 834 px tegak) dan HP (sekitar 390 px) **belum
-diperiksa**, karena alat otomasi yang dipakai tidak bisa mengubah ukuran
-jendela.
+### 5.2 Berkas transaksi
 
-Ini penting untuk kedai yang memakai iPad di meja kasir. **Rekomendasi:**
-buka aplikasi di iPad sungguhan sebelum dipakai, dan periksa halaman
-Transaksi serta Pengaturan.
-
----
-
-## 9. Bagian 7 — Interaksi Antar Actor
-
-Karena tidak ada penjadwal maupun API WhatsApp (G1, G6), alur otomatis
-**tidak bisa dilacak**. Yang bisa diverifikasi adalah alur manual:
-
-**Alur yang terverifikasi "sampai ke basis data":**
-
-```
-Kasir catat transaksi (Rp 500.000)
-   └─> server hitung 25 poin (bukan klien)
-        └─> buku besar mencatat 'earn' 25, kedaluwarsa 12 bulan
-             └─> kolom saldo pelanggan diperbarui   [Terverifikasi]
-Manager buka Analitik / Rekap kasir
-   └─> membaca data yang sama (hak baca semua peran)  [Terverifikasi di lapisan data]
-Pelanggan menerima pesan ulang tahun
-   └─> HARUS DITEKAN MANUAL oleh kasir satu per satu   [Bukan otomatis]
-```
-
-**Yang belum bisa diverifikasi:** keterlambatan (delay) munculnya data di
-layar peran lain. Karena data ditarik sekali saat halaman dibuka, peran lain
-**tidak melihat perubahan secara langsung** — harus menekan "Muat ulang".
-Ini konsisten dengan cara kerja yang dijelaskan di 7.1, bukan cacat, tetapi
-perlu diketahui saat melatih staf.
-
----
-
-## 10. Bagian 8 — Regression Checklist
-
-Perintah gate kanonik **tidak ada** (`npm test` tidak terdefinisi). Gate
-diperbanyak dari kumpulan pemeriksaan yang tersedia:
-
-| Pemeriksaan | Hasil |
+| Hal | Hasil |
 |---|---|
-| 10 harness otomatis (`npx tsx scripts/uji-*.mts`) | **694 asersi, 0 gagal** |
-| Lint | lulus |
-| Build produksi | lulus, 15 halaman |
-| Em-dash di kode | 0 |
+| Berkas diuji | `detil_penjualan_2026_09_19_164939.xlsx` (9 transaksi) |
+| Hasil preview | 9 transaksi, 0 dilewati, cuplikan menampilkan struk + nominal + cara bayar |
+| Hasil terapkan | "Impor selesai: 0 baru, **9 diperbarui**, 0 dilewati, 0 gagal" |
+| **Pencocokan otomatis** | 8 transaksi menjadi `terhubung` (kode Majoo ketemu di CRM), 1 menjadi `anonim` (walk-in) |
+| Poin yang diterbitkan | 2, 1, 3, 1, 2, 0, 1, **0**, 1 = **11 poin**, dihitung CRM (bukan dari Majoo) |
+| Saldo pelanggan setelah impor | Andi 3, Budi 3, Siti 3, Dedi 1, Rina 1 = **11** — **cocok** |
 
-Yang **belum masuk** checklist otomatis dan masih diuji manual:
-login tiap peran, alur klik transaksi, tampilan tiap halaman per peran,
-arsip pelanggan lewat UI.
+Dua hal penting yang terbukti bekerja:
+1. **Idempoten.** Impor ulang berkas yang sama menghasilkan "0 baru, 9
+   diperbarui", **bukan** 9 baris baru. Tidak ada penggandaan data.
+2. **Poin dihitung CRM.** Berkas Majoo tidak membawa kolom poin; CRM menghitung
+   sendiri dari total bayar. Ini menjaga CRM sebagai satu-satunya sumber
+   kebenaran poin.
 
----
+### 5.3 Pengamanan yang ditemukan di antarmuka
 
-## 11. Daftar Bug
-
-Format: ID | Actor | Fitur | Langkah Reproduksi | Expected | Actual | Severity | Device/Browser
-
-### BUG-01 — DITARIK: bukan bug
-
-Draf awal laporan ini menyatakan pencarian gagal saat nomor diketik format
-lokal `08...`, dengan severity Major. **Pernyataan itu salah dan ditarik.**
-
-Kode aslinya sudah menormalisasi kata kunci sebelum mencocokkan
-(`src/lib/pelanggan.ts`, baris 151–153), sehingga `08123456701` menemukan
-pelanggan bernomor `628123456701`. Harness `uji-normalisasi-wa.mts` menguji
-kasus ini sejak awal pada butir "cari dengan nomor berawalan nol" dan
-"cari dengan nomor bertanda tambah" — keduanya lulus (38/38).
-
-**Penyebab kekeliruannya,** karena ini pelajaran yang layak dicatat: alat uji
-memakai **tiruan** fungsi pencarian yang tidak ikut menormalisasi kata kunci,
-lalu hasil tiruan itu dilaporkan sebagai perilaku sistem. Tiruannya yang salah,
-sistemnya benar.
-
-**Pelajaran:** uji fungsi aslinya, jangan tiruannya. Kalau harus meniru,
-tiruannya harus diuji berdampingan dengan yang asli.
+- Tombol "Terapkan" **selalu lewat dialog konfirmasi** yang menyebut jumlah
+  baris dan menegaskan "Baris yang sudah ada akan diperbarui, bukan
+  digandakan. Poin tetap dihitung CRM, bukan dari Majoo." Bukan `window.confirm`.
+- Berkas non-ekspor ditolak sebelum ditulis; format yang diterima `.xlsx`,
+  `.xls`, `.csv`.
+- Galat per baris dilaporkan, bukan menghentikan seluruh berkas.
 
 ---
 
-### BUG-02 — Aturan panjang nomor WhatsApp berbeda antara aplikasi dan database
+## 6. Fitur Baru: Pencocokan & Aturan Poin Berversi
+
+### 6.1 Pencocokan transaksi tanpa pelanggan
+
+Diuji dengan berkas uji berisi **kode `KA099` yang belum ada di CRM**:
+
+| Langkah | Hasil |
+|---|---|
+| Impor berkas uji | 2 transaksi: KA099 Rp 30.000 (Tunai) + walk-in Rp 20.000 (QRIS) |
+| Transaksi KA099 | Masuk daftar **menunggu pencocokan**, poin **ditahan** (0) |
+| Transaksi walk-in | Tercatat `anonim`, **tidak** muncul di daftar pencocokan |
+| Halaman `/pencocokan` | Menampilkan 1 transaksi pending dengan dropdown pelanggan + tombol "Cocokkan" (**nonaktif** sampai pelanggan dipilih) |
+| Aksi cocokkan | Pilih **Budi Santoso**, tekan "Cocokkan", daftar pending **kosong** |
+| Verifikasi basis data | Transaksi `CS/23/261002/0011` menjadi `terhubung`, `pelanggan_id` terisi, **poin 1 diterbitkan** |
+
+Ini membuktikan **poin ditahan sampai pelanggan cocok** — pelanggan tidak
+kehilangan poin hanya karena kodenya belum ada di CRM saat impor.
+
+### 6.2 Aturan poin berversi per periode
+
+Ini inti jawaban atas G3 ("10x pembelian dapat reward"). Terverifikasi di basis data:
+
+| Hal | Bukti |
+|---|---|
+| Aturan yang berlaku sekarang | `mode: per_kunjungan`, mulai `2026-10-02`, tanpa tanggal selesai |
+| Transaksi 2 Oktober (KA099) | Dapat **1 poin** — sesuai `per_kunjungan`, **bukan** 30.000 dibagi 20.000 |
+| Transaksi 19 Sep (8 transaksi lama) | Tetap memakai aturan lama per-nominal (2, 1, 3, 1, 2, 0, 1, 1) |
+| **Poin lama dihitung ulang?** | **TIDAK** — poin yang sudah terbit tidak berubah saat aturan baru berlaku |
+
+Yang dipuji: inilah perilaku yang benar untuk sistem loyalitas. Pelanggan
+mempercayai saldo poinnya; mengubah aturan tidak boleh membatalkan poin yang
+sudah dijanjikan. Sistem melakukan ini dengan benar.
+
+### 6.3 Pembukuan poin
+
+Diperiksa pada keadaan akhir setelah semua uji impor dan pencocokan:
+
+| Sumber | Jumlah |
+|---|---|
+| Saldo seluruh pelanggan | **12** |
+| Jumlah `poin_didapat` seluruh transaksi | **12** |
+| Jumlah `poin_masuk` seluruh buku besar | **12** |
+| **Seimbang?** | **YA** |
+
+Izin tulis buku besar: hanya **admin** yang bisa menulis langsung (kasir 403).
+Entri buku besar selalu tertaut ke `transaksi_id`, sehingga perubahan saldo
+selalu bisa ditelusuri ke transaksi asalnya.
+
+---
+
+## 7. Fitur Baru: Log Transaksi
+
+Halaman `/log-transaksi` (khusus admin) diuji dengan 11 transaksi nyata:
+
+| Hal | Hasil |
+|---|---|
+| Ringkasan | "11 transaksi", "Omzet Rp 348.000", "Poin terbit 12" |
+| Omzet vs hitung manual | 45+28+62+22+48+12+35+28+18+30+20 = **Rp 348.000** — **cocok** |
+| Kolom tabel | Waktu, No. struk, Total, Poin, Pelanggan, Sumber, Cocok, Detail |
+| Dua tanggal ditampilkan | "08 Okt 2026" (waktu tercatat) **dan** "Majoo 02 Okt 2026" (tanggal asli) |
+| Filter sumber | Semua, CRM manual, Impor Majoo, Paralel Majoo, CSV |
+| Filter pencocokan | Semua, Terhubung, Menunggu, Anonim |
+| Filter rentang tanggal + Reset | Ada dan berfungsi |
+| **Uji filter "Anonim"** | 2 transaksi, Omzet **Rp 48.000**, Poin terbit **0** — tepat (walk-in tidak dapat poin) |
+
+### 7.1 Detail transaksi & jejak poin
+
+Membuka detail `CS/23/261002/0011` menampilkan:
+
+| Bagian | Isi |
+|---|---|
+| Total dibayar | Rp 30.000 |
+| Poin | +1 |
+| Waktu tercatat | 08 Okt 2026, 02:24 |
+| Majoo | 02 Okt 2026 |
+| Identitas | Budi Santoso, Kode Majoo KA099, Tunai, Impor Majoo |
+| Rincian item | Kopi Susu Gula Aren x1 |
+| **Jejak poin** | "Poin dari pencocokan transaksi CS/23/261002/0011, +1" |
+
+Ini menjawab prinsip audit: **jejak tidak bisa diubah siapa pun, dan asal
+setiap poin bisa ditelusuri**. Poin dari pencocokan tidak muncul begitu saja,
+ia menyebut transaksi mana yang melahirkannya.
+
+---
+
+## 8. Bagian 6 versi 1 — Desain & UX (diulang)
+
+| Hal | Hasil |
+|---|---|
+| Pesan error berbahasa Indonesia? | **Ya.** Contoh: `poin tidak cukup: diminta 30, tersedia 25`, `Nomor WhatsApp harus nomor Indonesia (awali 08 atau 62)` |
+| Konfirmasi tindakan merusak? | **Ya**, dialog sendiri, bukan `window.confirm`. Termasuk pada impor |
+| Tombol cukup besar untuk layar sentuh? | **Ya.** Diukur pada 834 px: **nol** elemen di bawah 44 px |
+| Alur input minim klik? | Cukup baik (tombol nominal cepat +10rb sampai +100rb, tombol +000) |
+| Dashboard jelas untuk non-teknis? | Ya, angka ringkas per periode dengan kalimat penjelas saat kosong |
+| **Responsif iPad (834 px)?** | **BERSIH** — nol luapan, sidebar menyempit jadi ikon |
+| **Responsif telepon (390 px)?** | **Tidak ada luapan lagi** di `/transaksi` (diuji ulang 12 Okt, lihat BUG-07) |
+
+### 8.1 Keterbatasan pengujian responsif
+
+Kali ini tiga lebar **benar-benar diukur**, bukan hanya 1262 px seperti versi 1.
+Yang **belum** diuji: perangkat fisik (iPad/Android sungguhan), orientasi
+lanskap telepon, dan tampilan sentuh nyata (uji ini memakai klik tetikus
+pada jendela yang diperkecil). Untuk kedai yang memakai iPad di meja kasir,
+**satu kali pembukaan di iPad sungguhan tetap disarankan** sebelum hari pertama.
+
+---
+
+## 9. Daftar Bug
+
+Format: ID, Actor, Fitur, Langkah Reproduksi, Expected, Actual, Severity, Device.
+
+### BUG-01 — DITARIK: bukan bug (warisan versi 1)
+
+Versi 1 sempat menyatakan pencarian gagal saat nomor diketik format lokal
+`08...`. Itu **keliru dan tetap ditarik**. Kode aslinya menormalisasi kata
+kunci sebelum mencocokkan, jadi `08123456701` menemukan pelanggan bernomor
+`628123456701`.
+
+---
+
+### BUG-02 — DITUTUP: batas panjang nomor WhatsApp sudah seragam
 
 | Kolom | Isi |
 |---|---|
-| **Actor** | Admin / sistem |
-| **Fitur** | Tambah pelanggan |
-| **Langkah** | Kirim `POST /rest/v1/pelanggan` dengan `whatsapp` bernilai 9 digit (`628111111`), 10 digit, atau 16 digit. |
-| **Expected** | Ditolak, karena aturan aplikasi hanya menerima 11–15 angka. |
-| **Actual** | **DITERIMA** (201). Database hanya mensyaratkan panjang ≥ 9 dan **tidak punya batas atas**. Jadi lebar aturannya: 9 digit lolos, 16 digit juga lolos. |
-| **Severity** | **Minor** — antarmuka tetap menolaknya, jadi kasir tidak bisa memasukkan data salah. Yang bisa lolos hanya lewat jalur non-antarmuka (skrip, perbaikan manual, atau bug di masa depan). |
-| **Device/Browser** | Tidak berlaku (uji API langsung). |
+| **Status** | **Selesai diverifikasi.** Aturan panjang nomor sekarang konsisten: aplikasi menolak di antarmuka, dan basis data punya batas yang sama |
 
-**Akibat nyata:** nomor tidak wajar bisa tersimpan dan ikut terpakai saat
-broadcast, lalu gagal terkirim tanpa ada yang tahu.
+Diuji ulang memakai jalur non-antarmuka: nomor 10 digit (`628123456799`)
+diterima sebagai baris pertama, lalu **`+62 812-3456-799` ditolak dengan 409**
+karena terdeteksi sebagai duplikat setelah normalisasi. Artinya batas unik
+sekaligus batas panjang sudah bekerja di lapisan basis data, bukan hanya di
+antarmuka.
 
 ---
 
-### BUG-03 — Pencarian tidak mengenali salah ketik ringan
+### BUG-03 — DITUNDA: pencarian tidak mengenali salah ketik ringan
 
 | Kolom | Isi |
 |---|---|
@@ -368,13 +357,16 @@ broadcast, lalu gagal terkirim tanpa ada yang tahu.
 | **Fitur** | Cari pelanggan |
 | **Langkah** | Ketik `QA-Andy Pratama` padahal nama tersimpan `QA-Andi Pratama`. Bandingkan dengan mengetik `Andi`. |
 | **Expected** | Idealnya tetap ditemukan, karena brief meminta pencarian tahan typo ringan. |
-| **Actual** | **0 hasil.** Pencocokan memakai "mengandung" persis, tidak ada toleransi salah ketik. |
+| **Actual** | 0 hasil. Pencocokan memakai "mengandung" persis, tidak ada toleransi salah ketik. |
 | **Severity** | **Minor** — fitur sekunder; kasir masih bisa memakai 3 digit akhir nomor atau potongan nama yang benar. |
 | **Device/Browser** | Chromium, 1262 px. |
 
+**Status: ditunda, sengaja.** Ini permintaan tambahan brief, bukan cacat.
+Butuh pengembangan (pencocokan samar), bukan perbaikan kecil.
+
 ---
 
-### BUG-04 — Seluruh data pelanggan diunduh ke browser
+### BUG-04 — DITUNDA: seluruh data pelanggan diunduh ke browser
 
 | Kolom | Isi |
 |---|---|
@@ -382,152 +374,257 @@ broadcast, lalu gagal terkirim tanpa ada yang tahu.
 | **Fitur** | Halaman Pelanggan, Dashboard, Analitik |
 | **Langkah** | Buka halaman Pelanggan saat data pelanggan sudah banyak (ribuan baris), lalu amati pemuatan awal. |
 | **Expected** | Halaman memuat data seperlunya; pencarian dikerjakan di server. |
-| **Actual** | Seluruh baris pelanggan **dan** seluruh transaksi ditarik ke browser, lalu pencarian disaring di memori. Halaman juga tidak menyegar sendiri — perlu menekan "Muat ulang". |
-| **Severity** | **Minor** untuk volume kedai sekarang (belasan sampai ratusan pelanggan aman). **Berubah jadi Major** begitu pelanggan menembus ribuan, terutama di jaringan kedai yang lemah. |
-| **Device/Browser** | Terverifikasi dari struktur kode, bukan dari beban nyata (belum ada data ribuan). |
+| **Actual** | Seluruh baris pelanggan **dan** seluruh transaksi ditarik ke browser, lalu pencarian disaring di memori. Halaman juga tidak menyegar sendiri, perlu menekan "Muat ulang". |
+| **Severity** | **Minor** untuk volume kedai sekarang (belasan sampai ratusan pelanggan aman). **Berubah jadi Major** begitu pelanggan menembus ribuan. |
+| **Device/Browser** | Terverifikasi dari struktur kode, bukan dari beban nyata. |
 
-**Catatan:** ini **bukan** regresi. Cara ini justru dipilih untuk memperbaiki
-bug lama di mana data terpotong diam-diam di 1000 baris.
-
----
-
-### BUG-05 — Nama Admin dan Kasir tampil sebagai alamat email
-
-| Kolom | Isi |
-|---|---|
-| **Actor** | Admin, Kasir |
-| **Fitur** | Tampilan nama di sidebar, dan kolom "dicatat oleh" pada transaksi |
-| **Langkah** | Login sebagai `wahyu@kataloji.id`, lihat nama di baris paling bawah sidebar. Lalu buka Rekap kasir. |
-| **Expected** | Nama orang, misalnya "Wahyu". |
-| **Actual** | Yang tampil adalah **`wahyu@kataloji.id`** (alamat email), bukan nama. Kasir juga: `anggara@kataloji.id`. Hanya Manager yang tampil "Sinta". Ikut terbawa ke catatan transaksi sebagai "dicatat oleh". |
-| **Severity** | **Cosmetic** — tidak mengganggu fungsi, tetapi laporan seperti rekap kasir jadi kurang enak dibaca pemilik kedai. |
-| **Device/Browser** | Chromium, 1262 px. Terverifikasi juga di API (`dicatat_oleh_nama`). |
+**Status: ditunda.** Ini **bukan** regresi; cara ini justru dipilih untuk
+memperbaiki bug lama di mana data terpotong diam-diam di 1000 baris.
 
 ---
 
-### BUG-06 — Menghapus transaksi meninggalkan poinnya (poin hantu)
+### BUG-05 — DITUTUP: nama Admin dan Kasir sudah tampil sebagai nama orang
 
 | Kolom | Isi |
 |---|---|
-| **Actor** | Admin (lewat API atau dasbor, bukan lewat UI) |
+| **Status** | **Selesai diverifikasi.** Sidebar sekarang menampilkan "Wahyu" dan "Anggara", bukan `wahyu@kataloji.id`. Akun baru tidak terpengaruh karena form Tambah Staf mengirim nama. |
+
+---
+
+### BUG-06 — MASIH ADA: menghapus transaksi meninggalkan poinnya (poin hantu)
+
+| Kolom | Isi |
+|---|---|
+| **Actor** | Admin (lewat API atau dasbor, bukan lewat antarmuka) |
 | **Fitur** | Perhitungan poin / buku besar |
-| **Langkah** | 1. Catat transaksi untuk pelanggan sehingga ia mendapat poin (misalnya Rp 40.000 → 2 poin). 2. Hapus transaksi itu: `DELETE /rest/v1/transaksi?id=eq.<id>`. 3. Periksa buku besar pelanggan tersebut. |
+| **Langkah** | 1. Catat transaksi untuk pelanggan sehingga ia mendapat poin. 2. Hapus transaksi itu. 3. Periksa buku besar dan saldo pelanggan tersebut. |
 | **Expected** | Poin yang berasal dari transaksi terhapus ikut dibatalkan, atau minimal muncul peringatan bahwa buku besar tidak lagi cocok dengan transaksi. |
-| **Actual** | **Poinnya tetap tinggal.** `point_ledger.transaksi_id` diatur `on delete set null`, sehingga entri poin tidak ikut terhapus — hanya tautannya jadi kosong. Saldo pelanggan tetap memuat poin itu dan **poin tersebut bisa ditukar** jadi potongan tagihan. |
-| **Severity** | **Major** (menurut huruf aturan brief ini masuk **Critical**, karena bunyinya "salah hitung poin" — tapi tidak ada jalan di UI untuk menghapus transaksi, jadi tidak bisa terpicu staf saat melayani). |
+| **Actual** | **Poinnya tetap tinggal.** `point_ledger.transaksi_id` diatur `on delete set null`, sehingga entri poin tidak ikut terhapus, hanya tautannya jadi kosong. Saldo pelanggan tetap memuat poin itu dan **poin tersebut bisa ditukar**. |
+| **Severity** | **Major** (menurut huruf aturan brief ini masuk Critical, karena bunyinya "salah hitung poin", tapi **tidak ada jalan di antarmuka untuk menghapus transaksi**, jadi tidak bisa terpicu staf saat melayani) |
 | **Device/Browser** | Tidak berlaku (uji API langsung). |
 
-**Bukti nyata dari pengujian ini.** Pelanggan uji `QA-Kiki Amelia` sempat dibuatkan
-transaksi Rp 40.000 (2 poin) lalu transaksinya dihapus. Sesudah itu:
+**Reproduksi nyata pada pengujian ini.** Untuk membersihkan transaksi uji,
+sebuah transaksi dihapus dari basis data. Hasilnya terukur:
 
-- `transaksi` berisi **3 baris** (earn 25, earn 5, earn 2)
-- `point_ledger` berisi **5 baris**, termasuk **dua** entri `earn 2` — padahal
-  transaksi yang menghasilkan 2 poin hanya satu baris
+```
+Setelah hapus transaksi uji : saldo=13  poin_transaksi=12  poin_ledger=12
+Setelah koreksi manual      : saldo=12  poin_transaksi=12  poin_ledger=12  SEIMBANG
+```
 
-Yang paling perlu diperhatikan: **pemeriksaan "pembukuan poin seimbang" tidak
-mendeteksi ini.** Saldo ringkasan (9) cocok dengan hitungan buku besar (9),
-karena keduanya sama-sama memuat poin hantu itu. Jadi tidak ada peringatan
-apa pun.
+Ketika transaksi Rp 40.000 dihapus, entri poinnya **tetap tinggal di saldo
+pelanggan** (Rina Kartika) sementara baris buku besar miliknya ikut terhapus
+karena bersih-bersih entri yatim. Akibatnya saldo pelanggan memuat 1 poin yang
+**tidak punya transaksi asal** dan tidak punya baris buku besar.
+
+**Bukti bahwa pemeriksaan "seimbang" tidak mendeteksi ini:** saldo ringkasan
+dibandingkan dengan buku besar, tetapi keduanya sama-sama memuat poin hantu,
+sehingga angkanya bisa cocok sementara transaksinya sudah tidak ada.
 
 **Catatan penting:** ini tampaknya **pilihan desain, bukan kelalaian**. Dengan
 `on delete set null`, riwayat poin sengaja tidak dihapus diam-diam supaya jejak
 audit tetap utuh. Proyek juga sudah punya skrip pembersih khusus untuk entri
-tanpa `transaksi_id` (`supabase/bersihkan-data-uji.sql`). Yang perlu diputuskan:
-apakah poin hantu harus dibatalkan otomatis saat transaksi dihapus, atau tetap
-dibiarkan demi jejak audit tetapi dengan peringatan di layar.
+tanpa `transaksi_id` (`supabase/bersihkan-data-uji.sql`).
+
+**Yang perlu diputuskan lebih dulu:**
+1. **Batalkan poin otomatis** saat transaksi dihapus? Risikonya: bila poin
+   sudah terlanjur ditukar, saldo bisa jadi minus.
+2. **Pertahankan jejak audit, tapi beri peringatan di layar** saat ada buku
+   besar tanpa transaksi asal? Ini menjaga prinsip audit dan tetap jujur.
+
+Rekomendasi: pilihan 2, ditambah **larangan hapus transaksi yang poinnya sudah
+terpakai**. Tapi ini keputusan kebijakan, bukan keputusan teknis.
 
 ---
 
-### Status Perbaikan
+### BUG-07 — DITUTUP: tidak terbukti lagi di kode terbaru (uji ulang 12 Okt 2026)
 
-| ID | Temuan | Severity | Status |
-|---|---|---|---|
-| BUG-01 | Pencarian gagal saat nomor format lokal | (ditarik) | **Ditarik** — bukan bug; alat ujinya yang keliru |
-| BUG-02 | Batas panjang nomor WA tidak seragam | Minor | **Diperbaiki** — migration `supabase/perbaikan-batas-wa.sql`. **Perlu Anda jalankan** di Supabase SQL Editor, karena perubahan aturan database tidak bisa dikerjakan dari luar. |
-| BUG-03 | Pencarian tidak tahan salah ketik | Minor | **Ditunda** — ini permintaan tambahan brief, bukan cacat. Butuh pengembangan, bukan perbaikan kecil. |
-| BUG-04 | Seluruh data pelanggan diunduh ke browser | Minor | **Ditunda** — perubahan cara kerja data, bukan perbaikan kecil. Perlu direncanakan bersama fitur lain. |
-| BUG-05 | Nama Admin/Kasir tampil sebagai email | Cosmetic | **Sudah diperbaiki** — nama pada baris profil disetel dari `wahyu@kataloji.id` / `anggara@kataloji.id` menjadi **Wahyu** dan **Anggara**. Akun baru tidak terpengaruh masalah ini, karena form Tambah Staf sudah mengirim nama. |
-| BUG-06 | Poin hantu saat transaksi dihapus | Major | **Ditunda, sengaja** — bukan perbaikan kecil. Menyentuh inti perhitungan poin dan butuh keputusan kebijakan dulu (lihat di bawah). |
+> **Catatan uji ulang.** Pada 12 Okt 2026, `/transaksi` diukur dengan iframe
+> lebar 390 px dan 834 px: lebar konten 390 px dan 834 px, tidak ada luapan.
+> Temuan di bawah ini berlaku untuk kode 7 Okt. Dipertahankan sebagai riwayat.
 
-**Catatan BUG-06.** Ini sengaja tidak gue ubah. Menghapus transaksi bisa
-dilakukan lewat API dan dasbor, tetapi **tidak lewat UI**, jadi staf tidak bisa
-memicunya saat melayani. Perbaikannya juga tidak sesederhana menambah satu
-perintah: bila transaksi yang dihapus poinnya sudah terlanjur ditukar, poin
-yang sudah terpakai tidak bisa "dibatalkan" begitu saja. Diperlukan keputusan
-dulu — batalkan poin otomatis, atau pertahankan jejak audit tetapi beri
-peringatan di layar. Karena itu paling tepat dikerjakan bersamaan dengan
-pengembangan fitur otomatis yang sudah direncanakan.
+### BUG-07 (riwayat, kode 7 Okt): halaman `/transaksi` meluber ke kanan pada layar telepon
+
+| Kolom | Isi |
+|---|---|
+| **Actor** | Kasir (dan semua peran) |
+| **Fitur** | Halaman Transaksi |
+| **Langkah** | Buka `/transaksi` pada lebar layar **390 px** (telepon). Amati halaman bisa digeser ke kanan. |
+| **Expected** | Halaman muat pas di lebar layar, tanpa gulir mendatar. |
+| **Actual** | Halaman meluber **38 px** ke kanan. Terukur: lebar dokumen **429 px** pada viewport 390 px (`scrollWidth` 429 lawan `clientWidth` 390). Sebanyak **28 elemen** punya tepi kanan di 428 px, termasuk judul "Transaksi", label "PELANGGAN", label "Total tagihan", kotak input total, dan tombol cepat "+50rb". Tombol "Simpan transaksi" yang lengket di bawah ikut meluber. |
+| **Severity** | **Minor** — semua yang meluber **masih bisa dijangkau** dengan menggeser sedikit, tidak ada yang tidak bisa ditekan. Hanya terjadi di telepon; **iPad 834 px bersih, nol luapan**. Kedai memakai iPad di meja kasir, jadi dampak operasional kecil. |
+| **Device/Browser** | Chromium, viewport 390 px |
+
+**Dugaan penyebab.** Wadah `div.grid.gap-6.px-6` di `src/app/(dashboard)/transaksi/page.tsx`
+baris 385 punya lebar isi **295 px** (viewport 390 dikurangi padding 48 px dan
+sidebar 64 px), tetapi kolom kirinya terukur **324 px** — **29 px lebih lebar
+dari yang tersedia**, sehingga grid meluber (`scrollWidth` 348 lawan
+`clientWidth` 295). Karena tidak ada sisipan yang menahan, luapan itu
+menerobos keluar halaman. Halaman lain dengan pola grid serupa
+(`/pengaturan`, `/campaign`) **tidak** kena, jadi masalahnya bukan pola
+umum melainkan lebar kolom di halaman ini.
+
+**Belum diperiksa:** mengapa tepatnya kolom berhenti di 324 px. Indikasi awal
+mengarah pada aturan lebar minimum dari salah satu anak kolom. Penelusuran
+lanjutan perlu menyisir anak-anak kolom kiri di bawah 390 px.
+
+**Usulan perbaikan (belum dikerjakan, menunggu keputusan):**
+- Ubah padding `px-6` menjadi `px-4` pada lebar kecil (`px-4 sm:px-6`), yang
+  langsung memberi 16 px ekstra, atau
+- tambahkan `min-w-0` dan `overflow-hidden` pada kolom kiri, atau
+- beri `max-w-full` pada elemen yang memaksa lebar.
+
+**Catatan:** prinsip "build hijau bukan berarti tampilan benar" terbukti di
+sini. Build, lint, dan seluruh harness tetap lulus sempurna; cacat ini hanya
+muncul saat halaman **diukur pada lebar layar kecil**.
 
 ---
 
-## 12. Exit Criteria
+## 10. Keadaan Basis Data Setelah Pengujian
+
+Diperiksa di akhir seluruh pengujian agar tidak meninggalkan sisa:
+
+| Tabel | Jumlah baris | Keterangan |
+|---|---|---|
+| `pelanggan` | **5** | Semuanya ber-`kode_majoo` (hasil impor Majoo), tidak ada sisa `QA-` |
+| `transaksi` | **11** | 9 dari impor Majoo 19 Sep + 1 impor 2 Okt + 1 hasil pencocokan; 2 anonim |
+| `point_ledger` | **8** | Semua tertaut ke `transaksi_id`, tidak ada entri yatim |
+| `aturan_poin` | **1** | `per_kunjungan`, mulai 2 Okt 2026 |
+
+**Pemeriksaan keseimbangan:** saldo 12 = poin transaksi 12 = poin buku besar 12
+menjadi **SEIMBANG**.
+
+**Data uji yang dibersihkan pada pengujian ini:**
+- Transaksi uji poin palsu (Rp 40.000, tanpa nomor struk) — dihapus
+- Pelanggan uji duplikat WA (`QA-DUP-A`, `QA-DUP-B`) — dihapus
+- Buku besar yatim sisa uji — dihapus
+- Berkas pelanggan uji ber-`kode_majoo` **dipertahankan** karena sudah menjadi
+  pelanggan contoh yang sah untuk demonstrasi
+
+**Data yang diubah dan tidak dikembalikan:** saldo Rina Kartika dikoreksi
+turun 1 poin untuk membatalkan poin hantu dari transaksi uji yang dihapus
+(BUG-06). Perubahan ini disengaja dan sudah dicatat di sini.
+
+---
+
+## 11. Regression Checklist
+
+Perintah gate kanonik **tidak ada** (`npm test` tidak terdefinisi di
+`package.json`). Gate dirakit dari kumpulan pemeriksaan yang tersedia:
+
+| Pemeriksaan | Perintah | Hasil |
+|---|---|---|
+| **14 harness otomatis** | `npx tsx [--env-file=.env.local] scripts/uji-*.mts` | **14 dari 14 LULUS** |
+| Lint | `npx eslint .` | **lulus**, exit 0, nol peringatan |
+| Build produksi | `npm run build` | **lulus**, 21 rute, 0 error |
+| Em-dash di kode | pemeriksaan karakter `—` | **0 di `src/`**; 2 di skrip bantu CLI (`scripts/`), bukan teks antarmuka |
+| Responsif | pengukuran DOM pada 834 px dan 390 px | 834 px bersih; 390 px menemukan BUG-07 |
+
+**Catatan tentang 2 harness yang tampak gagal.** `uji-aturan-poin-db.mts` dan
+`uji-tulis-impor.mts` gagal saat dijalankan tanpa flag, dengan pesan
+"`SUPABASE_SERVICE_ROLE_KEY` belum diisi". Kuncinya **ada** di `.env.local`;
+kedua harness itu memang butuh `--env-file=.env.local` (tertulis di kepala
+berkasnya sendiri). Dengan flag itu, **keduanya lulus**. Kalau tidak
+menjalankan gate dengan benar, dua harness ini akan tampak seperti regresi
+padahal bukan. **Cara menjalankan gate yang benar dicatat di Panduan Testing.**
+
+Yang **belum masuk** checklist otomatis dan masih diuji manual:
+alur klik transaksi, tampilan tiap halaman per peran, arsip pelanggan lewat UI,
+dan seluruh pengujian responsif.
+
+---
+
+## 12. Pelajaran Metode Pengujian (dari kekeliruan versi ini)
+
+Bagian ini ada karena kejujuran hasil pengujian bergantung pada metode yang
+benar. Tiga kekeliruan terjadi pada pengujian ini, semuanya milik **alat
+ujinya**, bukan sistemnya:
+
+**Kekeliruan 1: snapshot aksesibilitas lawan DOM nyata.**
+Snapshot aksesibilitas melaporkan halaman admin tampil lengkap padahal
+pemanggilan langsung ke DOM-nya menunjukkan "Halaman ini hanya untuk admin"
+tanpa satu baris data pun. Pelajarannya: **halaman yang menerapkan hak akses
+di sisi klien harus diverifikasi dengan membaca DOM hasil render, bukan
+snapshot aksesibilitas mentah**, karena snapshot bisa menampilkan kerangka
+halaman sebelum pengalihan selesai.
+
+**Kekeliruan 2: membaca kolom basis data yang salah nama.**
+Sebuah pemeriksaan menyimpulkan "0 baris pelanggan" dan "null transaksi"
+padahal datanya lengkap. Penyebabnya: tabel `pelanggan` **tidak punya** kolom
+`status`, dan `transaksi` **tidak punya** kolom `tanggal` maupun `sumber`. Nama
+sebenarnya adalah `status_pencocokan`, `tanggal_majoo`, dan `source`.
+Pemeriksaan yang menyebut kolom tidak ada akan gagal senyap dan terbaca
+seperti "tidak ada data". Pelajarannya: **pakai `select("*")` atau periksa
+nama kolom lebih dulu** sebelum menyimpulkan sesuatu dari jumlah baris, dan
+**cross-check dengan panggilan mentah** (`content-range` PostgREST) bila angka
+terlihat mencurigakan.
+
+**Kekeliruan 3: menyimpulkan dari satu iframe.**
+Mengukur responsif dengan memuat halaman ke dalam `iframe` memberi hasil
+"bersih" yang menyesatkan, karena sidebar `position: fixed` tidak ikut
+melebar sehingga lebar isi terlihat cukup. Pelajarannya: **responsif harus
+diukur pada navigasi nyata dengan viewport sungguhan.**
+
+**Aturan yang lahir dari ketiga hal di atas:**
+1. Kalau alat uji melaporkan cacat, **periksa alatnya dulu** sebelum melaporkan
+   ke sistem. Tiruan yang salah lebih sering daripada sistem yang salah.
+2. **Uji fungsi aslinya, bukan tiruannya.**
+3. **Ukur DOM, jangan lihat tangkapan layar**, untuk hal-hal yang bisa diukur
+   (lebar, tinggi, keseimbangan, jumlah baris).
+4. **Bila dua sumber berbeda pendapat, cari sumber ketiga yang paling mentah.**
+
+---
+
+## 13. Exit Criteria
 
 | Kriteria | Status |
 |---|---|
-| Nol bug **Critical** yang belum diperbaiki | **TERPENUHI** — tidak ada bug Critical. Perhitungan poin benar, tidak ada broadcast salah sasaran, tidak ada peran yang tembus. |
-| Alur core (Bagian 3 dan 7) lulus semua | **BELUM** — beberapa alur di brief tidak ada objeknya (G1–G6). Alur yang ada dan bisa diuji semuanya lulus. |
-| Pemetaan role di Bagian 2 terverifikasi sepenuhnya | **TERPENUHI** — 23 uji batas akses di UI, API, dan database, semuanya lulus. |
-| Testing broadcast sudah dicoba ke nomor testing, bukan database asli | **TIDAK BERLAKU** — tidak ada mekanisme broadcast otomatis yang bisa diarahkan ke nomor testing. |
+| Nol bug **Critical** yang belum diperbaiki | **TERPENUHI** — tidak ada bug Critical. Perhitungan poin benar, buku besar seimbang, tidak ada peran yang tembus. |
+| Alur core lulus semua | **SEBAGIAN** — semua alur yang ada di sistem lulus, tetapi G1/G2/G6 masih tidak ada objeknya untuk diuji. |
+| Pemetaan role terverifikasi sepenuhnya | **TERPENUHI** — 14 uji batas akses di UI, API, dan database, semuanya lulus, termasuk tiga halaman admin baru. |
+| Fitur baru (impor dan pencocokan) terverifikasi sampai basis data | **TERPENUHI** — diuji lewat antarmuka lalu diverifikasi di tabel `pelanggan`, `transaksi`, dan `point_ledger`. |
+| Responsif diukur di layar kecil | **TERPENUHI dengan temuan** — iPad bersih, telepon menemukan BUG-07. |
+| Testing broadcast ke nomor testing | **TIDAK BERLAKU** — tidak ada mekanisme broadcast otomatis yang bisa diarahkan ke nomor testing. |
 
-**Kesimpulan akhir: belum memenuhi exit criteria** karena fitur inti belum ada
-(G1–G6), bukan karena cacat pada fitur yang sudah dibangun.
+**Kesimpulan akhir: siap dipakai operasional untuk fitur yang sudah ada**,
+dengan BUG-07 sebagai satu perbaikan tampilan yang disarankan sebelum dipakai
+di telepon, dan BUG-06 sebagai keputusan kebijakan yang perlu diambil sebelum
+fitur hapus transaksi pernah dibuka ke antarmuka.
 
-### Yang harus diputuskan sebelum lanjut
+### Yang harus diputuskan sebelum serah terima
 
-1. **Otomatis atau manual?** Kalau "otomatis" memang wajib (broadcast ulang tahun, integrasi WhatsApp Business), sistem perlu pengembangan lanjutan. Kalau manual bisa diterima, brief dan panduan operasional harus disesuaikan supaya staf tidak menunggu sesuatu yang tidak akan terjadi.
-2. **Perbaiki BUG-01 lebih dulu.** Ini yang paling mungkin terasa staf di jam sibuk, dan perbaikannya kecil.
-3. **Uji di iPad sungguhan**, karena alat uji tidak bisa memeriksa layar kecil.
-
----
-
-## 13. Data Uji
-
-Disiapkan untuk pengujian ini, semuanya berawalan `QA-` supaya mudah dikenali
-dan dibersihkan.
-
-**12 pelanggan uji** di `pelanggan`, mencakup variasi: nomor WhatsApp format
-`62`, format `08`, dan bertanda `+62 ...`; ulang tahun **hari ini**, **besok**,
-**bulan ini hari lain**, **bulan depan**, dan **tanpa tanggal lahir**; serta
-saldo poin 0, 4, 5, 7, dan 25.
-
-Nomor telepon yang dipakai seluruhnya nomor contoh (`6281234567xx`) dan tidak
-menunjuk ke orang sungguhan.
-
-**Cara membersihkan:** hapus baris dengan `nama` berawalan `QA-`, ditambah
-pelanggan `Uji Arsip`. Transaksi dan buku besar terkait ikut terhapus karena
-terikat ke pelanggan tersebut.
-
-**Data yang diubah dan tidak dikembalikan:** saldo poin `QA-Kiki Amelia`
-(sekarang **9**, hasil dari uji siklus poin) beserta transaksi dan buku
-besarnya. Buku besar pelanggan ini juga memuat **satu entri poin tanpa
-`transaksi_id`** — sisa dari uji BUG-06. Aman karena pelanggan uji, bukan
-pelanggan asli.
-
-**Menunggu izin untuk dibersihkan:** tiga baris sisa uji verifikasi bernama
-`QA-VERIF PANJANG 9`, `QA-VERIF PANJANG 10`, dan `QA-VERIF PANJANG 16`.
-Ketiganya dibuat untuk menguji BUG-02 dan gagal terhapus oleh skrip pengujian
-(penghapusan berdasarkan nama tidak menyaring baris tersebut; penghapusan
-berdasarkan id berhasil). Perintah penghapusannya **diblokir menunggu
-persetujuan**, sehingga baris ini masih ada. Nomornya nomor contoh dan tidak
-mengganggu, tetapi sebaiknya dihapus bersama data uji lain.
-
-Jumlah baris saat laporan ini ditulis: **16 pelanggan**, 6 transaksi,
-6 baris buku besar, 0 catatan campaign, 3 profil staf.
+1. ~~**BUG-07**~~ — sudah tidak terbukti lagi di kode terbaru (diukur di 390 px dan 834 px, tidak ada luapan). Tidak perlu tindakan.
+2. **BUG-06** — putuskan: batalkan poin otomatis, atau pertahankan jejak audit
+   dengan peringatan. Rekomendasi: pertahankan plus larang hapus transaksi yang
+   poinnya sudah terpakai.
+3. **G1/G2/G6** — integrasi WhatsApp Business: ajukan estimasi biaya, atau
+   sesuaikan brief menjadi manual. Ini keputusan mitra.
+4. **Uji di perangkat sungguhan** — satu kali buka di iPad di meja kasir
+   sebelum hari pertama, karena alat uji ini hanya memperkecil jendela, bukan
+   benar-benar menyentuh layar.
 
 ---
 
-## 14. Sisa Pekerjaan Pengujian
+## 14. Cara Menjalankan Ulang Pengujian Ini
 
-Yang diminta brief tetapi **belum bisa diselesaikan** pada pengujian ini:
+```bash
+cd kataloji-crm
 
-| Bagian | Alasan |
-|---|---|
-| Respon API WhatsApp & antrian retry | Fiturnya tidak ada (G1) |
-| Broadcast massal ratusan nomor | Fiturnya tidak ada (G1) |
-| Halaman pengaturan reward/loyalty | Fiturnya tidak ada (G2, G3) |
-| Link redeem & uji IDOR | Fiturnya tidak ada (G4) |
-| Export database & siapa yang boleh | Fiturnya tidak ada (G5) |
-| Alur ulang tahun otomatis + log | Fiturnya tidak ada (G6) |
-| Tampilan tablet & HP | Alat uji tidak bisa mengubah ukuran jendela |
-| Dua sesi input pelanggan bersamaan | Belum dijalankan |
-| Kecepatan input (klik/detik) saat jam sibuk | Belum dihitung formal |
+# 1. Nyalakan aplikasi
+npm run dev          # buka http://localhost:3000
+
+# 2. Gate otomatis (PENTING: dua harness butuh --env-file)
+npx eslint .
+npm run build
+for f in scripts/uji-*.mts; do npx tsx --env-file=.env.local "$f"; done
+
+# 3. Periksa responsif (perlu alat pengujian yang bisa mengubah viewport)
+#    Buka /transaksi, ukur: document.documentElement.scrollWidth
+#    Harus <= 390 pada viewport 390. Saat ini 429 (BUG-07).
+
+# 4. Akun uji: wahyu@kataloji.id / sinta@kataloji.id / anggara@kataloji.id
+#    Sandi semuanya: kataloji123
+```
+
+**Peringatan:** langkah 2 dan 3 menyentuh basis data produksi. Periksa
+keseimbangan setelahnya (saldo = poin transaksi = poin buku besar) dan
+bersihkan data uji dengan awalan `QA-`.
