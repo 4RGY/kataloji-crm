@@ -27,7 +27,6 @@ import {
   Search,
   ShieldOff,
   X,
-  CalendarClock,
   ReceiptText,
   UserRound,
 } from "lucide-react";
@@ -478,10 +477,9 @@ export default function HalamanLogTransaksi() {
                     <p className="font-medium tabular-nums">
                       {waktuPenuh(t.dicatat_pada ?? t.created_at)}
                     </p>
-                    {t.tanggal_majoo && t.tanggal_majoo !== t.created_at && (
-                      <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <CalendarClock className="h-3 w-3" />
-                        Majoo {tanggalMajoo(t.tanggal_majoo)}
+                    {t.tanggal_majoo && (
+                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+                        laporan {tanggalMajoo(t.tanggal_majoo)}
                       </p>
                     )}
                   </td>
