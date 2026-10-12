@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import {
+  periodeMasihBerjalan,
   rentangPeriode,
   saringPeriode,
   type JenisPeriode,
@@ -11,8 +12,12 @@ import {
 } from "@/lib/periode-laporan";
 import { menuUntukPeran } from "@/lib/staf";
 import { NILAI_POIN } from "@/lib/poin";
-import { ringkasPenjualan, type TransaksiPenjualan } from "@/lib/laporan-penjualan";
-import { Download, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  bandingPenjualan,
+  ringkasPenjualan,
+  type TransaksiPenjualan,
+} from "@/lib/laporan-penjualan";
+import { Download, Loader2, Minus, RefreshCw, ShieldAlert, TrendingDown, TrendingUp } from "lucide-react";
 
 const PILIHAN: { jenis: JenisPeriode; label: string }[] = [
   { jenis: "hari_ini", label: "Hari ini" },
@@ -24,6 +29,12 @@ const PILIHAN: { jenis: JenisPeriode; label: string }[] = [
 
 const rupiah = (n: number) =>
   "Rp " + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
+
+/** Selisih bisa negatif: tandanya di depan "Rp", bukan menempel angkanya. */
+const rupiahSelisih = (n: number) =>
+  n < 0
+    ? "-Rp " + Math.abs(n).toLocaleString("id-ID", { maximumFractionDigits: 0 })
+    : "+Rp " + n.toLocaleString("id-ID", { maximumFractionDigits: 0 });
 
 export default function HalamanLaporanPenjualan() {
   const supabase = useMemo(() => createClient(), []);
@@ -119,6 +130,23 @@ export default function HalamanLaporanPenjualan() {
     [terpilih],
   );
 
+  // Perbandingan dengan periode sebelumnya. Dihitung dari SELURUH transaksi
+  // yang sudah dimuat, karena periode pembanding bisa jatuh di luar periode
+  // yang sedang dilihat (mis. membandingkan "bulan ini" dengan "bulan lalu").
+  const masihBerjalan = useMemo(() => periodeMasihBerjalan(periode, new Date()), [periode]);
+
+  const banding = useMemo(() => {
+    if (!transaksi) return null;
+    return bandingPenjualan(
+      transaksi,
+      periode,
+      new Date(),
+      NILAI_POIN,
+      ringkas,
+      masihBerjalan,
+    );
+  }, [transaksi, periode, ringkas, masihBerjalan]);
+
   // `sampai` eksklusif (awal hari berikutnya), jadi hari terakhir = sampai - 1.
   const hariTerakhir = rentang
     ? new Date(rentang.sampai.getFullYear(), rentang.sampai.getMonth(), rentang.sampai.getDate() - 1)
@@ -148,6 +176,7 @@ export default function HalamanLaporanPenjualan() {
           timeStyle: "short",
         }),
         ringkas,
+        banding,
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -298,6 +327,81 @@ export default function HalamanLaporanPenjualan() {
           </p>
         </div>
       </div>
+
+      {/* Perbandingan periode sebelumnya. Sengaja memakai kalimat ragu saat
+          periode belum selesai: bulan yang baru jalan 12 hari selalu tampak
+          turun dibanding bulan lalu yang penuh, dan itu bukan kemunduran usaha
+          melainkan waktu yang belum habis. */}
+      {banding && !banding.tanpaData && (
+        <section
+          className={
+            "mb-5 rounded-xl border px-4 py-3 " +
+            (banding.selisih !== null && banding.selisih < 0
+              ? "border-destructive/30 bg-destructive/5"
+              : "border-chart-2/40 bg-chart-2/5")
+          }
+        >
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              Banding periode
+            </p>
+            {banding.persen !== null ? (
+              <span
+                className={
+                  "inline-flex items-center gap-1 text-sm font-extrabold tabular-nums " +
+                  (banding.selisih !== null && banding.selisih < 0
+                    ? "text-destructive"
+                    : "text-chart-2")
+                }
+              >
+                {banding.selisih !== null && banding.selisih < 0 ? (
+                  <TrendingDown className="h-4 w-4" aria-hidden />
+                ) : banding.selisih === 0 ? (
+                  <Minus className="h-4 w-4" aria-hidden />
+                ) : (
+                  <TrendingUp className="h-4 w-4" aria-hidden />
+                )}
+                {banding.persen > 0 ? "+" : ""}
+                {banding.persen}%
+              </span>
+            ) : (
+              <span className="text-sm font-semibold text-muted-foreground">
+                persentase tidak dihitung
+              </span>
+            )}
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {rupiahSelisih(banding.selisih ?? 0)} dibanding {banding.sebelumnya?.label}
+            </span>
+          </div>
+
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Periode sebelumnya {rupiah(banding.sebelumnya?.omzet ?? 0)} dari{" "}
+            {banding.sebelumnya?.jumlah ?? 0} transaksi.
+            {banding.belumSelesai && (
+              <span className="font-semibold text-foreground">
+                {" "}
+                Periode ini belum selesai, jadi angkanya belum bisa dibanding
+                setara.
+              </span>
+            )}
+            {banding.tidakSetara && (
+              <span>
+                {" "}
+                Hari ini baru berjalan sampai sekarang, sedangkan kemarin sudah
+                penuh sehari. Bandingkan setelah hari ini berakhir.
+              </span>
+            )}
+          </p>
+        </section>
+      )}
+
+      {banding?.tanpaData && (
+        <p className="mb-5 flex items-start gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+          <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          Belum ada data periode sebelumnya untuk dibandingkan, jadi halaman ini
+          tidak menampilkan naik atau turun.
+        </p>
+      )}
 
       <section className="rounded-xl border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">

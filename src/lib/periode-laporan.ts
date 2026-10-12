@@ -103,3 +103,77 @@ export function saringPeriode<T extends BasisHariLaporan>(
     return hari.getTime() >= rentang.dari.getTime() && hari.getTime() < rentang.sampai.getTime();
   });
 }
+
+/**
+ * Rentang periode sebelumnya, untuk dibandingkan dengan periode berjalan.
+ *
+ * Dihitung per jenis, BUKAN dengan menggeser mundur sebanyak panjang rentang.
+ * Alasannya: Oktober punya 31 hari, jadi menggeser 1 Oktober mundur 31 hari
+ * mendarat di 31 Agustus, bukan 1 September. Pergeseran per jenis selalu benar
+ * berapa pun panjang bulannya.
+ */
+export function rentangSebelumnya(periode: Periode, kini: Date): RentangPeriode | null {
+  const hariIni = awalHari(kini);
+
+  switch (periode.jenis) {
+    case "hari_ini": {
+      const k = tambahHari(hariIni, -1);
+      return { dari: k, sampai: hariIni, label: `Kemarin, ${formatTanggal(k)}` };
+    }
+
+    case "kemarin": {
+      const k = tambahHari(hariIni, -2);
+      return {
+        dari: k,
+        sampai: tambahHari(hariIni, -1),
+        label: `Sehari sebelum kemarin, ${formatTanggal(k)}`,
+      };
+    }
+
+    case "minggu_ini": {
+      const selisih = (hariIni.getDay() + 6) % 7;
+      const senin = tambahHari(hariIni, -selisih - 7);
+      return {
+        dari: senin,
+        sampai: tambahHari(senin, 7),
+        label: `Minggu lalu, ${formatTanggal(senin)} sampai ${formatTanggal(tambahHari(senin, 6))}`,
+      };
+    }
+
+    case "bulan_ini": {
+      const awal = new Date(kini.getFullYear(), kini.getMonth() - 1, 1);
+      const akhir = new Date(kini.getFullYear(), kini.getMonth(), 1);
+      return {
+        dari: awal,
+        sampai: akhir,
+        label: `Bulan lalu, ${NAMA_BULAN[awal.getMonth()]} ${awal.getFullYear()}`,
+      };
+    }
+
+    case "tanggal": {
+      const d = periode.tanggal ? parseTanggal(periode.tanggal) : null;
+      if (!d) return null;
+      const k = tambahHari(d, -1);
+      return { dari: k, sampai: d, label: `Sehari sebelumnya, ${formatTanggal(k)}` };
+    }
+  }
+}
+
+/**
+ * Apakah periode ini masih berjalan (belum selesai)?
+ *
+ * Penting untuk perbandingan yang jujur: "bulan ini" yang baru jalan 12 hari
+ * selalu tampak turun dibanding bulan lalu yang sudah penuh 30 hari. Menyebut
+ * penurunan seperti itu sebagai fakta akan menyesatkan pembaca laporan.
+ */
+export function periodeMasihBerjalan(periode: Periode, kini: Date): boolean {
+  if (periode.jenis === "hari_ini" || periode.jenis === "minggu_ini" || periode.jenis === "bulan_ini") {
+    return true;
+  }
+  if (periode.jenis === "tanggal") {
+    const d = periode.tanggal ? parseTanggal(periode.tanggal) : null;
+    if (!d) return false;
+    return d.getTime() >= awalHari(kini).getTime();
+  }
+  return false;
+}

@@ -23,4 +23,4 @@ const { data: cek } = await admin
   .from("pelanggan")
   .select("kode_majoo")
   .eq("kode_majoo", "KA099");
-console.log(cek?.length ? "!! KA099 sudah ada di pelanggan — ganti kodenya" : "✓ KA099 belum ada di pelanggan");
+console.log(cek?.length ? "!! KA099 sudah ada di pelanggan, ganti kodenya" : "OK KA099 belum ada di pelanggan");

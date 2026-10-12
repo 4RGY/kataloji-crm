@@ -25,7 +25,7 @@ const { data: aturan, error: eA } = await admin
 if (eA) {
   console.log("ERROR:", eA.message);
 } else if (!aturan || aturan.length === 0) {
-  console.log("(kosong — belum ada aturan)");
+  console.log("(kosong, belum ada aturan)");
 } else {
   for (const a of aturan) {
     console.log(`  ${a.mode} | dari ${a.mulai} s/d ${a.selesai ?? "-"}`);

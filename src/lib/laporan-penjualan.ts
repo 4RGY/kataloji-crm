@@ -14,6 +14,12 @@
 
 import { nilaiBersih } from "@/lib/analitik";
 import { kunciHariLaporanAtauNull } from "@/lib/hari-laporan";
+import {
+  rentangSebelumnya,
+  saringPeriode,
+  type Periode,
+  type RentangPeriode,
+} from "@/lib/periode-laporan";
 
 export interface TransaksiPenjualan {
   total: number;
@@ -134,5 +140,102 @@ export function ringkasPenjualan(
     rataPerHariJualan: hariJualan > 0 ? Math.round(omzet / hariJualan) : 0,
     harian,
     hariTerbaik,
+  };
+}
+
+// ============================================================
+// Perbandingan dengan periode sebelumnya
+// ============================================================
+
+export interface PembandingPenjualan {
+  label: string;
+  omzet: number;
+  jumlah: number;
+}
+
+export interface PerbandinganPenjualan {
+  sebelumnya: PembandingPenjualan | null;
+  /** Selisih omzet terhadap periode sebelumnya (bisa negatif). */
+  selisih: number | null;
+  /** Persentase perubahan, dibulatkan. null bila pembanding nol atau kosong. */
+  persen: number | null;
+  /** true bila data periode sebelumnya tidak ada sehingga tak bisa dibanding. */
+  tanpaData: boolean;
+  /**
+   * true bila periode ini belum selesai, sehingga perbandingan bisa tampak
+   * turun padahal hanya karena waktunya belum penuh. UI wajib mengatakan ini.
+   */
+  belumSelesai: boolean;
+  /**
+   * true bila periode sebelumnya juga belum selesai pada titik yang sama
+   * (mis. "hari ini" lawan "kemarin" pada jam yang sama tidak bisa dijamin),
+   * sehingga perbandingan hari ini belum setara.
+   */
+  tidakSetara: boolean;
+}
+
+/**
+ * Bandingkan ringkasan periode ini dengan periode sebelumnya.
+ *
+ * Memakai rumus omzet yang sama (`ringkasPenjualan`) supaya kedua sisi
+ * perbandingan tidak pernah beda dasar. Semua transaksi yang tidak masuk
+ * rentang pembanding akan menghasilkan `tanpaData`, bukan angka nol yang
+ * berpura-pura jadi penurunan 100 persen.
+ */
+export function bandingPenjualan(
+  transaksi: TransaksiPenjualan[],
+  periode: Periode,
+  kini: Date,
+  nilaiPoin: number,
+  ringkasSekarang: RingkasanPenjualan,
+  masihBerjalan: boolean,
+): PerbandinganPenjualan {
+  const rentangLalu: RentangPeriode | null = rentangSebelumnya(periode, kini);
+
+  // Periode pembanding kosong (mis. awal toko baru buka) bukan "turun 100%".
+  if (!rentangLalu) {
+    return {
+      sebelumnya: null,
+      selisih: null,
+      persen: null,
+      tanpaData: true,
+      belumSelesai: masihBerjalan,
+      tidakSetara: false,
+    };
+  }
+
+  const transaksiLalu = saringPeriode(transaksi ?? [], rentangLalu);
+  const ringkasLalu = ringkasPenjualan(transaksiLalu, nilaiPoin);
+
+  if (ringkasLalu.jumlah === 0) {
+    return {
+      sebelumnya: null,
+      selisih: null,
+      persen: null,
+      tanpaData: true,
+      belumSelesai: masihBerjalan,
+      tidakSetara: false,
+    };
+  }
+
+  const selisih = ringkasSekarang.omzet - ringkasLalu.omzet;
+  // Pembanding nol menghasilkan persen tak hingga; katakan saja tidak ada
+  // persentase, jangan tampilkan "NaN%" atau "∞%".
+  const persen =
+    ringkasLalu.omzet > 0 ? Math.round((selisih / ringkasLalu.omzet) * 100) : null;
+
+  return {
+    sebelumnya: {
+      label: rentangLalu.label,
+      omzet: ringkasLalu.omzet,
+      jumlah: ringkasLalu.jumlah,
+    },
+    selisih,
+    persen,
+    tanpaData: false,
+    belumSelesai: masihBerjalan,
+    // "hari ini" dibanding "kemarin": jam berjalannya berbeda, jadi angkanya
+    // tidak benar-benar setara sampai harinya selesai.
+    tidakSetara: masihBerjalan && periode.jenis === "hari_ini",
   };
 }

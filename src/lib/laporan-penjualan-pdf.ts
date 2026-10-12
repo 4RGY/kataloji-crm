@@ -7,7 +7,7 @@
  */
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { RingkasanPenjualan } from "@/lib/laporan-penjualan";
+import type { PerbandinganPenjualan, RingkasanPenjualan } from "@/lib/laporan-penjualan";
 
 export interface DataPdfPenjualan {
   /** Judul periode, contoh "1 Okt 2026 s.d. 31 Okt 2026". */
@@ -15,9 +15,17 @@ export interface DataPdfPenjualan {
   /** Waktu pembuatan laporan, sudah diformat. */
   dibuatPada: string;
   ringkas: RingkasanPenjualan;
+  /** Perbandingan periode sebelumnya, bila ada. */
+  banding?: PerbandinganPenjualan | null;
 }
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
+
+/** Selisih bisa negatif: tandanya di depan "Rp", bukan menempel angkanya. */
+const rupiahSelisih = (n: number) =>
+  n < 0
+    ? `-Rp ${Math.round(Math.abs(n)).toLocaleString("id-ID")}`
+    : `+Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
 /** Posisi akhir tabel terakhir yang digambar autoTable. */
 type TabelTerakhir = { lastAutoTable: { finalY: number } };
@@ -85,6 +93,58 @@ export function buatPdfPenjualan(data: DataPdfPenjualan): Blob {
     ],
   });
   y = posisiAkhirTabel(doc) + 10;
+
+  // Perbandingan periode sebelumnya, kalau ada datanya. Kalimat ragu ikut
+  // dicetak supaya pembaca PDF tidak menyimpulkan penurunan padahal periode
+  // pembandingnya belum selesai.
+  const banding = data.banding;
+  if (banding && !banding.tanpaData && banding.sebelumnya) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Dibanding periode sebelumnya", margin, y);
+    y += 2;
+
+    const arah =
+      banding.selisih === null || banding.selisih === 0
+        ? "sama"
+        : banding.selisih > 0
+          ? "naik"
+          : "turun";
+    const persenTeks =
+      banding.persen !== null
+        ? `${banding.persen > 0 ? "+" : ""}${banding.persen}%`
+        : "tidak dihitung";
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      theme: "plain",
+      styles: { fontSize: 10, cellPadding: 1.4 },
+      columnStyles: { 0: { cellWidth: lebar - margin * 2 - 40 }, 1: { halign: "right" } },
+      body: [
+        [banding.sebelumnya.label, `${rupiah(banding.sebelumnya.omzet)} dari ${banding.sebelumnya.jumlah} transaksi`],
+        [
+          `Selisih (${arah})`,
+          `${rupiahSelisih(banding.selisih ?? 0)}  (${persenTeks})`,
+        ],
+      ],
+    });
+    y = posisiAkhirTabel(doc) + 4;
+
+    if (banding.belumSelesai) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(110);
+      const ragu = doc.splitTextToSize(
+        "Catatan: periode ini belum selesai, jadi angkanya belum bisa dibanding setara dengan periode sebelumnya yang sudah penuh.",
+        lebar - margin * 2,
+      );
+      doc.text(ragu, margin, y);
+      doc.setTextColor(0);
+      y += ragu.length * 4;
+    }
+    y += 6;
+  }
 
   // Rincian per hari
   doc.setFont("helvetica", "bold");
