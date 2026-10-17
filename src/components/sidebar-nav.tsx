@@ -17,8 +17,8 @@ import {
   LogOut,
   ClipboardList,
   UserCog,
-  FileUp,
-  UserCheck,
+  Coffee,
+  Tag,
   ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,8 @@ const KELOMPOK_NAV: {
       { href: "/transaksi", label: "Transaksi", icon: ReceiptText },
       { href: "/pelanggan", label: "Pelanggan", icon: Users },
       { href: "/loyalitas", label: "Loyalitas", icon: Gift },
+      { href: "/menu", label: "Menu", icon: Coffee },
+      { href: "/promo", label: "Promo", icon: Tag },
     ],
   },
   {
@@ -84,14 +86,6 @@ const MENU_REKAP = {
 };
 
 const MENU_STAF = { href: "/staf", label: "Staf", icon: UserCog };
-
-const MENU_IMPOR = { href: "/impor-majoo", label: "Impor Majoo", icon: FileUp };
-
-const MENU_PENCOCOKAN = {
-  href: "/pencocokan",
-  label: "Pencocokan",
-  icon: UserCheck,
-};
 
 const MENU_LOG_TRANSAKSI = {
   href: "/log-transaksi",
@@ -131,11 +125,6 @@ export function SidebarNav() {
   const supabase = createClient();
 
   const [profil, setProfil] = useState<Profil | null>(null);
-  // Jumlah transaksi impor Majoo yang masih menunggu pencocokan pelanggan.
-  // Ditampilkan sebagai lencana pada menu Pencocokan (channel notifikasi
-  // terpisah, bukan lonceng operasional). null = kolom belum di-migrasi
-  // (aturan-poin.sql belum jalan), 0 = tak ada yang menunggu.
-  const [pendingImpor, setPendingImpor] = useState<number | null>(null);
 
   // Identitas di sidebar diambil dari sesi yang sedang login, bukan
   // ditulis tetap. Sebelumnya nama dan peran hardcode "Wahyu / Admin",
@@ -170,26 +159,6 @@ export function SidebarNav() {
       aktif = false;
     };
   }, [ambilProfil]);
-
-  // Probe kolom status_pencocokan: kalau aturan-poin.sql belum dijalankan,
-  // PostgREST menolak seluruh query yang menyebut kolom itu, jadi jangan
-  // biarkan sidebar ikut error. null berarti "belum bisa dicek".
-  useEffect(() => {
-    let aktif = true;
-    const sup = createClient();
-    (async () => {
-      const { count, error } = await sup
-        .from("transaksi")
-        .select("id", { count: "exact", head: true })
-        .eq("status_pencocokan", "menunggu_pencocokan");
-      if (!aktif) return;
-      if (error) setPendingImpor(null);
-      else setPendingImpor(count ?? 0);
-    })();
-    return () => {
-      aktif = false;
-    };
-  }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -236,15 +205,13 @@ export function SidebarNav() {
         aria-label="Menu"
       >
         {KELOMPOK_NAV.map((kelompok, iKelompok) => {
-          // Pencocokan dan Log Transaksi adalah pekerjaan harian yang
-          // menyentuh transaksi, jadi ikut Operasional. Staf, Impor, dan
-          // Rekap tetap di Sistem.
+          // Log Transaksi adalah pekerjaan harian yang menyentuh transaksi,
+          // jadi ikut Operasional. Staf dan Rekap tetap di Sistem.
           const menu =
             kelompok.judul === "Operasional"
               ? [
                   ...kelompok.menu,
                   ...(hakMenu.penjualan ? [MENU_PENJUALAN] : []),
-                  ...(hakMenu.pencocokan ? [MENU_PENCOCOKAN] : []),
                   ...(hakMenu.logTransaksi ? [MENU_LOG_TRANSAKSI] : []),
                 ]
               : kelompok.judul === "Sistem"
@@ -252,7 +219,6 @@ export function SidebarNav() {
                     ...kelompok.menu,
                     ...(hakMenu.rekap ? [MENU_REKAP] : []),
                     ...(hakMenu.staf ? [MENU_STAF] : []),
-                    ...(hakMenu.impor ? [MENU_IMPOR] : []),
                   ]
                 : kelompok.menu;
 
@@ -275,13 +241,6 @@ export function SidebarNav() {
                     pathname === item.href ||
                     (item.href !== "/dashboard" && pathname.startsWith(item.href));
                   const Icon = item.icon;
-                  // Lencana jumlah transaksi yang menunggu pencocokan.
-                  // Hanya di menu Pencocokan; channel notifikasi tersendiri,
-                  // terpisah dari lonceng operasional di bawah.
-                  const angkaPending =
-                    item.href === "/pencocokan" && pendingImpor !== null
-                      ? pendingImpor
-                      : 0;
                   return (
                     <Link
                       key={item.href}
@@ -299,14 +258,6 @@ export function SidebarNav() {
                       )}
                       <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
                       <span className="hidden lg:inline">{item.label}</span>
-                      {angkaPending > 0 && (
-                        <span
-                          className="ml-auto hidden min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-bold leading-none text-primary-foreground tabular-nums lg:inline-flex"
-                          aria-label={`${angkaPending} transaksi menunggu pencocokan`}
-                        >
-                          {angkaPending > 9 ? "9+" : angkaPending}
-                        </span>
-                      )}
                     </Link>
                   );
                 })}

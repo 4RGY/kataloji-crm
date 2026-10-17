@@ -1,175 +1,281 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { PanelAturanPoin } from "@/components/panel-aturan-poin";
+import { pesanGalat } from "@/lib/pesan-galat";
+import { toast } from "sonner";
+import { Loader2, Save } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  ringkasPemeriksaan,
-  type HasilPeriksa,
-} from "@/lib/pelanggan-tampilan";
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  ShieldCheck,
-  UserCog,
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
 
-export default function Halaman() {
-  const supabase = useMemo(() => createClient(), []);
-  const [peran, setPeran] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
+interface SettingRow {
+  key: string;
+  value: string;
+  keterangan: string | null;
+}
 
-  // Hasil pemeriksaan pembukuan poin. null berarti belum selesai diperiksa,
-  // dan itu dibedakan dari "sudah diperiksa, hasilnya bersih": keduanya
-  // terlihat sama kalau hanya memakai daftar kosong.
-  const [periksa, setPeriksa] = useState<HasilPeriksa[] | null>(null);
-  const [periksaGagal, setPeriksaGagal] = useState(false);
+interface Profil {
+  nama: string;
+  role: string;
+  email: string;
+}
 
-  useEffect(() => {
-    let aktif = true;
-    void (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!aktif || !data.user) return;
-      setEmail(data.user.email ?? null);
-      const { data: profil } = await supabase
-        .from("profile")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-      if (aktif) setPeran(profil?.role ?? null);
+const SETTING_NUMERIC = [
+  "ppn_persen",
+  "biaya_layanan_persen",
+  "poin_per_rupiah",
+  "nilai_poin",
+  "min_redeem",
+  "max_redeem_persen",
+  "masa_kadaluwarsa_poin_bulan",
+];
 
-      const { data: hasil, error } = await supabase.rpc(
-        "periksa_keseimbangan_poin",
-      );
-      if (!aktif) return;
-      if (error) {
-        // Fungsinya ada di supabase/perbaikan-ledger.sql. Kalau berkas itu
-        // belum dijalankan, panggilannya gagal. Itu keadaan yang perlu
-        // dikatakan, bukan disembunyikan sebagai layar kosong.
-        setPeriksaGagal(true);
-      } else {
-        setPeriksa((hasil as HasilPeriksa[]) ?? []);
-      }
-    })();
-    return () => {
-      aktif = false;
-    };
+const LABEL_SETTING: Record<string, string> = {
+  ppn_persen: "PPN (%)",
+  biaya_layanan_persen: "Biaya Layanan (%)",
+  poin_per_rupiah: "Poin per Rupiah",
+  nilai_poin: "Nilai Poin (Rp)",
+  min_redeem: "Minimum Redeem (poin)",
+  max_redeem_persen: "Maksimum Redeem (%)",
+  masa_kadaluwarsa_poin_bulan: "Masa Kadaluwarsa Poin (bulan)",
+  nota_prefix: "Prefix Nomor Nota",
+  struk_nama: "Nama di Struk",
+  struk_alamat: "Alamat di Struk",
+  struk_wifi_nama: "Nama WiFi",
+  struk_wifi_pass: "Password WiFi",
+  struk_instagram: "Instagram",
+  struk_footer: "Footer Struk",
+};
+
+const SETTING_TRANSAKSI = ["ppn_persen", "biaya_layanan_persen", "nota_prefix"];
+const SETTING_LOYALITAS = [
+  "poin_per_rupiah",
+  "nilai_poin",
+  "min_redeem",
+  "max_redeem_persen",
+  "masa_kadaluwarsa_poin_bulan",
+];
+const SETTING_STRUK = [
+  "struk_nama",
+  "struk_alamat",
+  "struk_wifi_nama",
+  "struk_wifi_pass",
+  "struk_instagram",
+  "struk_footer",
+];
+
+export default function HalamanPengaturan() {
+  const supabase = createClient();
+  
+  const [bolehKelola, setBolehKelola] = useState<boolean | null>(null);
+  const [settings, setSettings] = useState<Record<string, SettingRow>>({});
+  const [original, setOriginal] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [menyimpan, setMenyimpan] = useState(false);
+
+  const muatProfil = useCallback(async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+    const { data: profilData } = await supabase
+      .from("profile")
+      .select("nama, role, email")
+      .eq("id", userData.user.id)
+      .single();
+    if (profilData) {
+      
+      setBolehKelola((profilData as Profil).role === "admin");
+    }
   }, [supabase]);
 
-  const ringkas = periksa ? ringkasPemeriksaan(periksa) : null;
+  const muatSettings = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("settings")
+      .select("key, value, keterangan")
+      .order("key");
+    if (error) {
+      toast.error(pesanGalat(error, "Gagal memuat pengaturan"));
+      setLoading(false);
+      return;
+    }
+    const map: Record<string, SettingRow> = {};
+    const origMap: Record<string, string> = {};
+    for (const row of data || []) {
+      map[row.key] = row;
+      origMap[row.key] = row.value;
+    }
+    setSettings(map);
+    setOriginal(origMap);
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    (async () => {
+      await muatProfil();
+      await muatSettings();
+    })();
+  }, [muatProfil, muatSettings]);
+
+  function ubah(key: string, value: string) {
+    setSettings((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], value },
+    }));
+  }
+
+  const adaPerubahan = Object.keys(settings).some(
+    (k) => settings[k]?.value !== original[k],
+  );
+
+  async function simpan() {
+    const perubahan = Object.keys(settings).filter(
+      (k) => settings[k]?.value !== original[k],
+    );
+    if (perubahan.length === 0) {
+      toast.info("Tidak ada perubahan");
+      return;
+    }
+    setMenyimpan(true);
+    try {
+      for (const key of perubahan) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ value: settings[key].value, updated_at: new Date().toISOString() })
+          .eq("key", key);
+        if (error) throw error;
+      }
+      toast.success(`${perubahan.length} pengaturan disimpan`);
+      await muatSettings();
+    } catch (e) {
+      toast.error(pesanGalat(e, "Gagal menyimpan pengaturan"));
+    } finally {
+      setMenyimpan(false);
+    }
+  }
+
+  if (bolehKelola === null) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (bolehKelola === false) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+          <p className="text-base font-bold">Halaman ini hanya untuk admin.</p>
+        </div>
+    );
+  }
+
+  function renderInput(key: string) {
+    const row = settings[key];
+    if (!row) return null;
+    const isNumeric = SETTING_NUMERIC.includes(key);
+
+    return (
+      <div key={key} className="space-y-2">
+        <Label htmlFor={`set-${key}`} className="text-sm font-semibold">
+          {LABEL_SETTING[key] || key}
+        </Label>
+        <Input
+          id={`set-${key}`}
+          value={row.value}
+          onChange={(e) => {
+            const val = isNumeric
+              ? e.target.value.replace(/[^0-9]/g, "")
+              : e.target.value;
+            ubah(key, val);
+          }}
+          inputMode={isNumeric ? "numeric" : "text"}
+          className="h-11"
+        />
+        {row.keterangan && (
+          <p className="text-[11px] text-muted-foreground">{row.keterangan}</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight">Pengaturan</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Aturan poin yang berlaku.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Atur PPN, biaya layanan, loyalitas, dan info struk. Perubahan langsung
+          berlaku untuk transaksi baru.
+        </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0 space-y-6">
-          {/* Pemeriksaan pembukuan. Ditaruh di atas penjelasan aturan karena
-              ini satu satunya bagian halaman yang bisa menuntut tindakan. */}
-          <section
-            className={
-              "rounded-xl border px-5 py-4 " +
-              (periksaGagal
-                ? "border-border bg-muted/30"
-                : ringkas && !ringkas.seimbang
-                  ? "border-destructive/40 bg-destructive/10"
-                  : "border-border bg-card")
-            }
-          >
-            <h2 className="flex items-center gap-2 text-sm font-bold">
-              {periksaGagal ? (
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-              ) : ringkas && !ringkas.seimbang ? (
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              ) : (
-                <ShieldCheck className="h-4 w-4 text-primary" />
-              )}
-              {periksaGagal
-                ? "Pemeriksaan pembukuan belum aktif"
-                : ringkas
-                  ? ringkas.judul
-                  : "Memeriksa pembukuan poin"}
-            </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-              {periksaGagal
-                ? "Jalankan supabase/perbaikan-ledger.sql untuk mengaktifkan pemeriksaan ini."
-                : ringkas
-                  ? ringkas.rincian
-                  : "Membandingkan poin yang masuk dan keluar dengan sisa yang tercatat."}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Pengaturan Transaksi */}
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="text-lg font-bold tracking-tight">Transaksi</h2>
+            <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
+              Pajak, biaya layanan, dan format nomor nota.
             </p>
-
-            {periksa && periksa.length > 0 && (
-              <ul className="mt-3 space-y-1.5 border-t border-destructive/30 pt-3">
-                {periksa.map((h) => (
-                  <li
-                    key={h.pelanggan_id}
-                    className="flex items-baseline justify-between gap-3 text-sm"
-                  >
-                    <span className="font-semibold">{h.nama}</span>
-                    <span className="tabular-nums text-muted-foreground">
-                      tercatat masuk {h.buku}, tersisa {h.terpakai}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Aturan poin: panel berversi. Admin bisa menambah periode;
-              poin lama tidak dihitung ulang. Tampilan tetap jujur kalau
-              tabel aturan_poin belum di-migrasi (lihat PanelAturanPoin). */}
-          <PanelAturanPoin peran={peran} />
-
-          {/* Kelola staf: menautkan, bukan menyalin */}
-          <section className="rounded-xl border border-border bg-card px-5 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <UserCog className="h-4 w-4" />
-                </span>
-                <div>
-                  <h2 className="text-sm font-bold">Akun staf dan peran</h2>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    Dikelola di halaman Staf, khusus admin.
-                  </p>
-                </div>
-              </div>
-              {peran === "admin" && (
-                <Button asChild variant="outline" className="h-11 gap-2">
-                  <Link href="/staf">
-                    Buka halaman Staf
-                    <ArrowUpRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {SETTING_TRANSAKSI.map(renderInput)}
             </div>
           </section>
-        </div>
 
-        <aside className="space-y-6">
+          {/* Pengaturan Loyalitas */}
           <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              Akun kamu
-            </h2>
-            <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-xs text-muted-foreground">Email</dt>
-                <dd className="mt-0.5 truncate font-semibold">{email ?? "Memuat"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Peran</dt>
-                <dd className="mt-0.5 font-semibold capitalize">{peran ?? "Memuat"}</dd>
-              </div>
-            </dl>
+            <h2 className="text-lg font-bold tracking-tight">Loyalitas</h2>
+            <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
+              Aturan poin: nilai, minimum tukar, masa kadaluwarsa.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {SETTING_LOYALITAS.map(renderInput)}
+            </div>
           </section>
 
-        </aside>
-      </div>
+          {/* Info Struk */}
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="text-lg font-bold tracking-tight">Info Struk</h2>
+            <p className="mb-4 mt-0.5 text-sm text-muted-foreground">
+              Data yang tampil di struk cetak: nama, alamat, WiFi, Instagram.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {SETTING_STRUK.map(renderInput)}
+            </div>
+          </section>
+
+          {/* Tombol simpan */}
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={simpan}
+              disabled={menyimpan || !adaPerubahan}
+              className="h-11"
+            >
+              {menyimpan ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Menyimpan
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1.5 h-4 w-4" />
+                  Simpan perubahan
+                </>
+              )}
+            </Button>
+            {adaPerubahan && (
+              <span className="text-sm text-muted-foreground">
+                Ada perubahan belum disimpan
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

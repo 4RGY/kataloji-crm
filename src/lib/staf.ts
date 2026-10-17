@@ -203,10 +203,10 @@ export interface MenuKhusus {
   /** Laporan penjualan (omzet). Sama dengan rekap: admin dan manajer saja. */
   penjualan: boolean;
   staf: boolean;
-  /** Impor data dari Majoo, hanya admin yang boleh. */
-  impor: boolean;
-  /** Pencocokan transaksi impor ke pelanggan CRM, hanya admin. */
-  pencocokan: boolean;
+  /** Menu dan kategori (POS), admin dan manajer. */
+  menu: boolean;
+  /** Promo dan bundle, admin dan manajer. */
+  promo: boolean;
   /** Log transaksi detail (seluruh riwayat + poin + sumber), hanya admin. */
   logTransaksi: boolean;
   /** Campaign dan Analitik, keputusan tingkat pengelola. */
@@ -219,8 +219,8 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
       rekap: true,
       penjualan: true,
       staf: true,
-      impor: true,
-      pencocokan: true,
+      menu: true,
+      promo: true,
       logTransaksi: true,
       pemasaran: true,
     };
@@ -229,8 +229,8 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
       rekap: true,
       penjualan: true,
       staf: false,
-      impor: false,
-      pencocokan: false,
+      menu: true,
+      promo: true,
       logTransaksi: false,
       pemasaran: true,
     };
@@ -238,8 +238,8 @@ export function menuUntukPeran(role: string | null | undefined): MenuKhusus {
     rekap: false,
     penjualan: false,
     staf: false,
-    impor: false,
-    pencocokan: false,
+    menu: false,
+    promo: false,
     logTransaksi: false,
     pemasaran: false,
   };
