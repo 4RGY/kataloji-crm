@@ -1,7 +1,31 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { NAMA_COOKIE_GATE, gerbangTerbuka } from "@/lib/gate";
 
 export async function middleware(request: NextRequest) {
+  const { pathname: jalur } = request.nextUrl;
+
+  // Halaman gerbang sendiri TIDAK boleh lewat logika login di bawah, kalau
+  // tidak /gate akan ditendang ke / lalu / ditendang balik ke /gate (loop).
+  if (jalur === "/gate") {
+    return NextResponse.next({ request });
+  }
+
+  // Gerbang sandi di depan SEMUA halaman dan API. Kalau GATE_PASSWORD belum
+  // diisi, sandiGerbang() null dan semuanya ditolak (gagal tertutup).
+  const sudahLewat = await gerbangTerbuka(
+    request.cookies.get(NAMA_COOKIE_GATE)?.value,
+  );
+  if (!sudahLewat) {
+    if (jalur.startsWith("/api/")) {
+      return NextResponse.json({ error: "Gerbang akses terkunci." }, { status: 401 });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/gate";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
