@@ -284,7 +284,7 @@ export default function HalamanRekapKasir() {
                 (h) => (
                   <p
                     key={h}
-                    className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
+                    className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
                   >
                     {h}
                   </p>

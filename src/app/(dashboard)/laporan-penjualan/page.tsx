@@ -441,7 +441,7 @@ export default function HalamanLaporanPenjualan() {
                     <span className="flex items-center gap-2">
                       {h.tglLabel}
                       {h.terbaik && (
-                        <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                        <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-primary">
                           terbaik
                         </span>
                       )}

@@ -416,7 +416,7 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-primary">
+          <p className="text-sm font-semibold text-foreground/80">
             {sapaan}
             {namaStaf ? `, ${namaStaf}` : ""}
           </p>
@@ -542,7 +542,7 @@ export default function DashboardPage() {
               </p>
 
               <p className="mt-3 text-4xl font-extrabold tracking-tight tabular-nums lg:text-5xl">
-                <span className="text-muted-foreground/50">Rp</span>{" "}
+                <span className="text-muted-foreground/70">Rp</span>{" "}
                 {metrik.omzet.toLocaleString("id-ID")}
               </p>
 
@@ -611,7 +611,7 @@ export default function DashboardPage() {
                     <p className="flex items-center gap-2 text-2xl font-extrabold tabular-nums">
                       {s.nilai}
                       {s.tanda && (
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-secondary-foreground">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-secondary-foreground">
                           {s.tanda}
                         </span>
                       )}
@@ -709,7 +709,7 @@ export default function DashboardPage() {
                     {batangJam.map((b) => (
                       <p
                         key={b.jam}
-                        className="min-w-0 flex-1 text-center text-[9px] tabular-nums text-muted-foreground"
+                        className="min-w-0 flex-1 text-center text-[11px] tabular-nums text-muted-foreground"
                       >
                         {b.jam}
                       </p>
@@ -759,7 +759,7 @@ export default function DashboardPage() {
                     },
                   ].map((s) => (
                     <div key={s.label} className="bg-card px-5 py-4">
-                      <p className="text-[10.5px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
                         {s.label}
                       </p>
                       <p className="mt-1 text-2xl font-extrabold tracking-tight tabular-nums">

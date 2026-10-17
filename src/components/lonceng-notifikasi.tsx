@@ -181,7 +181,7 @@ export function LonceNotifikasi({ className }: { className?: string }) {
               // Titik dan angka ditaruh menempel pada ikon, bukan di ujung
               // tombol, supaya tetap terlihat saat sidebar menyempit dan
               // teksnya disembunyikan.
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground tabular-nums">
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold leading-none text-destructive-foreground tabular-nums">
                 {angka}
               </span>
             )}

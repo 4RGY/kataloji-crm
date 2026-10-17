@@ -61,7 +61,7 @@
   --secondary: oklch(0.917 0.026 85);          /* warm sand */
   --secondary-foreground: oklch(0.309 0.032 56.4);
   --muted: oklch(0.938 0.018 80);              /* light cream */
-  --muted-foreground: oklch(0.556 0.03 60);    /* latte */
+  --muted-foreground: oklch(0.45 0.03 60);    /* latte gelap */
   --accent: oklch(0.917 0.026 85);
   --accent-foreground: oklch(0.309 0.032 56.4);
   --destructive: oklch(0.577 0.245 27.325);

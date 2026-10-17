@@ -134,7 +134,7 @@ export function GrafikTrenOmzet({ titik }: { titik: TitikTren[] }) {
 
       {/* Sumbu tanggal ditulis di luar SVG supaya teksnya tidak ikut
           melar mengikuti viewBox, yang membuat huruf jadi gepeng. */}
-      <div className="mt-2 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+      <div className="mt-2 flex justify-between text-[11px] tabular-nums text-muted-foreground">
         <span>{labelSingkat(titik[0].hari)}</span>
         {n > 2 && <span>{labelSingkat(titik[Math.floor((n - 1) / 2)].hari)}</span>}
         <span>{labelSingkat(titik[n - 1].hari)}</span>
@@ -234,7 +234,7 @@ export function DonutMetode({ irisan }: { irisan: IrisanMetode[] }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-2xl font-extrabold tabular-nums">{total}</p>
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
             transaksi
           </p>
         </div>

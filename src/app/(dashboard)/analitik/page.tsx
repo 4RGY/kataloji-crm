@@ -661,7 +661,7 @@ export default function HalamanAnalitik() {
                   </div>
                   <span
                     className={
-                      "text-[10px] tabular-nums " +
+                      "text-[11px] tabular-nums " +
                       (puncakIni ? "font-bold text-foreground" : "text-muted-foreground")
                     }
                   >

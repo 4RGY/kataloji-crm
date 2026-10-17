@@ -291,7 +291,7 @@ export function SidebarNav() {
                         "group relative flex h-8 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
                         active
                           ? "text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       )}
                     >
                       {active && (
@@ -301,7 +301,7 @@ export function SidebarNav() {
                       <span className="hidden lg:inline">{item.label}</span>
                       {angkaPending > 0 && (
                         <span
-                          className="ml-auto hidden min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums lg:inline-flex"
+                          className="ml-auto hidden min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-bold leading-none text-primary-foreground tabular-nums lg:inline-flex"
                           aria-label={`${angkaPending} transaksi menunggu pencocokan`}
                         >
                           {angkaPending > 9 ? "9+" : angkaPending}
@@ -334,7 +334,7 @@ export function SidebarNav() {
                 <span className="block truncate text-sm font-semibold text-sidebar-foreground">
                   {namaTampil}
                 </span>
-                <span className="block text-[11px] text-sidebar-foreground/50">
+                <span className="block text-[11px] text-sidebar-foreground/70">
                   {roleTampil || "…"}
                 </span>
               </span>

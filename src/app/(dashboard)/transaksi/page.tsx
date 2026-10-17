@@ -760,7 +760,7 @@ export default function TransaksiPage() {
                         ) > 0 && (
                           <Badge
                             variant="secondary"
-                            className="shrink-0 text-[10px] tabular-nums"
+                            className="shrink-0 text-[11px] tabular-nums"
                           >
                             +
                             {poinDiterimaPelanggan(
@@ -776,7 +776,7 @@ export default function TransaksiPage() {
                         <UserRound
                           className={`h-3 w-3 shrink-0 ${
                             bukanNamaOrang(t.dicatat_oleh_nama)
-                              ? "text-muted-foreground/50"
+                              ? "text-muted-foreground/70"
                               : "text-muted-foreground"
                           }`}
                           aria-hidden

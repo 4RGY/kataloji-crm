@@ -57,7 +57,7 @@ export function ThemeToggle({ className }: { className?: string }) {
               "flex h-11 flex-1 items-center justify-center rounded-md transition-colors",
               aktif
                 ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             )}
           >
             <Ikon className="h-3.5 w-3.5" aria-hidden />

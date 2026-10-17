@@ -652,7 +652,7 @@ export default function PelangganPage() {
                             </p>
                             <span
                               className={
-                                "mt-1 inline-block rounded-full px-2 py-0.5 text-[10.5px] font-bold " +
+                                "mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold " +
                                 GAYA_LENCANA[lencana.jenis]
                               }
                             >
@@ -908,7 +908,7 @@ function PanelDetail({
       <div className="flex flex-col gap-5 px-5 py-5">
         {/* Kartu poin */}
         <div className="rounded-xl border border-primary/25 bg-primary/8 px-4 py-4">
-          <p className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-primary">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary">
             Poin aktif
           </p>
           <p className="mt-1 text-3xl font-extrabold leading-none tracking-tight">
@@ -927,7 +927,7 @@ function PanelDetail({
 
         {/* Ringkasan belanja */}
         <div>
-          <p className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
             Ringkasan
           </p>
           <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-border/60">
@@ -935,7 +935,7 @@ function PanelDetail({
               <p className="text-base font-extrabold tracking-tight">
                 {pelanggan.kunjungan}
               </p>
-              <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+              <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
                 kunjungan
               </p>
             </div>
@@ -943,7 +943,7 @@ function PanelDetail({
               <p className="text-base font-extrabold tracking-tight">
                 {rupiahRingkas(pelanggan.totalBelanja)}
               </p>
-              <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+              <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
                 total belanja
               </p>
             </div>
@@ -951,7 +951,7 @@ function PanelDetail({
               <p className="text-base font-extrabold tracking-tight">
                 {rupiahRingkas(pelanggan.rataRata)}
               </p>
-              <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+              <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
                 rata-rata
               </p>
             </div>
@@ -960,7 +960,7 @@ function PanelDetail({
 
         {/* Riwayat kunjungan */}
         <div>
-          <p className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
             Riwayat kunjungan
           </p>
           {pelanggan.riwayat.length === 0 ? (
@@ -1013,7 +1013,7 @@ function PanelDetail({
 
         {/* Riwayat poin */}
         <div>
-          <p className="mb-2.5 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
             <Star className="h-3 w-3" aria-hidden />
             Riwayat poin
           </p>

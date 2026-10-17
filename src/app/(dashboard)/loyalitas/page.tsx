@@ -218,7 +218,7 @@ export default function HalamanLoyalitas() {
       </header>
 
       {/* ====== Ringkasan pokok ====== */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <section
           aria-label="Poin beredar"
           className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-7 lg:p-8"
