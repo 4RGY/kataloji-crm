@@ -43,9 +43,9 @@ insert into public.settings (key, value, keterangan) values
   ('min_redeem', '5', 'Minimum poin untuk ditukar'),
   ('max_redeem_persen', '100', 'Maksimum persen tagihan yang bisa dibayar poin'),
   ('masa_kadaluwarsa_poin_bulan', '12', 'Masa berlaku poin dalam bulan (FIFO)'),
-  ('nota_prefix', 'CS', 'Kode awal nomor nota'),
+  ('nota_prefix', 'KTL', 'Kode awal nomor nota'),
   ('struk_nama', 'Kataloji Coffee and Eatery', 'Nama untuk header struk'),
-  ('struk_alamat', 'Ruko Puri Cipayung 05 Jalan Setu Cipayung Raya No.09 RT09/RW04 Setu Cipayung - Jakarta Timur', 'Alamat untuk struk'),
+  ('struk_alamat', 'Ruko Puri Cipayung 05,\nJalan Setu Cipayung Raya No.09\nRT09/RW04 Setu Cipayung\nJakarta Timur', 'Alamat untuk struk'),
   ('struk_wifi_nama', 'Kataloji Customer', 'Nama WiFi untuk struk'),
   ('struk_wifi_pass', 'kopisusukataloji', 'Password WiFi untuk struk'),
   ('struk_instagram', 'kataloji.co', 'Akun Instagram untuk struk'),
@@ -361,7 +361,7 @@ begin
 
   select value into v_prefix from public.settings where key = 'nota_prefix';
   if v_prefix is null then
-    v_prefix := 'CS';
+    v_prefix := 'KTL';
   end if;
 
   v_tanggal := to_char(new.created_at::date, 'YYMMDD');

@@ -54,57 +54,102 @@ function formatMetode(m: string): string {
   return m;
 }
 
+/**
+ * Rata kanan: label di kiri, nilai di kanan, dengan spasi pengisi.
+ * Lebar tetap 32 karakter (80mm thermal printer ~ 32 char monospace).
+ */
 function rataKanan(kiri: string, kanan: string, lebar: number): string {
   const spasi = Math.max(1, lebar - kiri.length - kanan.length);
   return kiri + " ".repeat(spasi) + kanan;
 }
 
+/** Pusat teks dalam lebar kolom tertentu. */
+function tengah(teks: string, lebar: number): string {
+  const len = teks.length;
+  if (len >= lebar) return teks;
+  const kiri = Math.floor((lebar - len) / 2);
+  const kanan = lebar - len - kiri;
+  return " ".repeat(kiri) + teks + " ".repeat(kanan);
+}
+
 function buatTeksStruk(d: DataStruk): string {
-  const W = 36;
+  const W = 32;
   const garis = "=".repeat(W);
   const garisTipis = "-".repeat(W);
   const baris: string[] = [];
 
+  // Header: nama brand di tengah, alamat per baris di tengah
   baris.push(garis);
-  baris.push(d.struk_nama);
-  baris.push(d.struk_alamat);
+  baris.push(tengah(d.struk_nama, W));
+  // Alamat bisa multiline (\n) dari settings, tiap baris di-center
+  for (const line of d.struk_alamat.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed) baris.push(tengah(trimmed, W));
+  }
   baris.push(garis);
-  baris.push(rataKanan("No Nota :", d.no_nota, W));
-  baris.push(rataKanan("Waktu :", d.waktu, W));
+
+  // No Nota & Waktu: label rata kanan dengan nilai
+  baris.push(rataKanan("No Nota", d.no_nota, W));
+  baris.push(rataKanan("Waktu", d.waktu, W));
   baris.push(garisTipis);
 
+  // Items: qty + nama di kiri, subtotal di kanan
   for (const item of d.items) {
-    baris.push(`${item.qty} ${item.nama}`);
+    const namaItem = `${item.qty}x  ${item.nama}`;
+    baris.push(namaItem);
     baris.push(rataKanan("", formatRupiah(item.subtotal), W));
   }
 
   baris.push(garisTipis);
-  baris.push(rataKanan(`Subtotal ${d.items.length} Produk`, formatRupiah(d.subtotal), W));
+
+  // Ringkasan: label kiri, nilai kanan
+  baris.push(rataKanan("Subtotal", formatRupiah(d.subtotal), W));
   if (d.diskon > 0) {
     baris.push(rataKanan("Diskon", formatRupiah(d.diskon), W));
   }
   if (d.biaya_layanan > 0) {
-    baris.push(rataKanan("Biaya Pelayanan", formatRupiah(d.biaya_layanan), W));
+    baris.push(rataKanan("Biaya Layanan", formatRupiah(d.biaya_layanan), W));
   }
   if (d.ppn > 0) {
-    baris.push(rataKanan("Pajak", formatRupiah(d.ppn), W));
+    baris.push(rataKanan("Pajak (PPN)", formatRupiah(d.ppn), W));
   }
   if (d.potongan_poin > 0) {
     baris.push(rataKanan("Potongan Poin", formatRupiah(d.potongan_poin), W));
   }
-  baris.push(rataKanan("Total", formatRupiah(d.total), W));
+  baris.push(rataKanan("TOTAL", formatRupiah(d.total), W));
   baris.push(garisTipis);
   baris.push(rataKanan(formatMetode(d.metode_bayar), formatRupiah(d.jumlah_bayar), W));
   if (d.kembalian > 0) {
     baris.push(rataKanan("Kembalian", formatRupiah(d.kembalian), W));
   }
+
+  // Poin info
+  if (d.poin_didapat > 0 || d.poin_dipakai > 0) {
+    baris.push(garisTipis);
+    if (d.poin_didapat > 0) {
+      baris.push(rataKanan("Poin didapat", `+${d.poin_didapat}`, W));
+    }
+    if (d.poin_dipakai > 0) {
+      baris.push(rataKanan("Poin dipakai", `-${d.poin_dipakai}`, W));
+    }
+  }
+
   baris.push(garis);
-  baris.push(`Wifi : ${d.struk_wifi_nama}`);
-  baris.push(`Pass : ${d.struk_wifi_pass}`);
+
+  // Footer info: center
+  if (d.struk_wifi_nama) {
+    baris.push(tengah(`WiFi: ${d.struk_wifi_nama}`, W));
+  }
+  if (d.struk_wifi_pass) {
+    baris.push(tengah(`Pass: ${d.struk_wifi_pass}`, W));
+  }
+  if (d.struk_instagram) {
+    baris.push(tengah(`IG: @${d.struk_instagram}`, W));
+  }
   baris.push("");
-  baris.push(`Instagram : ${d.struk_instagram}`);
-  baris.push("");
-  baris.push(d.struk_footer);
+  if (d.struk_footer) {
+    baris.push(tengah(d.struk_footer, W));
+  }
 
   return baris.join("\n");
 }
@@ -156,6 +201,15 @@ export function DialogStruk({ buka, onClose, data }: Props) {
           <DialogTitle>Struk {data.no_nota}</DialogTitle>
         </DialogHeader>
         <div className="rounded-lg border border-border bg-muted/30 p-4">
+          {/* Logo Kataloji di tengah atas struk */}
+          <div className="mb-3 flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/logo.jpeg"
+              alt="Kataloji"
+              className="h-16 w-16 rounded-full object-cover"
+            />
+          </div>
           <pre
             ref={refPre}
             className="whitespace-pre font-mono text-[11px] leading-tight text-foreground"
