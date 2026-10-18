@@ -85,7 +85,7 @@ export interface BatangJam {
 /**
  * Sumber yang JAM kedatangannya benar-benar diketahui (kasir mencatat saat itu).
  */
-const SUMBER_JAM_DIKETAHUI = new Set(["crm_manual", "majoo_parallel"]);
+const SUMBER_JAM_DIKETAHUI = new Set(["crm_manual", "majoo_parallel", "crm_pos"]);
 
 /**
  * Apakah jam sebuah transaksi berarti jam kedatangan pelanggan.
