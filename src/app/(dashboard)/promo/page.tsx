@@ -83,7 +83,7 @@ export default function HalamanPromo() {
       .from("profile")
       .select("nama, role, email")
       .eq("id", userData.user.id)
-      .single();
+      .maybeSingle();
     if (profilData) {
       setBolehKelola((profilData as Profil).role === "admin" || (profilData as Profil).role === "manager");
     }
@@ -91,17 +91,21 @@ export default function HalamanPromo() {
 
   const muatData = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("promo")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast.error(pesanGalat(error, "Gagal memuat data promo"));
+    try {
+      const { data, error } = await supabase
+        .from("promo")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        toast.error(pesanGalat(error, "Gagal memuat data promo"));
+        return;
+      }
+      setPromoList((data || []) as Promo[]);
+    } catch (e) {
+      toast.error(pesanGalat(e, "Gagal memuat data promo"));
+    } finally {
       setLoading(false);
-      return;
     }
-    setPromoList((data || []) as Promo[]);
-    setLoading(false);
   }, [supabase]);
 
   useEffect(() => {

@@ -312,7 +312,7 @@ export default function TransaksiPage() {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const { data: profilData } = userData.user
-        ? await supabase.from("profile").select("nama").eq("id", userData.user.id).single()
+        ? await supabase.from("profile").select("nama").eq("id", userData.user.id).maybeSingle()
         : { data: null };
 
       const payload = {

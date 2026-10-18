@@ -83,7 +83,7 @@ export default function HalamanMenu() {
       .from("profile")
       .select("nama, role, email")
       .eq("id", userData.user.id)
-      .single();
+      .maybeSingle();
     if (profilData) {
       setBolehKelola((profilData as Profil).role === "admin" || (profilData as Profil).role === "manager");
     }
@@ -91,30 +91,35 @@ export default function HalamanMenu() {
 
   const muatData = useCallback(async () => {
     setLoading(true);
-    const { data: menuData, error: menuErr } = await supabase
-      .from("menu")
-      .select("id, nama, harga, gambar_url, kategori_id, aktif")
-      .order("nama");
-    const { data: katData } = await supabase
-      .from("menu_kategori")
-      .select("id, nama, urutan")
-      .order("urutan");
+    try {
+      const { data: menuData, error: menuErr } = await supabase
+        .from("menu")
+        .select("id, nama, harga, gambar_url, kategori_id, aktif")
+        .order("nama");
+      const { data: katData } = await supabase
+        .from("menu_kategori")
+        .select("id, nama, urutan")
+        .order("urutan");
 
-    if (menuErr) {
-      toast.error(pesanGalat(menuErr, "Gagal memuat data menu"));
+      if (menuErr) {
+        toast.error(pesanGalat(menuErr, "Gagal memuat data menu"));
+        setLoading(false);
+        return;
+      }
+      const katMap = new Map(
+        (katData || []).map((k: MenuKategori) => [k.id, k.nama]),
+      );
+      const menuDenganKategori = (menuData || []).map((m: Menu) => ({
+        ...m,
+        kategori_nama: m.kategori_id ? katMap.get(m.kategori_id) : null,
+      }));
+      setMenuList(menuDenganKategori);
+      setKategoriList((katData || []) as MenuKategori[]);
+    } catch (e) {
+      toast.error(pesanGalat(e, "Gagal memuat data menu"));
+    } finally {
       setLoading(false);
-      return;
     }
-    const katMap = new Map(
-      (katData || []).map((k: MenuKategori) => [k.id, k.nama]),
-    );
-    const menuDenganKategori = (menuData || []).map((m: Menu) => ({
-      ...m,
-      kategori_nama: m.kategori_id ? katMap.get(m.kategori_id) : null,
-    }));
-    setMenuList(menuDenganKategori);
-    setKategoriList((katData || []) as MenuKategori[]);
-    setLoading(false);
   }, [supabase]);
 
   useEffect(() => {
