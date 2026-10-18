@@ -51,7 +51,6 @@ interface Menu {
 interface Profil {
   nama: string;
   role: string;
-  email: string;
 }
 
 function formatRupiah(n: number): string {

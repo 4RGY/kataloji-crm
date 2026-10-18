@@ -9,6 +9,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { PerbandinganPenjualan, RingkasanPenjualan } from "@/lib/laporan-penjualan";
+import { LOGO_PDF_BASE64 } from "@/lib/logo-pdf";
 
 export interface DataPdfPenjualan {
   periodeLabel: string;
@@ -85,12 +86,10 @@ export function buatPdfPenjualan(data: DataPdfPenjualan): Blob {
   doc.setFillColor(W.terracotta[0], W.terracotta[1], W.terracotta[2]);
   doc.rect(0, 38, lebar, 1.5, "F");
 
-  // Logo placeholder (lingkaran terracotta dengan inisial K)
+  // Logo asli (base64 PNG 64x64) di lingkaran coffee ink
   const lx = margin;
   const ly = 12;
-  doc.setFillColor(W.terracotta[0], W.terracotta[1], W.terracotta[2]);
-  doc.circle(lx + 7, ly + 7, 7, "F");
-  teks(doc, "K", lx + 7, ly + 10, { size: 16, bold: true, warna: W.cream, align: "center" });
+  doc.addImage(LOGO_PDF_BASE64, "PNG", lx + 1, ly + 1, 12, 12);
 
   // Brand name
   teks(doc, "Kataloji Coffee and Eatery", lx + 20, ly + 5, {

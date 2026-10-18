@@ -46,7 +46,6 @@ interface Promo {
 interface Profil {
   nama: string;
   role: string;
-  email: string;
 }
 
 const LABEL_TIPE: Record<string, string> = {

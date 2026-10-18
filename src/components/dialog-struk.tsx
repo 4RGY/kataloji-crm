@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,7 +34,6 @@ export interface DataStruk {
   poin_didapat: number;
   poin_dipakai: number;
   nama_pelanggan: string | null;
-  // Info struk dari settings
   struk_nama: string;
   struk_alamat: string;
   struk_wifi_nama: string;
@@ -73,16 +72,20 @@ function tengah(teks: string): string {
 const GARIS = "-".repeat(W);
 const GARIS_TEBAL = "=".repeat(W);
 
-function buatTeksStruk(d: DataStruk): string {
+/** Bagian header struk (brand + alamat) sebagai teks. */
+function teksHeader(d: DataStruk): string {
   const baris: string[] = [];
-
-  // Header brand + alamat
   baris.push(tengah(d.struk_nama));
   for (const line of d.struk_alamat.split("\n")) {
     const trimmed = line.trim();
     if (trimmed) baris.push(tengah(trimmed));
   }
-  baris.push(GARIS);
+  return baris.join("\n");
+}
+
+/** Bagian body struk (info nota sampai footer) sebagai teks. */
+function teksBody(d: DataStruk): string {
+  const baris: string[] = [];
 
   // Info nota
   baris.push(rataKanan("No Nota", d.no_nota));
@@ -148,14 +151,37 @@ function buatTeksStruk(d: DataStruk): string {
   }
   baris.push("");
   if (d.struk_footer) {
-    const footerLines = d.struk_footer.split("\n");
-    for (const fl of footerLines) {
+    for (const fl of d.struk_footer.split("\n")) {
       const trimmed = fl.trim();
       if (trimmed) baris.push(tengah(trimmed));
     }
   }
 
   return baris.join("\n");
+}
+
+function teksStruk(d: DataStruk): string {
+  return teksHeader(d) + "\n" + GARIS + "\n" + teksBody(d);
+}
+
+/**
+ * Fetch logo sebagai base64 data URL supaya print window self-contained.
+ * Print window di window.open baru ga selalu punya akses ke origin yang sama.
+ */
+async function logoBase64(): Promise<string | null> {
+  try {
+    const res = await fetch("/brand/logo-removebg.png");
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
 
 interface Props {
@@ -165,19 +191,27 @@ interface Props {
 }
 
 export function DialogStruk({ buka, onClose, data }: Props) {
+  const [mencetak, setMencetak] = useState(false);
   const refPre = useRef<HTMLPreElement>(null);
 
   if (!data) return null;
 
-  const teks = buatTeksStruk(data);
+  const header = teksHeader(data);
+  const body = teksBody(data);
+  const teks = teksStruk(data);
 
-  function cetak() {
-    const win = window.open("", "_blank", "width=400,height=600");
-    if (!win) return;
+  async function cetak() {
+    setMencetak(true);
+    try {
+      const logo = await logoBase64();
+      const win = window.open("", "_blank", "width=400,height=600");
+      if (!win) return;
 
-    const logoUrl = window.location.origin + "/brand/logo-removebg.png";
+      const logoHtml = logo
+        ? `<div class="logo-wrap"><div class="logo-circle"><img src="${logo}" alt="Kataloji" /></div></div>`
+        : "";
 
-    win.document.write(`<!DOCTYPE html>
+      win.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -188,15 +222,12 @@ export function DialogStruk({ buka, onClose, data }: Props) {
     body {
       font-family: "Courier New", monospace;
       font-size: 11px;
-      line-height: 1.35;
+      line-height: 1.4;
       width: 72mm;
       margin: 0 auto;
       color: #000;
     }
-    .logo-wrap {
-      text-align: center;
-      margin-bottom: 4px;
-    }
+    .logo-wrap { text-align: center; margin-bottom: 4px; }
     .logo-circle {
       display: inline-block;
       width: 36px;
@@ -212,78 +243,62 @@ export function DialogStruk({ buka, onClose, data }: Props) {
       vertical-align: middle;
       object-fit: contain;
     }
-    .brand-name {
-      text-align: center;
-      font-weight: bold;
-      font-size: 13px;
-      margin-top: 2px;
-    }
-    .alamat {
-      text-align: center;
-      font-size: 10px;
-      white-space: pre-wrap;
-    }
-    .separator {
-      border-top: 1px dashed #000;
-      margin: 2px 0;
-    }
-    .separator-tebal {
-      border-top: 1px solid #000;
-      border-bottom: 1px solid #000;
-      height: 3px;
-      margin: 2px 0;
-    }
+    .brand-name { text-align: center; font-weight: bold; font-size: 13px; margin-top: 2px; }
+    .alamat { text-align: center; font-size: 10px; white-space: pre-wrap; line-height: 1.3; }
+    .sep { border-top: 1px dashed #000; margin: 3px 0; }
+    .sep-tebal { border-top: 2px solid #000; border-bottom: 1px solid #000; height: 4px; margin: 3px 0; }
+    .row { display: flex; justify-content: space-between; }
     .item-nama { font-weight: bold; }
-    .total-line { font-weight: bold; }
+    .item-sub { text-align: right; }
+    .total { font-weight: bold; font-size: 12px; }
     .footer-info { text-align: center; margin-top: 2px; }
-    .thank-you { text-align: center; margin-top: 4px; font-style: italic; }
+    .thank { text-align: center; margin-top: 6px; font-style: italic; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <div class="logo-wrap">
-    <div class="logo-circle">
-      <img src="${logoUrl}" alt="Kataloji" />
-    </div>
-  </div>
+  ${logoHtml}
   <div class="brand-name">${data!.struk_nama}</div>
   <div class="alamat">${data!.struk_alamat.replace(/\n/g, "<br/>")}</div>
-  <div class="separator"></div>
-  <div>No Nota       : ${data!.no_nota}</div>
-  <div>Waktu         : ${data!.waktu}</div>
-  ${data!.nama_pelanggan ? `<div>Pelanggan     : ${data!.nama_pelanggan}</div>` : ""}
-  <div class="separator"></div>
+  <div class="sep"></div>
+  <div class="row"><span>No Nota</span><span>${data!.no_nota}</span></div>
+  <div class="row"><span>Waktu</span><span>${data!.waktu}</span></div>
+  ${data!.nama_pelanggan ? `<div class="row"><span>Pelanggan</span><span>${data!.nama_pelanggan}</span></div>` : ""}
+  <div class="sep"></div>
   ${data!.items.map((item) => `
   <div class="item-nama">${item.qty}x  ${item.nama}</div>
-  <div style="text-align: right;">${formatRupiah(item.subtotal)}</div>
+  <div class="item-sub">${formatRupiah(item.subtotal)}</div>
   `).join("")}
-  <div class="separator"></div>
-  <div style="display: flex; justify-content: space-between;"><span>Subtotal</span><span>${formatRupiah(data!.subtotal)}</span></div>
-  ${data!.diskon > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Diskon</span><span>-${formatRupiah(data!.diskon)}</span></div>` : ""}
-  ${data!.biaya_layanan > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Biaya Layanan</span><span>${formatRupiah(data!.biaya_layanan)}</span></div>` : ""}
-  ${data!.ppn > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Pajak (PPN)</span><span>${formatRupiah(data!.ppn)}</span></div>` : ""}
-  ${data!.potongan_poin > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Potongan Poin</span><span>-${formatRupiah(data!.potongan_poin)}</span></div>` : ""}
-  <div class="separator-tebal"></div>
-  <div class="total-line" style="display: flex; justify-content: space-between;"><span>TOTAL</span><span>${formatRupiah(data!.total)}</span></div>
-  <div class="separator"></div>
-  <div style="display: flex; justify-content: space-between;"><span>${formatMetode(data!.metode_bayar)}</span><span>${formatRupiah(data!.jumlah_bayar)}</span></div>
-  ${data!.kembalian > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Kembalian</span><span>${formatRupiah(data!.kembalian)}</span></div>` : ""}
+  <div class="sep"></div>
+  <div class="row"><span>Subtotal</span><span>${formatRupiah(data!.subtotal)}</span></div>
+  ${data!.diskon > 0 ? `<div class="row"><span>Diskon</span><span>-${formatRupiah(data!.diskon)}</span></div>` : ""}
+  ${data!.biaya_layanan > 0 ? `<div class="row"><span>Biaya Layanan</span><span>${formatRupiah(data!.biaya_layanan)}</span></div>` : ""}
+  ${data!.ppn > 0 ? `<div class="row"><span>Pajak (PPN)</span><span>${formatRupiah(data!.ppn)}</span></div>` : ""}
+  ${data!.potongan_poin > 0 ? `<div class="row"><span>Potongan Poin</span><span>-${formatRupiah(data!.potongan_poin)}</span></div>` : ""}
+  <div class="sep-tebal"></div>
+  <div class="row total"><span>TOTAL</span><span>${formatRupiah(data!.total)}</span></div>
+  <div class="sep"></div>
+  <div class="row"><span>${formatMetode(data!.metode_bayar)}</span><span>${formatRupiah(data!.jumlah_bayar)}</span></div>
+  ${data!.kembalian > 0 ? `<div class="row"><span>Kembalian</span><span>${formatRupiah(data!.kembalian)}</span></div>` : ""}
   ${(data!.poin_didapat > 0 || data!.poin_dipakai > 0) ? `
-  <div class="separator"></div>
-  ${data!.poin_didapat > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Poin didapat</span><span>+${data!.poin_didapat}</span></div>` : ""}
-  ${data!.poin_dipakai > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Poin dipakai</span><span>-${data!.poin_dipakai}</span></div>` : ""}
+  <div class="sep"></div>
+  ${data!.poin_didapat > 0 ? `<div class="row"><span>Poin didapat</span><span>+${data!.poin_didapat}</span></div>` : ""}
+  ${data!.poin_dipakai > 0 ? `<div class="row"><span>Poin dipakai</span><span>-${data!.poin_dipakai}</span></div>` : ""}
   ` : ""}
-  <div class="separator"></div>
+  <div class="sep"></div>
   ${data!.struk_wifi_nama ? `<div class="footer-info">WiFi: ${data!.struk_wifi_nama}</div>` : ""}
   ${data!.struk_wifi_pass ? `<div class="footer-info">Pass: ${data!.struk_wifi_pass}</div>` : ""}
   ${data!.struk_instagram ? `<div class="footer-info">IG: @${data!.struk_instagram}</div>` : ""}
-  ${data!.struk_footer ? `<div class="thank-you">${data!.struk_footer.replace(/\n/g, "<br/>")}</div>` : ""}
+  ${data!.struk_footer ? `<div class="thank">${data!.struk_footer.replace(/\n/g, "<br/>")}</div>` : ""}
 </body>
 </html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => {
-      win.print();
-    }, 300);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+      }, 400);
+    } finally {
+      setMencetak(false);
+    }
   }
 
   function downloadStruk() {
@@ -304,56 +319,48 @@ export function DialogStruk({ buka, onClose, data }: Props) {
         <DialogHeader>
           <DialogTitle>Struk {data.no_nota}</DialogTitle>
         </DialogHeader>
-        {/* Preview struk: tampilan mirip hasil cetak */}
-        <div className="rounded-lg border border-border bg-white p-4 shadow-inner">
-          {/* Logo dengan dark circle (logo putih butuh background gelap) */}
+        {/* Preview struk: styled mirip hasil cetak thermal */}
+        <div className="rounded-lg border border-border bg-white p-5 shadow-sm">
+          {/* Logo dengan dark circle */}
           <div className="mb-2 flex justify-center">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2A1D14]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2A1D14] shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/brand/logo-removebg.png"
                 alt="Kataloji"
-                className="h-6 w-6 object-contain"
+                className="h-7 w-7 object-contain"
               />
             </div>
           </div>
-          <p className="text-center text-[13px] font-bold leading-tight">
-            {data.struk_nama}
-          </p>
-          {data.struk_alamat && (
-            <p className="text-center text-[10px] leading-tight text-gray-600">
-              {data.struk_alamat}
-            </p>
-          )}
-          <div className="my-1.5 border-t border-dashed border-gray-300" />
+          {/* Header: brand + alamat */}
           <pre
-            ref={refPre}
-            className="whitespace-pre font-mono text-[11px] leading-[1.35] text-gray-900"
+            className="whitespace-pre text-center font-mono text-[12px] font-bold leading-tight text-gray-900"
             style={{ fontFamily: "'Courier New', monospace" }}
           >
-            {teks.split("\n").slice(teks.split("\n").findIndex((l) => l.includes("No Nota"))).join("\n")}
+            {header}
+          </pre>
+          <div className="my-2 border-t border-dashed border-gray-300" />
+          {/* Body: nota info + items + summary + footer */}
+          <pre
+            ref={refPre}
+            className="whitespace-pre font-mono text-[11px] leading-[1.45] text-gray-900"
+            style={{ fontFamily: "'Courier New', monospace" }}
+          >
+            {body}
           </pre>
         </div>
         <DialogFooter className="gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="h-11"
-          >
+          <Button variant="outline" onClick={onClose} className="h-11">
             <X className="mr-1.5 h-4 w-4" />
             Tutup
           </Button>
-          <Button
-            variant="outline"
-            onClick={downloadStruk}
-            className="h-11"
-          >
+          <Button variant="outline" onClick={downloadStruk} className="h-11">
             <Download className="mr-1.5 h-4 w-4" />
             Unduh
           </Button>
-          <Button onClick={cetak} className="h-11">
+          <Button onClick={cetak} disabled={mencetak} className="h-11">
             <Printer className="mr-1.5 h-4 w-4" />
-            Cetak
+            {mencetak ? "Membuka..." : "Cetak"}
           </Button>
         </DialogFooter>
       </DialogContent>

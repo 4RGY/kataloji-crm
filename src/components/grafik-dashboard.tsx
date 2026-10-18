@@ -20,8 +20,10 @@ import {
   Pie,
   Cell,
   CartesianGrid,
+  Cell as BarCell,
 } from "recharts";
 import type { TitikTren, IrisanMetode, BatangMenu } from "@/lib/dashboard-grafik";
+import type { BatangJam } from "@/lib/dashboard-tampilan";
 
 const rupiahRingkas = new Intl.NumberFormat("id-ID", {
   notation: "compact",
@@ -286,6 +288,73 @@ export function BatangMenuHorizontal({
           radius={[0, 4, 4, 0]}
           barSize={24}
         />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Tooltip custom untuk jam ramai
+function TooltipJam({ active, payload, label }: {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+      <p className="font-semibold text-popover-foreground">Jam {label}.00</p>
+      <p className="mt-0.5 tabular-nums text-muted-foreground">
+        <span className="font-bold text-foreground">{payload[0].value}</span> transaksi
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Grafik batang jam ramai (sebaran transaksi per jam).
+ * Bar berwarna terracotta penuh untuk jam puncak, terracotta/45 untuk lainnya.
+ */
+export function GrafikJamRamai({ data }: { data: BatangJam[] }) {
+  const chartData = data.map((b) => ({
+    jam: b.label,
+    jumlah: b.jumlah,
+    puncak: b.puncak,
+  }));
+
+  const adaData = data.some((b) => b.jumlah > 0);
+
+  if (!adaData) {
+    return (
+      <div className="flex h-[140px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border">
+        <p className="text-sm text-muted-foreground">
+          Belum ada data jam kedatangan
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={140}>
+      <BarChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.4} />
+        <XAxis
+          dataKey="jam"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: "var(--color-muted-foreground)", fontSize: 10 }}
+          dy={4}
+        />
+        <YAxis hide />
+        <Tooltip content={<TooltipJam />} cursor={{ fill: "var(--color-muted)", opacity: 0.3 }} />
+        <Bar dataKey="jumlah" radius={[3, 3, 0, 0]} barSize={12}>
+          {chartData.map((entry, idx) => (
+            <BarCell
+              key={idx}
+              fill={entry.puncak ? "var(--color-chart-1)" : "var(--color-chart-1)"}
+              opacity={entry.puncak ? 1 : entry.jumlah > 0 ? 0.45 : 0.1}
+            />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );

@@ -30,6 +30,7 @@ import {
   GrafikTrenOmzet,
   DonutMetode,
   BatangMenuHorizontal,
+  GrafikJamRamai,
 } from "@/components/grafik-dashboard";
 
 type RangeKey = "today" | "yesterday" | "3d" | "7d" | "30d" | "all" | "custom";
@@ -500,11 +501,11 @@ export default function DashboardPage() {
       </div>
 
       {memuat ? (
-        <div className="rounded-xl border border-border bg-card">
+        <div className="rounded-xl border border-border bg-card shadow-brand">
           <LoaderBrand />
         </div>
       ) : galat ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card py-24 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card shadow-brand py-24 text-center">
           <p className="text-sm font-semibold">{galat}</p>
           <Button variant="outline" size="sm" onClick={muatUlang}>
             Coba lagi
@@ -516,7 +517,7 @@ export default function DashboardPage() {
            menolak, sehingga tiap halaman tampak kosong tanpa pesan error.
            Keadaan ini dijelaskan di sini supaya tidak terbaca sebagai
            "data hilang", karena datanya ada dan lengkap. */
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-20 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card shadow-brand px-6 py-20 text-center">
           <ShieldAlert className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm font-semibold">
             Akun Anda belum terdaftar sebagai staf
@@ -591,7 +592,7 @@ export default function DashboardPage() {
                   sejajar dengan kartu omzet, sehingga isi yang hanya sekitar
                   48px duduk di dalam kotak 205px. Sebagai baris, tinggi
                   kartu mengikuti isinya dan angkanya terbaca berurutan. */}
-              <div className="flex flex-1 flex-col justify-center rounded-xl border border-border bg-card px-5 py-2">
+              <div className="flex flex-1 flex-col justify-center rounded-xl border border-border bg-card shadow-brand px-5 py-2">
                 {[
                   { label: "Transaksi", nilai: metrik.jumlah.toLocaleString("id-ID"), tanda: null },
                   { label: "Pelanggan baru", nilai: metrik.pelangganBaru.toLocaleString("id-ID"), tanda: null },
@@ -624,7 +625,7 @@ export default function DashboardPage() {
 
           {/* Grafik omzet harian */}
           <section aria-label="Grafik omzet" className="mt-5">
-            <div className="rounded-xl border border-border bg-card">
+            <div className="rounded-xl border border-border bg-card shadow-brand">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
@@ -655,7 +656,7 @@ export default function DashboardPage() {
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
             {/* Jam ramai */}
             <section aria-label="Jam ramai">
-              <div className="h-full rounded-xl border border-border bg-card">
+              <div className="h-full rounded-xl border border-border bg-card shadow-brand">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     Jam ramai
@@ -673,48 +674,7 @@ export default function DashboardPage() {
                         : `${jamTakTercatat} dari ${tersaring.length} transaksi tidak ikut dihitung karena hanya punya tanggal (impor laporan), bukan jam kedatangan.`}
                     </p>
                   )}
-                  <div className="flex h-32 items-end gap-[3px]">
-                    {batangJam.map((b) => (
-                      <div
-                        key={b.jam}
-                        className="group relative flex h-full min-w-0 flex-1 flex-col justify-end"
-                        title={`${b.label}.00 · ${b.jumlah} transaksi`}
-                      >
-                        {/* tooltip sederhana saat disorot */}
-                        <span className="pointer-events-none absolute -top-1 z-10 hidden -translate-y-full whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[11px] font-semibold tabular-nums text-popover-foreground shadow-md group-hover:block">
-                          {b.label}.00 · {b.jumlah} transaksi
-                        </span>
-                        {/* Jam kosong tetap digambar setipis mungkin supaya
-                            sumbu waktunya utuh dan tidak ada jam yang
-                            tampak hilang. */}
-                        <div
-                          className={
-                            "w-full rounded-t-sm transition-colors " +
-                            (b.puncak
-                              ? "bg-primary"
-                              : b.jumlah > 0
-                                ? "bg-primary/45 group-hover:bg-primary/70"
-                                : "bg-foreground/10")
-                          }
-                          style={{ height: `${b.jumlah > 0 ? Math.max(b.porsi * 100, 4) : 2}px` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Sumbu jam. Sengaja ditulis langsung, bukan mengambil
-                      dari data, supaya label tetap rata walau layar sempit
-                      dan tidak ada label yang saling menumpuk. */}
-                  <div className="mt-2 flex gap-[3px]">
-                    {batangJam.map((b) => (
-                      <p
-                        key={b.jam}
-                        className="min-w-0 flex-1 text-center text-[11px] tabular-nums text-muted-foreground"
-                      >
-                        {b.jam}
-                      </p>
-                    ))}
-                  </div>
+                  <GrafikJamRamai data={batangJam} />
 
                   <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
                     Setiap batang satu jam pada rentang operasional. Dipakai
@@ -726,7 +686,7 @@ export default function DashboardPage() {
 
             {/* Papan loyalitas */}
             <section aria-label="Papan loyalitas">
-              <div className="h-full rounded-xl border border-border bg-card">
+              <div className="h-full rounded-xl border border-border bg-card shadow-brand">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                   <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     <Star className="h-3 w-3" aria-hidden />
@@ -785,7 +745,7 @@ export default function DashboardPage() {
               pelanggan membayar. */}
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
             <section aria-label="Menu teratas">
-              <div className="h-full rounded-xl border border-border bg-card">
+              <div className="h-full rounded-xl border border-border bg-card shadow-brand">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     Menu paling sering dipesan
@@ -803,7 +763,7 @@ export default function DashboardPage() {
             </section>
 
             <section aria-label="Metode bayar">
-              <div className="h-full rounded-xl border border-border bg-card">
+              <div className="h-full rounded-xl border border-border bg-card shadow-brand">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     Metode bayar
@@ -823,7 +783,7 @@ export default function DashboardPage() {
             </section>
           </div>
           {adaData && (
-            <div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border bg-border/60 sm:grid-cols-2">
+            <div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border bg-border/60 shadow-brand sm:grid-cols-2">
               <div className="bg-card px-6 py-5">
                 <p className="text-xs font-semibold text-muted-foreground">
                   Pelanggan bertransaksi

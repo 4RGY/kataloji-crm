@@ -249,7 +249,7 @@ export function SidebarNav() {
                       className={cn(
                         "group relative flex h-8 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
                         active
-                          ? "text-sidebar-accent-foreground"
+                          ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-semibold"
                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       )}
                     >

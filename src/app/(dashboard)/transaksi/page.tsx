@@ -534,7 +534,7 @@ export default function TransaksiPage() {
 
   return (
     <div className="px-4 pb-6 pt-3 lg:px-6">
-      <div className="grid lg:grid-cols-[1fr_380px] gap-3">
+      <div className="grid gap-3 md:grid-cols-[1fr_340px] lg:grid-cols-[1fr_380px]">
         {/* ===== KOLOM KIRI: MENU GRID ===== */}
         <div className="space-y-3">
           <header className="flex items-center justify-between gap-3">
@@ -599,7 +599,7 @@ export default function TransaksiPage() {
         </div>
 
         {/* ===== KOLOM KANAN: KERANJANG + CHECKOUT (STICKY) ===== */}
-        <div className="space-y-2.5 lg:sticky lg:top-2 lg:self-start lg:max-h-[calc(100vh-1rem)] lg:overflow-y-auto">
+        <div className="space-y-2.5 md:sticky md:top-2 md:self-start md:max-h-[calc(100vh-1rem)] md:overflow-y-auto lg:max-h-[calc(100vh-1rem)]">
           {/* Pelanggan */}
           <div className="rounded-lg border border-border bg-card p-2.5">
             {pelanggan ? (

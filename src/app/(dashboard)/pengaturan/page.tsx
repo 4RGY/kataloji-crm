@@ -19,7 +19,6 @@ interface SettingRow {
 interface Profil {
   nama: string;
   role: string;
-  email: string;
 }
 
 const SETTING_NUMERIC = [
