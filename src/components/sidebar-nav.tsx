@@ -188,6 +188,7 @@ export function SidebarNav() {
             alt="Kataloji Coffee and Eatery"
             width={40}
             height={40}
+            loading="eager"
             className="h-full w-full object-contain"
           />
         </span>
