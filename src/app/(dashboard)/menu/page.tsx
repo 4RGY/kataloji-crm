@@ -81,7 +81,7 @@ export default function HalamanMenu() {
     if (!userData.user) return;
     const { data: profilData } = await supabase
       .from("profile")
-      .select("nama, role, email")
+      .select("nama, role")
       .eq("id", userData.user.id)
       .maybeSingle();
     if (profilData) {

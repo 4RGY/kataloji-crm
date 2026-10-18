@@ -80,9 +80,9 @@ export default function HalamanPengaturan() {
     if (!userData.user) return;
     const { data: profilData } = await supabase
       .from("profile")
-      .select("nama, role, email")
+      .select("nama, role")
       .eq("id", userData.user.id)
-      .single();
+      .maybeSingle();
     if (profilData) {
       
       setBolehKelola((profilData as Profil).role === "admin");
