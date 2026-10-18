@@ -434,33 +434,28 @@ export default function TransaksiPage() {
   }
 
   return (
-    <div className="px-4 pb-10 pt-4 lg:px-6">
-      <div className="grid lg:grid-cols-[1fr_360px] gap-4">
+    <div className="px-4 pb-6 pt-3 lg:px-6">
+      <div className="grid lg:grid-cols-[1fr_380px] gap-3">
         {/* ===== KOLOM KIRI: MENU GRID ===== */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <header className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">Kasir</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Pilih menu, hitung otomatis, simpan transaksi.
-              </p>
-            </div>
+            <h1 className="text-xl font-extrabold tracking-tight">Kasir</h1>
           </header>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[180px]">
+            <div className="relative min-w-[140px] flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Cari menu"
                 value={cari}
                 onChange={(e) => setCari(e.target.value)}
-                className="h-11 pl-9"
+                className="h-10 pl-9"
               />
             </div>
             <Button
               variant={filterKategori === "semua" ? "default" : "outline"}
               size="sm"
-              className="h-11"
+              className="h-10"
               onClick={() => setFilterKategori("semua")}
             >
               Semua
@@ -470,7 +465,7 @@ export default function TransaksiPage() {
                 key={k.id}
                 variant={filterKategori === k.id ? "default" : "outline"}
                 size="sm"
-                className="h-11"
+                className="h-10"
                 onClick={() => setFilterKategori(k.id)}
               >
                 {k.nama}
@@ -478,18 +473,18 @@ export default function TransaksiPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {menuTampil.map((m) => (
               <button
                 key={m.id}
                 onClick={() => tambahMenu(m)}
-                className="flex min-h-[88px] flex-col justify-between rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                className="flex min-h-[72px] flex-col justify-between rounded-lg border border-border bg-card p-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
               >
-                <div className="flex items-start gap-2">
-                  <Coffee className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-bold leading-tight">{m.nama}</span>
+                <div className="flex items-start gap-1.5">
+                  <Coffee className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-[13px] font-bold leading-tight">{m.nama}</span>
                 </div>
-                <span className="mt-2 text-base font-extrabold tabular-nums text-primary">
+                <span className="mt-1 text-sm font-extrabold tabular-nums text-primary">
                   {formatRupiah(m.harga)}
                 </span>
               </button>
@@ -497,21 +492,21 @@ export default function TransaksiPage() {
           </div>
 
           {menuTampil.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-6 py-16 text-center">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card px-6 py-12 text-center">
               <Coffee className="h-8 w-8 text-muted-foreground/60" />
               <p className="text-sm text-muted-foreground">Menu tidak ditemukan.</p>
             </div>
           )}
         </div>
 
-        {/* ===== KOLOM KANAN: KERANJANG + CHECKOUT ===== */}
-        <div className="space-y-3">
+        {/* ===== KOLOM KANAN: KERANJANG + CHECKOUT (STICKY) ===== */}
+        <div className="space-y-2.5 lg:sticky lg:top-2 lg:self-start lg:max-h-[calc(100vh-1rem)] lg:overflow-y-auto">
           {/* Pelanggan */}
-          <div className="rounded-xl border border-border bg-card p-3">
+          <div className="rounded-lg border border-border bg-card p-2.5">
             {pelanggan ? (
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{pelanggan.nama}</p>
+                  <p className="truncate text-[13px] font-bold">{pelanggan.nama}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {pelanggan.poin} poin
                   </p>
@@ -519,18 +514,18 @@ export default function TransaksiPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 shrink-0"
+                  className="h-7 shrink-0"
                   onClick={() => setPelanggan(null)}
                 >
                   <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 flex-1"
+                  className="h-8 flex-1"
                   onClick={() => setCariTerbuka(true)}
                 >
                   <Search className="mr-1 h-3.5 w-3.5" />
@@ -539,7 +534,7 @@ export default function TransaksiPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9"
+                  className="h-8"
                   onClick={() => setPelangganBaruTerbuka(true)}
                 >
                   <UserPlus className="h-3.5 w-3.5" />
@@ -549,44 +544,44 @@ export default function TransaksiPage() {
           </div>
 
           {/* Keranjang */}
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="mb-2 text-sm font-bold tracking-tight">Keranjang</p>
+          <div className="rounded-lg border border-border bg-card p-2.5">
+            <p className="mb-1.5 text-[13px] font-bold tracking-tight">Keranjang</p>
             {keranjang.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-center">
-                <ReceiptText className="h-6 w-6 text-muted-foreground/60" />
+              <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+                <ReceiptText className="h-5 w-5 text-muted-foreground/60" />
                 <p className="text-[11px] text-muted-foreground">
                   Pilih menu di kiri untuk mulai.
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {keranjang.map((item) => (
                   <div
                     key={item.menu_id}
                     className="flex items-center gap-2"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{item.nama}</p>
+                      <p className="truncate text-[13px] font-semibold">{item.nama}</p>
                       <p className="text-[11px] tabular-nums text-muted-foreground">
                         {formatRupiah(item.harga)} x {item.qty}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0"
+                        className="h-6 w-6 p-0"
                         onClick={() => ubahQty(item.menu_id, -1)}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-6 text-center text-sm font-bold tabular-nums">
+                      <span className="w-5 text-center text-[13px] font-bold tabular-nums">
                         {item.qty}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0"
+                        className="h-6 w-6 p-0"
                         onClick={() => ubahQty(item.menu_id, 1)}
                       >
                         <Plus className="h-3 w-3" />
@@ -594,7 +589,7 @@ export default function TransaksiPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-destructive"
+                        className="h-6 w-6 p-0 text-destructive"
                         onClick={() => hapusItem(item.menu_id)}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -606,10 +601,10 @@ export default function TransaksiPage() {
             )}
           </div>
 
-          {/* Ringkasan */}
+          {/* Ringkasan + Pembayaran (gabung jadi 1 kartu) */}
           {keranjang.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="space-y-1.5 text-sm">
+            <div className="rounded-lg border border-border bg-card p-2.5">
+              <div className="space-y-1 text-[13px]">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="tabular-nums font-semibold">{formatRupiah(subtotal)}</span>
@@ -625,7 +620,7 @@ export default function TransaksiPage() {
                         const p = promoList.find((x) => x.id === e.target.value);
                         pilihPromo(p || null);
                       }}
-                      className="h-8 rounded-md border border-input bg-background px-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="h-7 rounded-md border border-input bg-background px-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       <option value="">Tanpa promo</option>
                       {promoList.map((p) => (
@@ -648,30 +643,30 @@ export default function TransaksiPage() {
                   <span className="tabular-nums">{formatRupiah(ppn)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Biaya layanan ({biayaLayananPersen}%)</span>
+                  <span className="text-muted-foreground">Biaya ({biayaLayananPersen}%)</span>
                   <span className="tabular-nums">{formatRupiah(biayaLayanan)}</span>
                 </div>
 
                 {/* Poin redeem */}
                 {pelanggan && pelanggan.poin >= 5 && (
-                  <div className="flex items-center justify-between gap-2 pt-1">
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
                     <span className="text-muted-foreground">Poin dipakai</span>
                     <div className="flex items-center gap-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0"
+                        className="h-6 w-6 p-0"
                         onClick={() => setPoinDipakai(Math.max(0, poinDipakai - 1))}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center text-sm font-bold tabular-nums">
+                      <span className="w-7 text-center text-sm font-bold tabular-nums">
                         {poinDipakai}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0"
+                        className="h-6 w-6 p-0"
                         onClick={() =>
                           setPoinDipakai(Math.min(Math.floor(total / NILAI_POIN), Math.min(pelanggan.poin, poinDipakai + 1)))
                         }
@@ -689,132 +684,125 @@ export default function TransaksiPage() {
                 )}
               </div>
 
-              <div className="mt-3 flex justify-between border-t border-border pt-3">
-                <span className="text-base font-extrabold">Total</span>
-                <span className="text-xl font-extrabold tabular-nums text-primary">
+              <div className="mt-2 flex justify-between border-t border-border pt-2">
+                <span className="text-sm font-extrabold">Total</span>
+                <span className="text-lg font-extrabold tabular-nums text-primary">
                   {formatRupiah(total)}
                 </span>
               </div>
-            </div>
-          )}
 
-          {/* Pembayaran */}
-          {keranjang.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-3">
-              <p className="mb-2 text-sm font-bold tracking-tight">Pembayaran</p>
-              <div className="mb-3 grid grid-cols-3 gap-2">
-                {(["tunai", "debit", "qris"] as const).map((m) => (
-                  <Button
-                    key={m}
-                    variant={metodeBayar === m ? "default" : "outline"}
-                    size="sm"
-                    className="h-10 capitalize"
-                    onClick={() => {
-                      setMetodeBayar(m);
-                      if (m !== "tunai") setJumlahBayar(0);
-                    }}
-                  >
-                    {m === "tunai" ? "Tunai" : m === "debit" ? "Debit" : "QRIS"}
-                  </Button>
-                ))}
-              </div>
-
-              {metodeBayar === "tunai" && (
-                <div className="space-y-2">
-                  <Label htmlFor="jumlah-bayar" className="text-sm font-semibold">
-                    Jumlah diterima
-                  </Label>
-                  <Input
-                    id="jumlah-bayar"
-                    value={jumlahBayar ? String(jumlahBayar) : ""}
-                    onChange={(e) => setJumlahBayar(parseInt(e.target.value.replace(/[^0-9]/g, "") || "0", 10))}
-                    placeholder={String(total)}
-                    inputMode="numeric"
-                    className="h-11 text-lg font-bold tabular-nums"
-                  />
-                  <div className="flex flex-wrap gap-1.5">
+              {/* Pembayaran inline, bukan kartu terpisah */}
+              <div className="mt-2.5 space-y-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["tunai", "debit", "qris"] as const).map((m) => (
                     <Button
-                      variant="outline"
+                      key={m}
+                      variant={metodeBayar === m ? "default" : "outline"}
                       size="sm"
-                      className="h-8"
-                      onClick={() => setJumlahBayar(total)}
+                      className="h-9 capitalize"
+                      onClick={() => {
+                        setMetodeBayar(m);
+                        if (m !== "tunai") setJumlahBayar(0);
+                      }}
                     >
-                      Uang pas
+                      {m === "tunai" ? "Tunai" : m === "debit" ? "Debit" : "QRIS"}
                     </Button>
-                    {NOMINAL_CEPAT.map((n) => (
+                  ))}
+                </div>
+
+                {metodeBayar === "tunai" && (
+                  <div className="space-y-1.5">
+                    <Input
+                      value={jumlahBayar ? String(jumlahBayar) : ""}
+                      onChange={(e) => setJumlahBayar(parseInt(e.target.value.replace(/[^0-9]/g, "") || "0", 10))}
+                      placeholder={`Diterima: ${formatRupiah(total)}`}
+                      inputMode="numeric"
+                      className="h-10 text-base font-bold tabular-nums"
+                    />
+                    <div className="flex flex-wrap gap-1">
                       <Button
-                        key={n}
                         variant="outline"
                         size="sm"
-                        className="h-8"
-                        onClick={() => setJumlahBayar(jumlahBayar + n)}
+                        className="h-7"
+                        onClick={() => setJumlahBayar(total)}
                       >
-                        +{formatRupiah(n)}
+                        Uang pas
                       </Button>
-                    ))}
-                  </div>
-                  {kembalian > 0 && (
-                    <div className="flex justify-between rounded-lg bg-muted/40 px-3 py-2">
-                      <span className="text-sm font-semibold">Kembalian</span>
-                      <span className="text-sm font-extrabold tabular-nums text-primary">
-                        {formatRupiah(kembalian)}
-                      </span>
+                      {NOMINAL_CEPAT.map((n) => (
+                        <Button
+                          key={n}
+                          variant="outline"
+                          size="sm"
+                          className="h-7"
+                          onClick={() => setJumlahBayar(jumlahBayar + n)}
+                        >
+                          +{formatRupiah(n)}
+                        </Button>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
-
-              <Button
-                onClick={simpanTransaksi}
-                disabled={!bolehSimpan || menyimpan}
-                className="mt-3 h-12 w-full text-base font-bold"
-              >
-                {menyimpan ? (
-                  <>
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                    Menyimpan
-                  </>
-                ) : (
-                  <>Simpan transaksi · {formatRupiah(total)}</>
+                    {kembalian > 0 && (
+                      <div className="flex justify-between rounded-md bg-muted/40 px-2.5 py-1.5">
+                        <span className="text-[13px] font-semibold">Kembalian</span>
+                        <span className="text-sm font-extrabold tabular-nums text-primary">
+                          {formatRupiah(kembalian)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </Button>
+
+                <Button
+                  onClick={simpanTransaksi}
+                  disabled={!bolehSimpan || menyimpan}
+                  className="h-11 w-full text-sm font-bold"
+                >
+                  {menyimpan ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      Menyimpan
+                    </>
+                  ) : (
+                    <>Simpan · {formatRupiah(total)}</>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
       {/* ===== RIWAYAT TRANSAKSI ===== */}
-      <div className="mt-8">
+      <div className="mt-4">
         <button
           onClick={() => setRiwayatTerbuka(!riwayatTerbuka)}
-          className="flex w-full items-center gap-2 text-sm font-bold tracking-tight text-muted-foreground"
+          className="flex w-full items-center gap-2 text-[13px] font-bold tracking-tight text-muted-foreground"
         >
           <ChevronDown
-            className={cn("h-4 w-4 transition-transform", !riwayatTerbuka && "-rotate-90")}
+            className={cn("h-3.5 w-3.5 transition-transform", !riwayatTerbuka && "-rotate-90")}
           />
-          TRANSAKSI TERAKHIR
+          Transaksi terakhir
         </button>
         {riwayatTerbuka && (
-          <div className="mt-3 space-y-2">
+          <div className="mt-2 space-y-1.5">
             {memuatRiwayat ? (
-              <p className="text-sm text-muted-foreground">Memuat...</p>
+              <p className="text-[13px] text-muted-foreground">Memuat...</p>
             ) : riwayat.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada transaksi.</p>
+              <p className="text-[13px] text-muted-foreground">Belum ada transaksi.</p>
             ) : (
               riwayat.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-border bg-card px-2.5 py-1.5"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">
+                    <p className="truncate text-[13px] font-semibold">
                       {t.pelanggan?.nama || "Tanpa pelanggan"}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {t.no_nota || "-"} · {waktuRingkas(t.created_at)} · {t.metode_bayar}
                     </p>
                   </div>
-                  <span className="ml-2 shrink-0 text-sm font-bold tabular-nums">
+                  <span className="ml-2 shrink-0 text-[13px] font-bold tabular-nums">
                     {formatRupiah(t.total)}
                   </span>
                 </div>
