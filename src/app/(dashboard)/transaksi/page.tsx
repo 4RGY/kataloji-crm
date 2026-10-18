@@ -18,6 +18,7 @@ import {
   Trash2,
   Coffee,
   ReceiptText,
+  Download,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -416,6 +417,104 @@ export default function TransaksiPage() {
     }
   }
 
+  // Download struk dari transaksi riwayat (tanpa buka dialog)
+  async function downloadStrukRiwayat(t: Transaksi) {
+    try {
+      // Fetch detail transaksi + items + settings
+      const [{ data: trxDetail }, { data: items }, { data: strukSettings }] = await Promise.all([
+        supabase.from("transaksi").select("subtotal, diskon, ppn, biaya_layanan, potongan_poin, poin_didapat, poin_dipakai, jumlah_bayar, kembalian").eq("id", t.id).maybeSingle(),
+        supabase.from("transaksi_item").select("nama, qty, harga_satuan, subtotal").eq("transaksi_id", t.id),
+        supabase.from("settings").select("key, value").in("key", ["struk_nama", "struk_alamat", "struk_wifi_nama", "struk_wifi_pass", "struk_instagram", "struk_footer"]),
+      ]);
+
+      const sm = new Map<string, string>(
+        (strukSettings || []).map((s: { key: string; value: string }) => [s.key, s.value]),
+      );
+
+      const dataStruk: DataStruk = {
+        no_nota: t.no_nota || "",
+        waktu: new Date(t.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" }),
+        items: (items || []).map((i: { nama: string; qty: number; harga_satuan: number; subtotal: number }) => ({ nama: i.nama, qty: i.qty, harga_satuan: i.harga_satuan, subtotal: i.subtotal })),
+        subtotal: trxDetail?.subtotal ?? t.total,
+        diskon: trxDetail?.diskon ?? 0,
+        ppn: trxDetail?.ppn ?? 0,
+        biaya_layanan: trxDetail?.biaya_layanan ?? 0,
+        potongan_poin: trxDetail?.potongan_poin ?? 0,
+        total: t.total,
+        metode_bayar: t.metode_bayar,
+        jumlah_bayar: trxDetail?.jumlah_bayar ?? t.total,
+        kembalian: trxDetail?.kembalian ?? 0,
+        poin_didapat: trxDetail?.poin_didapat ?? 0,
+        poin_dipakai: trxDetail?.poin_dipakai ?? 0,
+        nama_pelanggan: t.pelanggan?.nama ?? null,
+        struk_nama: sm.get("struk_nama") || "Kataloji Coffee and Eatery",
+        struk_alamat: sm.get("struk_alamat") || "",
+        struk_wifi_nama: sm.get("struk_wifi_nama") || "",
+        struk_wifi_pass: sm.get("struk_wifi_pass") || "",
+        struk_instagram: sm.get("struk_instagram") || "",
+        struk_footer: sm.get("struk_footer") || "",
+      };
+
+      // Generate plain text struk
+      const W2 = 42;
+      const garis = "-".repeat(W2);
+      const baris: string[] = [];
+      baris.push(garis);
+      baris.push(dataStruk.struk_nama);
+      for (const line of dataStruk.struk_alamat.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed) baris.push(trimmed);
+      }
+      baris.push(garis);
+      baris.push(`No Nota       : ${dataStruk.no_nota}`);
+      baris.push(`Waktu         : ${dataStruk.waktu}`);
+      if (dataStruk.nama_pelanggan) {
+        baris.push(`Pelanggan     : ${dataStruk.nama_pelanggan}`);
+      }
+      baris.push(garis);
+      for (const item of dataStruk.items) {
+        baris.push(`${item.qty}x  ${item.nama}`);
+        baris.push(`    ${item.subtotal.toLocaleString("id-ID")}`);
+      }
+      baris.push(garis);
+      baris.push(`Subtotal        ${dataStruk.subtotal.toLocaleString("id-ID")}`);
+      if (dataStruk.diskon > 0) baris.push(`Diskon          -${dataStruk.diskon.toLocaleString("id-ID")}`);
+      if (dataStruk.biaya_layanan > 0) baris.push(`Biaya Layanan   ${dataStruk.biaya_layanan.toLocaleString("id-ID")}`);
+      if (dataStruk.ppn > 0) baris.push(`Pajak (PPN)     ${dataStruk.ppn.toLocaleString("id-ID")}`);
+      if (dataStruk.potongan_poin > 0) baris.push(`Potongan Poin   -${dataStruk.potongan_poin.toLocaleString("id-ID")}`);
+      baris.push(garis);
+      baris.push(`TOTAL           ${dataStruk.total.toLocaleString("id-ID")}`);
+      baris.push(garis);
+      const metodeLabel = dataStruk.metode_bayar === "tunai" ? "Tunai" : dataStruk.metode_bayar === "debit" ? "Kartu Debit" : "QRIS";
+      baris.push(`${metodeLabel.padEnd(16)} ${dataStruk.jumlah_bayar.toLocaleString("id-ID")}`);
+      if (dataStruk.kembalian > 0) baris.push(`Kembalian       ${dataStruk.kembalian.toLocaleString("id-ID")}`);
+      if (dataStruk.poin_didapat > 0 || dataStruk.poin_dipakai > 0) {
+        baris.push(garis);
+        if (dataStruk.poin_didapat > 0) baris.push(`Poin didapat    +${dataStruk.poin_didapat}`);
+        if (dataStruk.poin_dipakai > 0) baris.push(`Poin dipakai    -${dataStruk.poin_dipakai}`);
+      }
+      baris.push(garis);
+      if (dataStruk.struk_wifi_nama) baris.push(`WiFi: ${dataStruk.struk_wifi_nama}`);
+      if (dataStruk.struk_wifi_pass) baris.push(`Pass: ${dataStruk.struk_wifi_pass}`);
+      if (dataStruk.struk_instagram) baris.push(`IG: @${dataStruk.struk_instagram}`);
+      if (dataStruk.struk_footer) baris.push(dataStruk.struk_footer);
+
+      const teks = baris.join("\n");
+      const blob = new Blob([teks], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `struk-${dataStruk.no_nota || t.id}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Struk ${dataStruk.no_nota || ""} terunduh`);
+    } catch (e) {
+      toast.error(pesanGalat(e, "Gagal mengunduh struk"));
+    }
+  }
+
   // ---- Filter menu ----
   const menuTampil = menuList.filter((m) => {
     const cocokCari = m.nama.toLowerCase().includes(cari.toLowerCase());
@@ -802,9 +901,20 @@ export default function TransaksiPage() {
                       {t.no_nota || "-"} · {waktuRingkas(t.created_at)} · {t.metode_bayar}
                     </p>
                   </div>
-                  <span className="ml-2 shrink-0 text-[13px] font-bold tabular-nums">
-                    {formatRupiah(t.total)}
-                  </span>
+                  <div className="ml-2 flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadStrukRiwayat(t)}
+                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      title="Unduh struk"
+                    >
+                      <Download className="h-3 w-3" />
+                      Struk
+                    </button>
+                    <span className="text-[13px] font-bold tabular-nums">
+                      {formatRupiah(t.total)}
+                    </span>
+                  </div>
                 </div>
               ))
             )}

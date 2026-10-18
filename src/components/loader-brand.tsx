@@ -16,7 +16,7 @@ export function LoaderBrand({ pesan = "Memuat data..." }: { pesan?: string }) {
           style={{ animationDuration: "1.8s" }}
         />
         <Image
-          src="/brand/logo-typograph-removebg.png"
+          src="/brand/logo-removebg.png"
           alt="Kataloji Coffee and Eatery"
           width={500}
           height={500}

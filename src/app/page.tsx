@@ -56,7 +56,7 @@ export default function LoginPage() {
 
         <div className="relative">
           <Image
-            src="/brand/logo-typograph-removebg.png"
+            src="/brand/logo-removebg.png"
             alt="Kataloji Coffee and Eatery"
             width={440}
             height={132}
@@ -100,7 +100,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <Image
-              src="/brand/logo-typograph-removebg.png"
+              src="/brand/logo-removebg.png"
               alt="Kataloji Coffee and Eatery"
               width={200}
               height={60}

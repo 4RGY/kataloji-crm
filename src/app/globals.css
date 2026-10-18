@@ -154,3 +154,21 @@
 .scrollbar-tersembunyi::-webkit-scrollbar {
   display: none;
 }
+
+/* Premium card shadow untuk high-class look */
+@layer utilities {
+  .shadow-brand {
+    box-shadow:
+      0 1px 2px oklch(0.357 0.033 57.2 / 0.04),
+      0 4px 12px oklch(0.357 0.033 57.2 / 0.06);
+  }
+  .shadow-brand-lg {
+    box-shadow:
+      0 2px 4px oklch(0.357 0.033 57.2 / 0.05),
+      0 8px 24px oklch(0.357 0.033 57.2 / 0.08);
+  }
+  /* Heading display: tighter letter-spacing untuk headline */
+  .font-heading {
+    letter-spacing: -0.02em;
+  }
+}

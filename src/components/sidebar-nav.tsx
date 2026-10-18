@@ -182,16 +182,16 @@ export function SidebarNav() {
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-4 lg:px-5">
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary">
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center">
           <Image
-            src="/brand/logo-typograph-removebg.png"
-            alt=""
-            width={36}
-            height={36}
-            className="h-full w-full object-contain p-0.5"
+            src="/brand/logo-removebg.png"
+            alt="Kataloji Coffee and Eatery"
+            width={40}
+            height={40}
+            className="h-full w-full object-contain"
           />
         </span>
-        <span className="hidden font-heading text-sm font-extrabold leading-tight tracking-tight text-sidebar-foreground lg:block">
+        <span className="hidden font-heading text-base font-extrabold leading-tight tracking-tight text-sidebar-foreground lg:block">
           Kataloji
         </span>
       </div>

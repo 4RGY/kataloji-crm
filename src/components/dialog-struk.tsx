@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Printer, X } from "lucide-react";
+import { Printer, X, Download } from "lucide-react";
 
 export interface ItemStruk {
   nama: string;
@@ -54,101 +54,105 @@ function formatMetode(m: string): string {
   return m;
 }
 
-/**
- * Rata kanan: label di kiri, nilai di kanan, dengan spasi pengisi.
- * Lebar tetap 32 karakter (80mm thermal printer ~ 32 char monospace).
- */
-function rataKanan(kiri: string, kanan: string, lebar: number): string {
-  const spasi = Math.max(1, lebar - kiri.length - kanan.length);
+/** Lebar 42 karakter untuk Epson Moka 80mm (font standar). */
+const W = 42;
+
+function rataKanan(kiri: string, kanan: string): string {
+  const spasi = Math.max(1, W - kiri.length - kanan.length);
   return kiri + " ".repeat(spasi) + kanan;
 }
 
-/** Pusat teks dalam lebar kolom tertentu. */
-function tengah(teks: string, lebar: number): string {
+function tengah(teks: string): string {
   const len = teks.length;
-  if (len >= lebar) return teks;
-  const kiri = Math.floor((lebar - len) / 2);
-  const kanan = lebar - len - kiri;
+  if (len >= W) return teks;
+  const kiri = Math.floor((W - len) / 2);
+  const kanan = W - len - kiri;
   return " ".repeat(kiri) + teks + " ".repeat(kanan);
 }
 
+const GARIS = "-".repeat(W);
+const GARIS_TEBAL = "=".repeat(W);
+
 function buatTeksStruk(d: DataStruk): string {
-  const W = 32;
-  const garis = "=".repeat(W);
-  const garisTipis = "-".repeat(W);
   const baris: string[] = [];
 
-  // Header: nama brand di tengah, alamat per baris di tengah
-  baris.push(garis);
-  baris.push(tengah(d.struk_nama, W));
-  // Alamat bisa multiline (\n) dari settings, tiap baris di-center
+  // Header brand + alamat
+  baris.push(tengah(d.struk_nama));
   for (const line of d.struk_alamat.split("\n")) {
     const trimmed = line.trim();
-    if (trimmed) baris.push(tengah(trimmed, W));
+    if (trimmed) baris.push(tengah(trimmed));
   }
-  baris.push(garis);
+  baris.push(GARIS);
 
-  // No Nota & Waktu: label rata kanan dengan nilai
-  baris.push(rataKanan("No Nota", d.no_nota, W));
-  baris.push(rataKanan("Waktu", d.waktu, W));
-  baris.push(garisTipis);
+  // Info nota
+  baris.push(rataKanan("No Nota", d.no_nota));
+  baris.push(rataKanan("Waktu", d.waktu));
+  if (d.nama_pelanggan) {
+    baris.push(rataKanan("Pelanggan", d.nama_pelanggan));
+  }
+  baris.push(GARIS);
 
-  // Items: qty + nama di kiri, subtotal di kanan
+  // Items
   for (const item of d.items) {
-    const namaItem = `${item.qty}x  ${item.nama}`;
-    baris.push(namaItem);
-    baris.push(rataKanan("", formatRupiah(item.subtotal), W));
+    baris.push(`${item.qty}x  ${item.nama}`);
+    baris.push(rataKanan("", formatRupiah(item.subtotal)));
   }
+  baris.push(GARIS);
 
-  baris.push(garisTipis);
-
-  // Ringkasan: label kiri, nilai kanan
-  baris.push(rataKanan("Subtotal", formatRupiah(d.subtotal), W));
+  // Ringkasan
+  baris.push(rataKanan("Subtotal", formatRupiah(d.subtotal)));
   if (d.diskon > 0) {
-    baris.push(rataKanan("Diskon", formatRupiah(d.diskon), W));
+    baris.push(rataKanan("Diskon", "-" + formatRupiah(d.diskon)));
   }
   if (d.biaya_layanan > 0) {
-    baris.push(rataKanan("Biaya Layanan", formatRupiah(d.biaya_layanan), W));
+    baris.push(rataKanan("Biaya Layanan", formatRupiah(d.biaya_layanan)));
   }
   if (d.ppn > 0) {
-    baris.push(rataKanan("Pajak (PPN)", formatRupiah(d.ppn), W));
+    baris.push(rataKanan("Pajak (PPN)", formatRupiah(d.ppn)));
   }
   if (d.potongan_poin > 0) {
-    baris.push(rataKanan("Potongan Poin", formatRupiah(d.potongan_poin), W));
+    baris.push(rataKanan("Potongan Poin", "-" + formatRupiah(d.potongan_poin)));
   }
-  baris.push(rataKanan("TOTAL", formatRupiah(d.total), W));
-  baris.push(garisTipis);
-  baris.push(rataKanan(formatMetode(d.metode_bayar), formatRupiah(d.jumlah_bayar), W));
+  baris.push(GARIS_TEBAL);
+  baris.push(rataKanan("TOTAL", formatRupiah(d.total)));
+  baris.push(GARIS);
+
+  // Pembayaran
+  baris.push(rataKanan(formatMetode(d.metode_bayar), formatRupiah(d.jumlah_bayar)));
   if (d.kembalian > 0) {
-    baris.push(rataKanan("Kembalian", formatRupiah(d.kembalian), W));
+    baris.push(rataKanan("Kembalian", formatRupiah(d.kembalian)));
   }
 
   // Poin info
   if (d.poin_didapat > 0 || d.poin_dipakai > 0) {
-    baris.push(garisTipis);
+    baris.push(GARIS);
     if (d.poin_didapat > 0) {
-      baris.push(rataKanan("Poin didapat", `+${d.poin_didapat}`, W));
+      baris.push(rataKanan("Poin didapat", "+" + d.poin_didapat));
     }
     if (d.poin_dipakai > 0) {
-      baris.push(rataKanan("Poin dipakai", `-${d.poin_dipakai}`, W));
+      baris.push(rataKanan("Poin dipakai", "-" + d.poin_dipakai));
     }
   }
 
-  baris.push(garis);
+  baris.push(GARIS);
 
-  // Footer info: center
+  // Footer
   if (d.struk_wifi_nama) {
-    baris.push(tengah(`WiFi: ${d.struk_wifi_nama}`, W));
+    baris.push(tengah(`WiFi: ${d.struk_wifi_nama}`));
   }
   if (d.struk_wifi_pass) {
-    baris.push(tengah(`Pass: ${d.struk_wifi_pass}`, W));
+    baris.push(tengah(`Pass: ${d.struk_wifi_pass}`));
   }
   if (d.struk_instagram) {
-    baris.push(tengah(`IG: @${d.struk_instagram}`, W));
+    baris.push(tengah(`IG: @${d.struk_instagram}`));
   }
   baris.push("");
   if (d.struk_footer) {
-    baris.push(tengah(d.struk_footer, W));
+    const footerLines = d.struk_footer.split("\n");
+    for (const fl of footerLines) {
+      const trimmed = fl.trim();
+      if (trimmed) baris.push(tengah(trimmed));
+    }
   }
 
   return baris.join("\n");
@@ -170,28 +174,128 @@ export function DialogStruk({ buka, onClose, data }: Props) {
   function cetak() {
     const win = window.open("", "_blank", "width=400,height=600");
     if (!win) return;
-    win.document.write(`
-      <html>
-      <head>
-        <title>Struk ${data!.no_nota}</title>
-        <style>
-          @page { margin: 0; size: 80mm auto; }
-          body {
-            font-family: "Courier New", monospace;
-            font-size: 12px;
-            white-space: pre;
-            margin: 0;
-            padding: 4px;
-            width: 72mm;
-          }
-        </style>
-      </head>
-      <body>${teks.replace(/</g, "&lt;")}</body>
-      </html>
-    `);
+
+    const logoUrl = window.location.origin + "/brand/logo-removebg.png";
+
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Struk ${data!.no_nota}</title>
+  <style>
+    @page { margin: 4mm; size: 80mm auto; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.35;
+      width: 72mm;
+      margin: 0 auto;
+      color: #000;
+    }
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .logo-circle {
+      display: inline-block;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #2A1D14;
+      line-height: 36px;
+      text-align: center;
+    }
+    .logo-circle img {
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
+      object-fit: contain;
+    }
+    .brand-name {
+      text-align: center;
+      font-weight: bold;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+    .alamat {
+      text-align: center;
+      font-size: 10px;
+      white-space: pre-wrap;
+    }
+    .separator {
+      border-top: 1px dashed #000;
+      margin: 2px 0;
+    }
+    .separator-tebal {
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      height: 3px;
+      margin: 2px 0;
+    }
+    .item-nama { font-weight: bold; }
+    .total-line { font-weight: bold; }
+    .footer-info { text-align: center; margin-top: 2px; }
+    .thank-you { text-align: center; margin-top: 4px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="logo-wrap">
+    <div class="logo-circle">
+      <img src="${logoUrl}" alt="Kataloji" />
+    </div>
+  </div>
+  <div class="brand-name">${data!.struk_nama}</div>
+  <div class="alamat">${data!.struk_alamat.replace(/\n/g, "<br/>")}</div>
+  <div class="separator"></div>
+  <div>No Nota       : ${data!.no_nota}</div>
+  <div>Waktu         : ${data!.waktu}</div>
+  ${data!.nama_pelanggan ? `<div>Pelanggan     : ${data!.nama_pelanggan}</div>` : ""}
+  <div class="separator"></div>
+  ${data!.items.map((item) => `
+  <div class="item-nama">${item.qty}x  ${item.nama}</div>
+  <div style="text-align: right;">${formatRupiah(item.subtotal)}</div>
+  `).join("")}
+  <div class="separator"></div>
+  <div style="display: flex; justify-content: space-between;"><span>Subtotal</span><span>${formatRupiah(data!.subtotal)}</span></div>
+  ${data!.diskon > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Diskon</span><span>-${formatRupiah(data!.diskon)}</span></div>` : ""}
+  ${data!.biaya_layanan > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Biaya Layanan</span><span>${formatRupiah(data!.biaya_layanan)}</span></div>` : ""}
+  ${data!.ppn > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Pajak (PPN)</span><span>${formatRupiah(data!.ppn)}</span></div>` : ""}
+  ${data!.potongan_poin > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Potongan Poin</span><span>-${formatRupiah(data!.potongan_poin)}</span></div>` : ""}
+  <div class="separator-tebal"></div>
+  <div class="total-line" style="display: flex; justify-content: space-between;"><span>TOTAL</span><span>${formatRupiah(data!.total)}</span></div>
+  <div class="separator"></div>
+  <div style="display: flex; justify-content: space-between;"><span>${formatMetode(data!.metode_bayar)}</span><span>${formatRupiah(data!.jumlah_bayar)}</span></div>
+  ${data!.kembalian > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Kembalian</span><span>${formatRupiah(data!.kembalian)}</span></div>` : ""}
+  ${(data!.poin_didapat > 0 || data!.poin_dipakai > 0) ? `
+  <div class="separator"></div>
+  ${data!.poin_didapat > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Poin didapat</span><span>+${data!.poin_didapat}</span></div>` : ""}
+  ${data!.poin_dipakai > 0 ? `<div style="display: flex; justify-content: space-between;"><span>Poin dipakai</span><span>-${data!.poin_dipakai}</span></div>` : ""}
+  ` : ""}
+  <div class="separator"></div>
+  ${data!.struk_wifi_nama ? `<div class="footer-info">WiFi: ${data!.struk_wifi_nama}</div>` : ""}
+  ${data!.struk_wifi_pass ? `<div class="footer-info">Pass: ${data!.struk_wifi_pass}</div>` : ""}
+  ${data!.struk_instagram ? `<div class="footer-info">IG: @${data!.struk_instagram}</div>` : ""}
+  ${data!.struk_footer ? `<div class="thank-you">${data!.struk_footer.replace(/\n/g, "<br/>")}</div>` : ""}
+</body>
+</html>`);
     win.document.close();
     win.focus();
-    win.print();
+    setTimeout(() => {
+      win.print();
+    }, 300);
+  }
+
+  function downloadStruk() {
+    const blob = new Blob([teks], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `struk-${data!.no_nota || "kataloji"}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -200,25 +304,37 @@ export function DialogStruk({ buka, onClose, data }: Props) {
         <DialogHeader>
           <DialogTitle>Struk {data.no_nota}</DialogTitle>
         </DialogHeader>
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          {/* Logo Kataloji di tengah atas struk */}
-          <div className="mb-3 flex justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/brand/logo.jpeg"
-              alt="Kataloji"
-              className="h-16 w-16 rounded-full object-cover"
-            />
+        {/* Preview struk: tampilan mirip hasil cetak */}
+        <div className="rounded-lg border border-border bg-white p-4 shadow-inner">
+          {/* Logo dengan dark circle (logo putih butuh background gelap) */}
+          <div className="mb-2 flex justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2A1D14]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/logo-removebg.png"
+                alt="Kataloji"
+                className="h-6 w-6 object-contain"
+              />
+            </div>
           </div>
+          <p className="text-center text-[13px] font-bold leading-tight">
+            {data.struk_nama}
+          </p>
+          {data.struk_alamat && (
+            <p className="text-center text-[10px] leading-tight text-gray-600">
+              {data.struk_alamat}
+            </p>
+          )}
+          <div className="my-1.5 border-t border-dashed border-gray-300" />
           <pre
             ref={refPre}
-            className="whitespace-pre font-mono text-[11px] leading-tight text-foreground"
+            className="whitespace-pre font-mono text-[11px] leading-[1.35] text-gray-900"
             style={{ fontFamily: "'Courier New', monospace" }}
           >
-            {teks}
+            {teks.split("\n").slice(teks.split("\n").findIndex((l) => l.includes("No Nota"))).join("\n")}
           </pre>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button
             variant="outline"
             onClick={onClose}
@@ -227,9 +343,17 @@ export function DialogStruk({ buka, onClose, data }: Props) {
             <X className="mr-1.5 h-4 w-4" />
             Tutup
           </Button>
+          <Button
+            variant="outline"
+            onClick={downloadStruk}
+            className="h-11"
+          >
+            <Download className="mr-1.5 h-4 w-4" />
+            Unduh
+          </Button>
           <Button onClick={cetak} className="h-11">
             <Printer className="mr-1.5 h-4 w-4" />
-            Cetak struk
+            Cetak
           </Button>
         </DialogFooter>
       </DialogContent>
