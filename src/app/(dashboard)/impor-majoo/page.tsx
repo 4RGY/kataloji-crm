@@ -210,7 +210,7 @@ export default function ImporMajooPage() {
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight">Impor Majoo</h1>
+        <h1 className="font-heading text-2xl font-extrabold tracking-tight">Impor Majoo</h1>
         <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
           Masukkan data pelanggan &amp; transaksi dari ekspor Majoo ke CRM
           (pengisian H+1). File yang sama bisa diimpor ulang tanpa menggandakan

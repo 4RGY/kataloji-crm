@@ -108,7 +108,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight">Selamat datang kembali</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">Selamat datang kembali</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Masuk untuk melanjutkan shift Anda.
           </p>

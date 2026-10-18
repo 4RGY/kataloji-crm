@@ -253,7 +253,7 @@ export default function StafPage() {
     return (
       <div className="px-6 pb-10 pt-4 lg:px-8">
         <header className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight">Staf</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">Staf</h1>
         </header>
         <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-24">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -269,7 +269,7 @@ export default function StafPage() {
     return (
       <div className="px-6 pb-10 pt-4 lg:px-8">
         <header className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight">Staf</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">Staf</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Kelola akun yang bisa masuk ke Kataloji CRM beserta perannya.
           </p>
@@ -292,7 +292,7 @@ export default function StafPage() {
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Staf</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">Staf</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Kelola akun yang bisa masuk ke Kataloji CRM beserta perannya.
           </p>

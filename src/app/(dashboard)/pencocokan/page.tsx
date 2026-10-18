@@ -219,7 +219,7 @@ export default function HalamanPencocokan() {
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight">
+        <h1 className="font-heading text-2xl font-extrabold tracking-tight">
           Impor &amp; Pencocokan
         </h1>
         <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">

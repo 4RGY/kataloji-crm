@@ -420,7 +420,7 @@ export default function DashboardPage() {
             {sapaan}
             {namaStaf ? `, ${namaStaf}` : ""}
           </p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Dashboard</h1>
+          <h1 className="font-heading mt-1 text-2xl font-extrabold tracking-tight">Dashboard</h1>
           <p className="mt-0.5 text-sm capitalize text-muted-foreground">
             {tanggalHariIni}
           </p>

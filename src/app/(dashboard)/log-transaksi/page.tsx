@@ -330,7 +330,7 @@ export default function HalamanLogTransaksi() {
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">
             Log Transaksi
           </h1>
           <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">

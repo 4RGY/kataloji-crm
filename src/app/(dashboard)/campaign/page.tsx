@@ -371,7 +371,7 @@ function IsiCampaign() {
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Campaign</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">Campaign</h1>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Pilih siapa yang perlu dihubungi, susun pesannya sekali, lalu kirim
             lewat WhatsApp kedai satu per satu.

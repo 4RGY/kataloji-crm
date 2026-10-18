@@ -439,7 +439,7 @@ export default function TransaksiPage() {
         {/* ===== KOLOM KIRI: MENU GRID ===== */}
         <div className="space-y-3">
           <header className="flex items-center justify-between gap-3">
-            <h1 className="text-xl font-extrabold tracking-tight">Kasir</h1>
+            <h1 className="font-heading text-xl font-extrabold tracking-tight">Kasir</h1>
           </header>
 
           <div className="flex flex-wrap items-center gap-2">

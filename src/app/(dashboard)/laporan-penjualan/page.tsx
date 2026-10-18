@@ -194,7 +194,7 @@ export default function HalamanLaporanPenjualan() {
   if (peran !== undefined && !menuUntukPeran(peran).penjualan) {
     return (
       <div className="px-6 pb-10 pt-4 lg:px-8">
-        <h1 className="text-2xl font-extrabold tracking-tight">Laporan penjualan</h1>
+        <h1 className="font-heading text-2xl font-extrabold tracking-tight">Laporan penjualan</h1>
         <p className="mt-4 text-sm text-muted-foreground">
           Halaman ini hanya untuk admin dan manajer.
         </p>
@@ -208,7 +208,7 @@ export default function HalamanLaporanPenjualan() {
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Laporan penjualan</h1>
+          <h1 className="font-heading text-2xl font-extrabold tracking-tight">Laporan penjualan</h1>
           <p className="mt-1 text-sm text-muted-foreground">{judulPeriode}</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">

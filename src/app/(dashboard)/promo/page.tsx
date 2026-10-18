@@ -221,7 +221,7 @@ export default function HalamanPromo() {
   return (
     <div className="px-6 pb-10 pt-4 lg:px-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-extrabold tracking-tight">Promo</h1>
+        <h1 className="font-heading text-2xl font-extrabold tracking-tight">Promo</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Kelola promo, diskon, dan bundle yang bisa dipakai di kasir.
         </p>
