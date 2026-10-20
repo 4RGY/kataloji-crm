@@ -397,7 +397,7 @@ export function PanelAturanPoin({ peran }: Props) {
                 </p>
                 <p className="text-xs tabular-nums text-muted-foreground">
                   {formatTanggal(a.mulai)}
-                  {a.selesai ? ` – ${formatTanggal(a.selesai)}` : " – masih berlaku"}
+                  {a.selesai ? ` · ${formatTanggal(a.selesai)}` : " · masih berlaku"}
                 </p>
               </div>
               {a.keterangan && (

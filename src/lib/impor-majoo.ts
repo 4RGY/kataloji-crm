@@ -234,7 +234,7 @@ export interface HasilCekWhatsapp {
  *
  * Berbeda dengan `validasiPelanggan()`: tanggal lahir di sini TIDAK wajib,
  * karena ekspor Majoo sering mengosongkannya. Yang wajib hanya nomor yang
- * lolos batasan kolom `whatsapp` (NOT NULL + CHECK 11–15 digit berawal 62).
+ * lolos batasan kolom `whatsapp` (NOT NULL + CHECK 11-15 digit berawal 62).
  * Aturan panjangnya WAJIB sama dengan `validasiPelanggan()` dan dengan
  * constraint `pelanggan_whatsapp_isi` di database.
  */
@@ -250,7 +250,7 @@ export function cekWhatsappImpor(raw: string): HasilCekWhatsapp {
     return {
       ok: false,
       normal,
-      alasan: `Panjang nomor ${normal.length} digit (harus 11–15 digit).`,
+      alasan: `Panjang nomor ${normal.length} digit (harus 11-15 digit).`,
     };
   }
   return { ok: true, normal };
