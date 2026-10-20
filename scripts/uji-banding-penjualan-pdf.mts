@@ -1,7 +1,7 @@
 // ============================================================
 // Uji PDF laporan penjualan versi baru: bagian perbandingan periode.
 // ============================================================
-// Membuktikan bagian "Dibanding periode sebelumnya" benar-benar tercetak,
+// Membuktikan bagian "Perbandingan Periode Sebelumnya" benar-benar tercetak,
 // bahwa tanda minus tidak menempel pada "Rp", dan bahwa catatan ragu ikut
 // tercetak saat periode belum selesai.
 //
@@ -93,7 +93,7 @@ console.log("=== Kasus A: ada pembanding, periode belum selesai ===");
   const rapi = teks.replace(/\s+/g, " ");
 
   cek("PDF jadi", blob.size > 2000);
-  cek("ada judul bagian banding", /Dibanding periode sebelumnya/i.test(rapi));
+  cek("ada judul bagian banding", /Perbandingan Periode Sebelumnya/i.test(rapi));
   cek("ada label pembanding", /Bulan lalu/i.test(rapi));
   cek("ada selisih bertanda minus rapi", /-Rp\s?187\.000/.test(rapi));
   cek("tidak ada 'Rp -'", !/Rp\s-/.test(rapi));
@@ -103,7 +103,7 @@ console.log("=== Kasus A: ada pembanding, periode belum selesai ===");
   const jalur = "C:/Users/Anggara/AppData/Local/hermes/cache/uji-banding-penjualan.pdf";
   writeFileSync(jalur, Buffer.from(await blob.arrayBuffer()));
   console.log(`  PDF ditulis: ${jalur}`);
-  console.log(`  cuplikan: ${(rapi.match(/Dibanding periode sebelumnya.{0,180}/i) || [""])[0]}`);
+  console.log(`  cuplikan: ${(rapi.match(/Perbandingan Periode Sebelumnya.{0,180}/i) || [""])[0]}`);
 }
 
 console.log("=== Kasus B: tanpa pembanding -> bagian itu tidak dicetak ===");
@@ -119,7 +119,7 @@ console.log("=== Kasus B: tanpa pembanding -> bagian itu tidak dicetak ===");
     banding,
   });
   const rapi = (await teksPdf(blob)).replace(/\s+/g, " ");
-  cek("tidak ada bagian banding", !/Dibanding periode sebelumnya/i.test(rapi));
+  cek("tidak ada bagian banding", !/Perbandingan Periode Sebelumnya/i.test(rapi));
   cek("tidak ada angka naik/turun", !/\d+%/.test(rapi) || !/naik|turun/i.test(rapi));
   cek("ringkasan tetap ada", /Omzet bersih/i.test(rapi));
 }
@@ -134,7 +134,7 @@ console.log("=== Kasus C: banding tidak dikirim sama sekali (unduhan lama) ===")
   });
   const rapi = (await teksPdf(blob)).replace(/\s+/g, " ");
   cek("tidak meledak tanpa banding", blob.size > 2000);
-  cek("tidak ada bagian banding", !/Dibanding periode sebelumnya/i.test(rapi));
+  cek("tidak ada bagian banding", !/Perbandingan Periode Sebelumnya/i.test(rapi));
 }
 
 console.log(`\n=== ${lulus} LULUS, ${gagal} GAGAL ===`);
