@@ -180,6 +180,32 @@ function normalisasiAngka(raw: string): number {
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 
+// ---------- Normalisasi metode bayar ----------
+
+/**
+ * Samakan metode bayar Majoo dengan nilai yang diizinkan database.
+ *
+ * Kolom `transaksi.metode_bayar` dijaga CHECK constraint yang hanya menerima
+ * huruf kecil: 'tunai', 'debit', 'qris'. Ekspor Majoo menulis "Tunai", "QRIS",
+ * "Debit", sehingga baris impor mentah ditolak database dan transaksinya
+ * hilang tanpa pesan yang jelas.
+ *
+ * Normalisasi dilakukan di parser supaya pratinjau di layar menampilkan nilai
+ * yang sama persis dengan yang nanti tersimpan.
+ *
+ * Nilai yang tidak dikenali dikembalikan sebagai string kosong: lebih jujur
+ * disimpan kosong (tampil "tanpa metode") daripada ditebak jadi tunai.
+ */
+export function normalisasiMetodeBayar(raw: string): string {
+  const t = bersih(raw).toLowerCase();
+  if (!t) return "";
+  if (t.includes("qris") || t === "qr") return "qris";
+  if (t.includes("tunai") || t.includes("cash")) return "tunai";
+  if (t.includes("debit") || t.includes("kartu") || t.includes("kredit") || t.includes("edc"))
+    return "debit";
+  return "";
+}
+
 // ---------- Parsing produk ----------
 
 /**
@@ -311,7 +337,7 @@ export function parseMajoo(baris: unknown[][]): HasilParse {
       hasil.transaksi.push({
         external_ref: ref,
         total,
-        metode_bayar: ambil(barisAsli, peta, "Metode Pembayaran"),
+        metode_bayar: normalisasiMetodeBayar(ambil(barisAsli, peta, "Metode Pembayaran")),
         items: parseProduk(ambil(barisAsli, peta, "Produk")),
         waktu: ambil(barisAsli, peta, "Waktu"),
         // Tanggal ternormalisasi (YYYY-MM-DD) untuk memilih aturan poin

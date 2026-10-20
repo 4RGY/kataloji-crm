@@ -61,6 +61,11 @@ async function buatTransaksi(pelangganId: string | null, total: number, tgl: str
     .insert({
       pelanggan_id: pelangganId,
       total,
+      // POS native (pos-menu-promo.sql) mewajibkan subtotal & menjadikannya
+      // basis poin (subtotal - diskon). Tanpa baris ini seluruh uji berhenti
+      // di NotNullViolation sebelum satu pun aturan poin teruji.
+      subtotal: total,
+      jumlah_bayar: total,
       items: [],
       external_ref: `${MARK}-${Math.random().toString(36).slice(2, 10)}`,
       source,

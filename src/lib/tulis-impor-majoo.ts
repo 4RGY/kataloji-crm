@@ -67,15 +67,24 @@ async function cariPelangganByKode(
 
 // ---------- Tulis pelanggan ----------
 
+// Hasil penulisan satu baris BESERTA alasannya. Sebelumnya fungsi ini hanya
+// mengembalikan status, lalu pemanggil menebak alasannya dan mencetak kalimat
+// yang salah ("total tidak valid" padahal barisnya cuma duplikat). Alasannya
+// sekarang dibawa dari tempat kejadian.
+interface HasilTulis {
+  hasil: "dibuat" | "diperbarui" | "dilewati" | "gagal";
+  alasan?: string;
+}
+
 async function tulisPelanggan(
   admin: SupabaseClient,
   b: BarisPelangganMajoo,
-): Promise<"dibuat" | "diperbarui" | "dilewati" | "gagal"> {
+): Promise<HasilTulis> {
   // Validasi WhatsApp (NOT NULL + CHECK di database). Nomor yang tidak lolos
   // dilewati dengan alasan, bukan di-insert memakai nilai palsu.
   const wa = cekWhatsappImpor(b.whatsapp);
   if (!wa.ok) {
-    return "dilewati";
+    return { hasil: "dilewati", alasan: wa.alasan ?? "nomor WhatsApp tidak sah" };
   }
 
   const kolom = {
@@ -92,11 +101,11 @@ async function tulisPelanggan(
   // sudah tercatat (nama, WA, tanggal lahir) dibiarkan. Dilewati, bukan update.
   const sudahAda = await cariPelangganByKode(admin, b.kode_majoo);
   if (sudahAda) {
-    return "dilewati";
+    return { hasil: "dilewati", alasan: "sudah ada di CRM, data yang tersimpan tidak ditimpa" };
   }
 
   const { error } = await admin.from("pelanggan").insert(kolom);
-  return error ? "gagal" : "dibuat";
+  return { hasil: error ? "gagal" : "dibuat" };
 }
 
 // ---------- Kolom tambahan untuk update ----------
@@ -129,16 +138,28 @@ async function ambilTransaksiTerkait(
 async function tulisTransaksi(
   admin: SupabaseClient,
   b: BarisTransaksiMajoo,
-): Promise<"dibuat" | "diperbarui" | "dilewati" | "gagal"> {
+): Promise<HasilTulis> {
   // Total wajib (kolom NOT NULL tanpa default). Tanpa nomor transaksi pun
   // sudah disaring di parser, tapi total masih bisa 0 bila sel rusak.
   if (b.total <= 0) {
-    return "dilewati";
+    return { hasil: "dilewati", alasan: "total tidak valid" };
   }
 
   const kolom = {
     external_ref: b.external_ref,
     total: b.total,
+    // Kolom struk POS native wajib terisi (subtotal NOT NULL sejak
+    // pos-menu-promo.sql). Ekspor Majoo hanya memberi TOTAL akhir yang sudah
+    // termasuk pajak, tanpa rincian subtotal/PPN/biaya layanan. Karena itu
+    // subtotal diisi sama dengan total dan komponen pajak ditulis 0, bukan
+    // dikira-kira. Konsekuensinya basis poin impor = total, sama seperti
+    // sebelum POS native.
+    subtotal: b.total,
+    diskon: 0,
+    ppn: 0,
+    biaya_layanan: 0,
+    jumlah_bayar: b.total,
+    kembalian: 0,
     metode_bayar: b.metode_bayar || null,
     // items disimpan sebagai jsonb array [{nama, qty}], bentuk yang sama
     // dengan kolom items milik transaksi manual.
@@ -158,11 +179,11 @@ async function tulisTransaksi(
     // Sudah ada: JANGAN disentuh. Nilai, tautan pelanggan, dan poin yang sudah
     // diterbitkan tidak berubah. Transaksi yang belum tertaut bisa ditautkan
     // lewat halaman Pencocokan, bukan lewat impor.
-    return "dilewati";
+    return { hasil: "dilewati", alasan: "sudah pernah diimpor, tidak ditimpa" };
   }
 
   const { error } = await admin.from("transaksi").insert(kolom);
-  return error ? "gagal" : "dibuat";
+  return { hasil: error ? "gagal" : "dibuat" };
 }
 
 // ---------- Fungsi utama ----------
@@ -177,13 +198,12 @@ export async function tulisImporMajoo(
   // Pelanggan dulu, supaya bila suatu saat ekspor transaksi memuat kode
   // pelanggan, relasinya sudah tersedia. Untuk sekarang relasi tetap NULL.
   for (const b of pelanggan) {
-    const hasil = await tulisPelanggan(admin, b);
+    const { hasil, alasan } = await tulisPelanggan(admin, b);
     ringkas.pelanggan[hasil]++;
     if (hasil === "dilewati") {
-      const wa = cekWhatsappImpor(b.whatsapp);
       ringkas.galat.push({
         baris: b.baris,
-        pesan: `Pelanggan "${b.nama}" dilewati: ${wa.alasan}`,
+        pesan: `Pelanggan "${b.nama}" dilewati: ${alasan ?? "tidak memenuhi syarat"}`,
       });
     } else if (hasil === "gagal") {
       ringkas.galat.push({
@@ -194,12 +214,12 @@ export async function tulisImporMajoo(
   }
 
   for (const b of transaksi) {
-    const hasil = await tulisTransaksi(admin, b);
+    const { hasil, alasan } = await tulisTransaksi(admin, b);
     ringkas.transaksi[hasil]++;
     if (hasil === "dilewati") {
       ringkas.galat.push({
         baris: b.baris,
-        pesan: `Transaksi "${b.external_ref}" dilewati: total tidak valid.`,
+        pesan: `Transaksi "${b.external_ref}" dilewati: ${alasan ?? "tidak memenuhi syarat"}`,
       });
     } else if (hasil === "gagal") {
       ringkas.galat.push({

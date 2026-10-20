@@ -9,7 +9,7 @@ import fs from "node:fs";
 
 const ENV = fs.readFileSync(".env.local", "utf8")
   .split("\n")
-  .filter((l) => l.startsWith("NEXT_PUBLIC_SUPABASE_") || l.startsWith("SUPABASE_SERVICE_ROLE_KEY") || l.startsWith("SANDI_UJI"))
+  .filter((l) => l.startsWith("NEXT_PUBLIC_SUPABASE_") || l.startsWith("SUPABASE_SERVICE_ROLE_KEY") || l.startsWith("SANDI_UJI") || l.startsWith("GATE_PASSWORD"))
   .map((l) => l.split("="))
   .reduce((acc, [k, v]) => {
     acc[k.trim()] = (v ?? "").trim();
@@ -61,7 +61,16 @@ async function main() {
       ...(auth.refresh_token ? { refresh_token: auth.refresh_token } : {}),
     }),
   );
-  const COOKIE = `sb-${ref}-auth-token=${cookieVal}`;
+  // Gerbang sandi (/gate) menjaga SEMUA halaman & API. Tanpa cookie gerbang,
+  // setiap panggilan /api/* dijawab 401 "Gerbang akses terkunci." dan uji ini
+  // berhenti sebelum menguji apa pun. Cookie = SHA-256("kataloji-gerbang-v1|<sandi>"),
+  // nilai yang sama dibuat src/lib/gate.ts.
+  const SANDI_GERBANG = ENV["GATE_PASSWORD"];
+  const { createHash } = await import("node:crypto");
+  const cookieGerbang = createHash("sha256")
+    .update(`kataloji-gerbang-v1|${SANDI_GERBANG}`)
+    .digest("hex");
+  const COOKIE = `sb-${ref}-auth-token=${cookieVal}; kataloji_gerbang=${cookieGerbang}`;
 
   const base = "http://localhost:3000";
   const fs = await import("node:fs");

@@ -46,11 +46,18 @@ try {
   cek("tulis pertama membuat 1 transaksi", r1.transaksi.dibuat === 1);
 
   const { data: pel } = await admin.from("pelanggan").select("id,nama,whatsapp").eq("kode_majoo", KODE);
-  const { data: trx } = await admin.from("transaksi").select("id,total,metode_bayar").eq("external_ref", REF);
+  const { data: trx } = await admin
+    .from("transaksi")
+    .select("id,total,metode_bayar,subtotal,jumlah_bayar")
+    .eq("external_ref", REF);
   (pel ?? []).forEach((x) => dibuatPelangganIds.push(x.id));
   (trx ?? []).forEach((x) => dibuatTrxIds.push(x.id));
   cek("pelanggan tersimpan dengan nama awal", pel?.[0]?.nama === "QA Buangan Impor");
   cek("transaksi tersimpan dengan total awal 75900", Number(trx?.[0]?.total) === 75900);
+  // POS native mewajibkan subtotal NOT NULL; impor mengisi subtotal = total
+  // karena ekspor Majoo tidak memisahkan pajak.
+  cek("subtotal terisi = total (syarat POS native)", Number(trx?.[0]?.subtotal) === 75900);
+  cek("jumlah_bayar terisi = total", Number(trx?.[0]?.jumlah_bayar) === 75900);
 
   // (2) Impor ulang dengan nilai BEDA: nilai lama harus tetap
   const p2 = parseMajoo(pelRaw.map((r, i) => (i === 7 ? [KODE, "NAMA DIUBAH", WA, "01/01/1990", "P", "x@x.com", "Alamat lain"] : r))).pelanggan;
@@ -63,7 +70,10 @@ try {
   const { data: trx2 } = await admin.from("transaksi").select("total,metode_bayar").eq("external_ref", REF);
   cek("nama pelanggan TIDAK berubah ke NAMA DIUBAH", pel2?.[0]?.nama === "QA Buangan Impor");
   cek("total transaksi TIDAK berubah dari 75900 ke 99000", Number(trx2?.[0]?.total) === 75900);
-  cek("metode TIDAK berubah dari QRIS", trx2?.[0]?.metode_bayar === "QRIS");
+  // Parser menormalkan "QRIS" -> "qris" (CHECK constraint database hanya
+  // menerima huruf kecil). Yang diuji di sini: nilai tersimpan tetap "qris"
+  // dan TIDAK berubah saat impor ulang mengirim "TUNAI".
+  cek("metode TIDAK berubah dari qris", trx2?.[0]?.metode_bayar === "qris");
 
   // (3) Tidak menggandakan
   cek("tidak ada pelanggan ganda", (pel2 ?? []).length === 1);
