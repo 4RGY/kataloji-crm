@@ -16,11 +16,14 @@ export interface ItemStruk {
   qty: number;
   harga_satuan: number;
   subtotal: number;
+  catatan?: string | null;
 }
 
 export interface DataStruk {
   no_nota: string;
   waktu: string;
+  tipe_pesanan?: "dine_in" | "takeaway";
+  nomor_meja?: string | null;
   items: ItemStruk[];
   subtotal: number;
   diskon: number;
@@ -90,6 +93,12 @@ function teksBody(d: DataStruk): string {
   // Info nota
   baris.push(rataKanan("No Nota", d.no_nota));
   baris.push(rataKanan("Waktu", d.waktu));
+  if (d.tipe_pesanan) {
+    const labelOrder = d.tipe_pesanan === "dine_in"
+      ? (d.nomor_meja ? `Dine In (Meja ${d.nomor_meja})` : "Dine In")
+      : "Take Away";
+    baris.push(rataKanan("Pesanan", labelOrder));
+  }
   if (d.nama_pelanggan) {
     baris.push(rataKanan("Pelanggan", d.nama_pelanggan));
   }
@@ -98,6 +107,9 @@ function teksBody(d: DataStruk): string {
   // Items
   for (const item of d.items) {
     baris.push(`${item.qty}x  ${item.nama}`);
+    if (item.catatan) {
+      baris.push(`    * ${item.catatan}`);
+    }
     baris.push(rataKanan("", formatRupiah(item.subtotal)));
   }
   baris.push(GARIS);
@@ -262,10 +274,12 @@ export function DialogStruk({ buka, onClose, data }: Props) {
   <div class="sep"></div>
   <div class="row"><span>No Nota</span><span>${data!.no_nota}</span></div>
   <div class="row"><span>Waktu</span><span>${data!.waktu}</span></div>
+  ${data!.tipe_pesanan ? `<div class="row"><span>Pesanan</span><span>${data!.tipe_pesanan === "dine_in" ? (data!.nomor_meja ? `Dine In (Meja ${data!.nomor_meja})` : "Dine In") : "Take Away"}</span></div>` : ""}
   ${data!.nama_pelanggan ? `<div class="row"><span>Pelanggan</span><span>${data!.nama_pelanggan}</span></div>` : ""}
   <div class="sep"></div>
   ${data!.items.map((item) => `
   <div class="item-nama">${item.qty}x  ${item.nama}</div>
+  ${item.catatan ? `<div style="font-size:10px; font-style:italic; padding-left:10px; color:#444;">* ${item.catatan}</div>` : ""}
   <div class="item-sub">${formatRupiah(item.subtotal)}</div>
   `).join("")}
   <div class="sep"></div>

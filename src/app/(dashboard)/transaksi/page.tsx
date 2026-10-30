@@ -19,6 +19,11 @@ import {
   Coffee,
   ReceiptText,
   Download,
+  Flame,
+  PauseCircle,
+  Play,
+  Wallet,
+  Pencil,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -31,6 +36,14 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { DialogStruk, type DataStruk } from "@/components/dialog-struk";
 
 // ---- Tipe ----
@@ -52,6 +65,22 @@ interface ItemKeranjang {
   nama: string;
   harga: number;
   qty: number;
+  catatan?: string;
+}
+
+interface BillDitahan {
+  id: string;
+  label: string;
+  waktu: string;
+  tipePesanan: "dine_in" | "takeaway";
+  nomorMeja: string;
+  keranjang: ItemKeranjang[];
+  pelanggan: Pelanggan | null;
+  diskon: number;
+  poinDipakai: number;
+  promoTerpilih: Promo | null;
+  subtotal: number;
+  total: number;
 }
 
 interface Pelanggan {
@@ -69,12 +98,22 @@ interface Promo {
   syarat_min: number;
 }
 
+interface TransaksiItemJson {
+  menu_id?: string;
+  nama?: string;
+  qty?: number;
+  harga_satuan?: number;
+  subtotal?: number;
+  catatan?: string | null;
+}
+
 interface Transaksi {
   id: string;
   total: number;
   no_nota: string | null;
   metode_bayar: string;
   created_at: string;
+  items?: TransaksiItemJson[] | null;
   pelanggan: { nama: string } | null;
 }
 
@@ -125,6 +164,10 @@ export default function TransaksiPage() {
   const [poinDipakai, setPoinDipakai] = useState(0);
   const [promoTerpilih, setPromoTerpilih] = useState<Promo | null>(null);
 
+  // Tipe pesanan (Dine In / Takeaway) & Meja
+  const [tipePesanan, setTipePesanan] = useState<"dine_in" | "takeaway">("dine_in");
+  const [nomorMeja, setNomorMeja] = useState("");
+
   // Pembayaran
   const [metodeBayar, setMetodeBayar] = useState<"tunai" | "debit" | "qris">("tunai");
   const [jumlahBayar, setJumlahBayar] = useState(0);
@@ -135,6 +178,33 @@ export default function TransaksiPage() {
   // Struk
   const [strukData, setStrukData] = useState<DataStruk | null>(null);
   const [strukBuka, setStrukBuka] = useState(false);
+
+  // Fitur 1: Catatan / Modifier item
+  const [dialogCatatanBuka, setDialogCatatanBuka] = useState(false);
+  const [catatanIndex, setCatatanIndex] = useState<number | null>(null);
+  const [teksCatatan, setTeksCatatan] = useState("");
+  const CHIP_CATATAN = ["Dingin (Ice)", "Panas (Hot)", "Less Sugar (50%)", "No Sugar", "Gula Pisah", "Extra Shot"];
+
+  // Fitur 2: Tahan Bill (Hold / Park Order)
+  const [billsDitahan, setBillsDitahan] = useState<BillDitahan[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("kataloji_bills_ditahan");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [dialogDitahanBuka, setDialogDitahanBuka] = useState(false);
+
+  // Fitur 3: Kas Kecil (Petty Cash Pengeluaran)
+  const [kasKeluarBuka, setKasKeluarBuka] = useState(false);
+  const [nominalKas, setNominalKas] = useState("");
+  const [kategoriKas, setKategoriKas] = useState("Bahan Baku");
+  const [keteranganKas, setKeteranganKas] = useState("");
+  const [loadingKas, setLoadingKas] = useState(false);
+  const [totalKasKeluarHariIni, setTotalKasKeluarHariIni] = useState(0);
+  const KATEGORI_KAS_KECIL = ["Bahan Baku", "Operasional", "Kebersihan", "Konsumsi", "Lainnya"];
 
   // Riwayat
   const [riwayat, setRiwayat] = useState<Transaksi[]>([]);
@@ -192,11 +262,29 @@ export default function TransaksiPage() {
     setMemuatRiwayat(true);
     const { data } = await supabase
       .from("transaksi")
-      .select("id, total, no_nota, metode_bayar, created_at, pelanggan(nama)")
+      .select("id, total, no_nota, metode_bayar, created_at, items, pelanggan(nama)")
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(30);
     setRiwayat((data || []) as unknown as Transaksi[]);
     setMemuatRiwayat(false);
+  }, [supabase]);
+
+  // Muat kas kecil hari ini
+  const ambilKasKecilHariIni = useCallback(async () => {
+    try {
+      const awalHari = new Date();
+      awalHari.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("kas_kecil")
+        .select("nominal")
+        .gte("created_at", awalHari.toISOString());
+      if (data) {
+        const total = data.reduce((acc: number, r: { nominal: number }) => acc + (r.nominal || 0), 0);
+        setTotalKasKeluarHariIni(total);
+      }
+    } catch {
+      // Abaikan jika migrasi tabel belum dipasang
+    }
   }, [supabase]);
 
   useEffect(() => {
@@ -205,14 +293,51 @@ export default function TransaksiPage() {
       await muatData();
       if (!aktif) return;
       await ambilRiwayat();
+      await ambilKasKecilHariIni();
+      try {
+        const saved = localStorage.getItem("kataloji_bills_ditahan");
+        if (saved && aktif) {
+          setBillsDitahan(JSON.parse(saved));
+        }
+      } catch {
+        // Abaikan error parse localStorage
+      }
     })();
-    return () => { aktif = false; };
-  }, [muatData, ambilRiwayat]);
+
+    return () => {
+      aktif = false;
+    };
+  }, [muatData, ambilRiwayat, ambilKasKecilHariIni]);
+
+  // Menu terlaris dari frekuensi transaksi riwayat (Fitur 4)
+  const menuTerlarisIds = useMemo(() => {
+    const frekuensi = new Map<string, number>();
+    for (const trx of riwayat) {
+      if (Array.isArray(trx.items)) {
+        for (const it of trx.items) {
+          if (it && it.menu_id) {
+            frekuensi.set(it.menu_id, (frekuensi.get(it.menu_id) || 0) + (it.qty || 1));
+          }
+        }
+      }
+    }
+    const sorted = [...frekuensi.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => id);
+
+    // Fallback ambil 6 menu teratas jika riwayat baru sedikit
+    if (sorted.length < 4 && menuList.length > 0) {
+      const defaults = menuList.slice(0, 6).map((m) => m.id);
+      return Array.from(new Set([...sorted, ...defaults]));
+    }
+    return sorted.slice(0, 8);
+  }, [riwayat, menuList]);
 
   // ---- Keranjang ----
   function tambahMenu(menu: Menu) {
     setKeranjang((prev) => {
-      const idx = prev.findIndex((i) => i.menu_id === menu.id);
+      // Tambah qty jika item sama dan belum memiliki catatan khusus
+      const idx = prev.findIndex((i) => i.menu_id === menu.id && !i.catatan);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
@@ -222,18 +347,150 @@ export default function TransaksiPage() {
     });
   }
 
-  function ubahQty(menuId: string, delta: number) {
+  function ubahQtyByIndex(index: number, delta: number) {
     setKeranjang((prev) =>
       prev
-        .map((i) =>
-          i.menu_id === menuId ? { ...i, qty: Math.max(0, i.qty + delta) } : i,
+        .map((item, idx) =>
+          idx === index ? { ...item, qty: Math.max(0, item.qty + delta) } : item,
         )
         .filter((i) => i.qty > 0),
     );
   }
 
-  function hapusItem(menuId: string) {
-    setKeranjang((prev) => prev.filter((i) => i.menu_id !== menuId));
+  function hapusItemByIndex(index: number) {
+    setKeranjang((prev) => prev.filter((_, idx) => idx !== index));
+  }
+
+  // Fitur 1: Catatan / Modifier item
+  function bukaDialogCatatan(index: number) {
+    setCatatanIndex(index);
+    setTeksCatatan(keranjang[index]?.catatan || "");
+    setDialogCatatanBuka(true);
+  }
+
+  function simpanCatatanItem() {
+    if (catatanIndex === null) return;
+    setKeranjang((prev) =>
+      prev.map((item, idx) =>
+        idx === catatanIndex ? { ...item, catatan: teksCatatan.trim() || undefined } : item,
+      ),
+    );
+    setDialogCatatanBuka(false);
+    setCatatanIndex(null);
+    setTeksCatatan("");
+  }
+
+  // Fitur 2: Tahan Bill & Pulihkan
+  function tahanBill() {
+    if (keranjang.length === 0) return;
+    const label = pelanggan
+      ? pelanggan.nama
+      : `Antrean #${billsDitahan.length + 1} (${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })})`;
+
+    const newBill: BillDitahan = {
+      id: Date.now().toString(),
+      label,
+      waktu: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      tipePesanan,
+      nomorMeja,
+      keranjang,
+      pelanggan,
+      diskon,
+      poinDipakai,
+      promoTerpilih,
+      subtotal,
+      total,
+    };
+
+    const nextBills = [newBill, ...billsDitahan];
+    setBillsDitahan(nextBills);
+    try {
+      localStorage.setItem("kataloji_bills_ditahan", JSON.stringify(nextBills));
+    } catch {}
+
+    resetForm();
+    toast.info(`Pesanan "${label}" ditahan sementara.`, {
+      description: `${keranjang.length} item · Rp ${formatRupiah(total)}`,
+    });
+  }
+
+  function pulihkanBill(bill: BillDitahan) {
+    if (keranjang.length > 0) {
+      if (!window.confirm("Keranjang kasir saat ini akan ditimpa dengan pesanan yang ditahan. Lanjutkan?")) {
+        return;
+      }
+    }
+
+    setKeranjang(bill.keranjang);
+    setPelanggan(bill.pelanggan);
+    setDiskon(bill.diskon);
+    setPoinDipakai(bill.poinDipakai);
+    setPromoTerpilih(bill.promoTerpilih);
+    setTipePesanan(bill.tipePesanan || "dine_in");
+    setNomorMeja(bill.nomorMeja || "");
+
+    const sisa = billsDitahan.filter((b) => b.id !== bill.id);
+    setBillsDitahan(sisa);
+    try {
+      localStorage.setItem("kataloji_bills_ditahan", JSON.stringify(sisa));
+    } catch {}
+
+    setDialogDitahanBuka(false);
+    toast.success(`Pesanan "${bill.label}" dipulihkan ke kasir.`);
+  }
+
+  function hapusBillDitahan(id: string) {
+    const sisa = billsDitahan.filter((b) => b.id !== id);
+    setBillsDitahan(sisa);
+    try {
+      localStorage.setItem("kataloji_bills_ditahan", JSON.stringify(sisa));
+    } catch {}
+    toast.info("Pesanan ditahan dihapus.");
+  }
+
+  // Fitur 3: Simpan Kas Keluar (Petty Cash)
+  async function simpanKasKeluar() {
+    const nom = parseInt(nominalKas.replace(/\D/g, ""), 10);
+    if (!nom || nom <= 0) {
+      toast.error("Nominal kas keluar harus lebih dari 0.");
+      return;
+    }
+    if (!keteranganKas.trim()) {
+      toast.error("Keterangan kas keluar wajib diisi.");
+      return;
+    }
+
+    setLoadingKas(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: profilData } = userData.user
+        ? await supabase.from("profile").select("nama").eq("id", userData.user.id).maybeSingle()
+        : { data: null };
+
+      const { error } = await supabase.from("kas_kecil").insert({
+        nominal: nom,
+        kategori: kategoriKas,
+        keterangan: keteranganKas.trim(),
+        dicatat_oleh: userData.user?.id ?? null,
+        dicatat_oleh_nama: profilData?.nama ?? "Kasir",
+      });
+
+      if (error) {
+        console.warn("Gagal simpan ke DB kas_kecil:", error.message);
+      }
+
+      setTotalKasKeluarHariIni((prev) => prev + nom);
+      toast.success(`Kas keluar Rp ${formatRupiah(nom)} dicatat.`, {
+        description: `${kategoriKas}: ${keteranganKas}`,
+      });
+      setKasKeluarBuka(false);
+      setNominalKas("");
+      setKeteranganKas("");
+    } catch (e) {
+      toast.error(pesanGalat(e, "Gagal mencatat kas keluar"));
+    } finally {
+      setLoadingKas(false);
+    }
   }
 
   function resetForm() {
@@ -242,6 +499,8 @@ export default function TransaksiPage() {
     setDiskon(0);
     setPoinDipakai(0);
     setPromoTerpilih(null);
+    setTipePesanan("dine_in");
+    setNomorMeja("");
     setJumlahBayar(0);
     setMetodeBayar("tunai");
   }
@@ -328,7 +587,14 @@ export default function TransaksiPage() {
         metode_bayar: metodeBayar,
         jumlah_bayar: metodeBayar === "tunai" ? jumlahBayar : total,
         kembalian: metodeBayar === "tunai" ? kembalian : 0,
-        items: keranjang.map((i) => ({ menu_id: i.menu_id, nama: i.nama, qty: i.qty, harga_satuan: i.harga, subtotal: i.harga * i.qty })),
+        items: keranjang.map((i) => ({
+          menu_id: i.menu_id,
+          nama: i.nama,
+          qty: i.qty,
+          harga_satuan: i.harga,
+          subtotal: i.harga * i.qty,
+          catatan: i.catatan || null,
+        })),
         dicatat_oleh: userData.user?.id ?? null,
         dicatat_oleh_nama: profilData?.nama ?? null,
         dicatat_pada: new Date().toISOString(),
@@ -351,6 +617,7 @@ export default function TransaksiPage() {
           qty: i.qty,
           harga_satuan: i.harga,
           subtotal: i.harga * i.qty,
+          catatan: i.catatan || null,
         }));
         await supabase.from("transaksi_item").insert(items);
       }
@@ -381,11 +648,14 @@ export default function TransaksiPage() {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        tipe_pesanan: tipePesanan,
+        nomor_meja: tipePesanan === "dine_in" && nomorMeja.trim() ? nomorMeja.trim() : null,
         items: keranjang.map((i) => ({
           nama: i.nama,
           qty: i.qty,
           harga_satuan: i.harga,
           subtotal: i.harga * i.qty,
+          catatan: i.catatan || null,
         })),
         subtotal,
         diskon,
@@ -471,6 +741,12 @@ export default function TransaksiPage() {
       if (dataStruk.nama_pelanggan) {
         baris.push(`Pelanggan     : ${dataStruk.nama_pelanggan}`);
       }
+      if (dataStruk.tipe_pesanan) {
+        const lbl = dataStruk.tipe_pesanan === "dine_in"
+          ? (dataStruk.nomor_meja ? `Dine In (Meja ${dataStruk.nomor_meja})` : "Dine In")
+          : "Take Away";
+        baris.push(`Pesanan       : ${lbl}`);
+      }
       baris.push(garis);
       for (const item of dataStruk.items) {
         baris.push(`${item.qty}x  ${item.nama}`);
@@ -515,12 +791,17 @@ export default function TransaksiPage() {
     }
   }
 
-  // ---- Filter menu ----
-  const menuTampil = menuList.filter((m) => {
-    const cocokCari = m.nama.toLowerCase().includes(cari.toLowerCase());
-    const cocokKategori = filterKategori === "semua" || m.kategori_id === filterKategori;
-    return cocokCari && cocokKategori;
-  });
+  // ---- Filter menu (Termasuk Fitur 4: Terlaris) ----
+  const menuTampil = useMemo(() => {
+    return menuList.filter((m) => {
+      const cocokCari = m.nama.toLowerCase().includes(cari.toLowerCase());
+      if (filterKategori === "terlaris") {
+        return cocokCari && menuTerlarisIds.includes(m.id);
+      }
+      const cocokKategori = filterKategori === "semua" || m.kategori_id === filterKategori;
+      return cocokCari && cocokKategori;
+    });
+  }, [menuList, cari, filterKategori, menuTerlarisIds]);
 
   const NOMINAL_CEPAT = [10000, 20000, 50000, 100000];
 
@@ -538,7 +819,23 @@ export default function TransaksiPage() {
         {/* ===== KOLOM KIRI: MENU GRID ===== */}
         <div className="space-y-3">
           <header className="flex items-center justify-between gap-3">
-            <h1 className="font-heading text-xl font-extrabold tracking-tight">Kasir</h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-heading text-xl font-extrabold tracking-tight">Kasir</h1>
+              {totalKasKeluarHariIni > 0 && (
+                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                  Kas Keluar: Rp {formatRupiah(totalKasKeluarHariIni)}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 text-xs font-semibold"
+              onClick={() => setKasKeluarBuka(true)}
+            >
+              <Wallet className="h-3.5 w-3.5 text-muted-foreground" />
+              Kas Keluar
+            </Button>
           </header>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -551,6 +848,16 @@ export default function TransaksiPage() {
                 className="h-10 pl-9"
               />
             </div>
+            {/* Fitur 4: Tab Terlaris */}
+            <Button
+              variant={filterKategori === "terlaris" ? "default" : "outline"}
+              size="sm"
+              className="h-10 font-bold"
+              onClick={() => setFilterKategori("terlaris")}
+            >
+              <Flame className="mr-1 h-4 w-4 text-orange-500" />
+              Terlaris
+            </Button>
             <Button
               variant={filterKategori === "semua" ? "default" : "outline"}
               size="sm"
@@ -642,9 +949,76 @@ export default function TransaksiPage() {
             )}
           </div>
 
+          {/* Opsi Dine In / Takeaway */}
+          <div className="rounded-lg border border-border bg-card p-2.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                type="button"
+                variant={tipePesanan === "dine_in" ? "default" : "outline"}
+                size="sm"
+                className="h-8 text-xs font-semibold"
+                onClick={() => setTipePesanan("dine_in")}
+              >
+                Dine In
+              </Button>
+              <Button
+                type="button"
+                variant={tipePesanan === "takeaway" ? "default" : "outline"}
+                size="sm"
+                className="h-8 text-xs font-semibold"
+                onClick={() => setTipePesanan("takeaway")}
+              >
+                Take Away
+              </Button>
+            </div>
+            {tipePesanan === "dine_in" && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[12px] font-medium text-muted-foreground">No. Meja:</span>
+                <Input
+                  value={nomorMeja}
+                  onChange={(e) => setNomorMeja(e.target.value)}
+                  placeholder="Contoh: 04"
+                  className="h-7 flex-1 text-xs"
+                />
+              </div>
+            )}
+          </div>
+
           {/* Keranjang */}
           <div className="rounded-lg border border-border bg-card p-2.5">
-            <p className="mb-1.5 text-[13px] font-bold tracking-tight">Keranjang</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[13px] font-bold tracking-tight">
+                Keranjang {tipePesanan === "dine_in" ? (nomorMeja ? `(Dine In - Meja ${nomorMeja})` : "(Dine In)") : "(Take Away)"}
+              </p>
+              <div className="flex items-center gap-1.5">
+                {billsDitahan.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 border-amber-500/40 bg-amber-500/10 px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+                    onClick={() => setDialogDitahanBuka(true)}
+                  >
+                    <PauseCircle className="mr-1 h-3 w-3" />
+                    Ditahan ({billsDitahan.length})
+                  </Button>
+                )}
+                {keranjang.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                    onClick={tahanBill}
+                    title="Tahan transaksi sementara"
+                  >
+                    <PauseCircle className="mr-1 h-3 w-3" />
+                    Tahan
+                  </Button>
+                )}
+              </div>
+            </div>
+
             {keranjang.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
                 <ReceiptText className="h-5 w-5 text-muted-foreground/60" />
@@ -653,46 +1027,73 @@ export default function TransaksiPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-1.5">
-                {keranjang.map((item) => (
+              <div className="space-y-2">
+                {keranjang.map((item, idx) => (
                   <div
-                    key={item.menu_id}
-                    className="flex items-center gap-2"
+                    key={`${item.menu_id}-${idx}`}
+                    className="space-y-1 rounded-md border border-border/60 bg-muted/20 p-2"
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-semibold">{item.nama}</p>
-                      <p className="text-[11px] tabular-nums text-muted-foreground">
-                        {formatRupiah(item.harga)} x {item.qty}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold leading-tight">{item.nama}</p>
+                        <p className="text-[11px] tabular-nums text-muted-foreground">
+                          {formatRupiah(item.harga)} x {item.qty}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => ubahQtyByIndex(idx, -1)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-5 text-center text-[13px] font-bold tabular-nums">
+                          {item.qty}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => ubahQtyByIndex(idx, 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive"
+                          onClick={() => hapusItemByIndex(idx)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-0.5">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => ubahQty(item.menu_id, -1)}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-5 text-center text-[13px] font-bold tabular-nums">
-                        {item.qty}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => ubahQty(item.menu_id, 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-destructive"
-                        onClick={() => hapusItem(item.menu_id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+
+                    {/* Fitur 1: Catatan Item */}
+                    <div className="flex items-center gap-1 pt-0.5">
+                      {item.catatan ? (
+                        <div className="flex flex-1 items-center justify-between rounded bg-background px-1.5 py-0.5 text-[11px]">
+                          <span className="truncate italic text-primary font-medium">* {item.catatan}</span>
+                          <button
+                            type="button"
+                            onClick={() => bukaDialogCatatan(idx)}
+                            className="ml-1 text-[10px] text-muted-foreground underline hover:text-foreground"
+                          >
+                            Ubah
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => bukaDialogCatatan(idx)}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <Pencil className="h-2.5 w-2.5" />
+                          <span>+ Catatan / Suhu</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1024,6 +1425,213 @@ export default function TransaksiPage() {
           </form>
         </SheetContent>
       </Sheet>
+
+      {/* ===== DIALOG FITUR 1: CATATAN / SUHU ITEM ===== */}
+      <Dialog open={dialogCatatanBuka} onOpenChange={setDialogCatatanBuka}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Catatan Item</DialogTitle>
+            <DialogDescription>
+              {catatanIndex !== null && keranjang[catatanIndex]
+                ? `Kustomisasi untuk: ${keranjang[catatanIndex].nama}`
+                : "Pilih opsi atau ketik catatan"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="flex flex-wrap gap-1.5">
+              {CHIP_CATATAN.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  onClick={() => {
+                    const separator = teksCatatan.trim() ? ", " : "";
+                    if (!teksCatatan.includes(chip)) {
+                      setTeksCatatan((prev) => (prev ? `${prev}${separator}${chip}` : chip));
+                    }
+                  }}
+                  className="rounded-full border border-border bg-accent/40 px-2.5 py-1 text-xs font-semibold hover:bg-primary/20 hover:text-primary transition-colors"
+                >
+                  + {chip}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="input-catatan" className="text-xs">Catatan Khusus Barista</Label>
+              <Input
+                id="input-catatan"
+                placeholder="Contoh: Es sedikit, gula aren setengah"
+                value={teksCatatan}
+                onChange={(e) => setTeksCatatan(e.target.value)}
+                className="h-10 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setTeksCatatan("");
+                simpanCatatanItem();
+              }}
+            >
+              Hapus Catatan
+            </Button>
+            <Button type="button" size="sm" onClick={simpanCatatanItem}>
+              Terapkan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== DIALOG FITUR 2: DAFTAR BILL DITAHAN ===== */}
+      <Dialog open={dialogDitahanBuka} onOpenChange={setDialogDitahanBuka}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Pesanan Ditahan ({billsDitahan.length})</DialogTitle>
+            <DialogDescription>
+              Pilih pesanan yang ingin dipulihkan ke kasir atau hapus antrean yang batal.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[360px] space-y-2 overflow-y-auto py-2">
+            {billsDitahan.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Tidak ada pesanan yang ditahan.
+              </p>
+            ) : (
+              billsDitahan.map((b) => (
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm">{b.label}</span>
+                      <span className="text-[11px] text-muted-foreground">({b.waktu})</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      {b.keranjang.map((i) => `${i.qty}x ${i.nama}`).join(", ")}
+                    </p>
+                    <p className="text-xs font-extrabold text-primary tabular-nums mt-1">
+                      Rp {formatRupiah(b.total)}
+                    </p>
+                  </div>
+                  <div className="ml-3 flex shrink-0 items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1 font-semibold"
+                      onClick={() => pulihkanBill(b)}
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Pulihkan
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive"
+                      onClick={() => hapusBillDitahan(b.id)}
+                      title="Hapus bill ditahan"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDialogDitahanBuka(false)}
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== DIALOG FITUR 3: PENCATATAN KAS KELUAR ===== */}
+      <Dialog open={kasKeluarBuka} onOpenChange={setKasKeluarBuka}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Catat Kas Keluar (Petty Cash)</DialogTitle>
+            <DialogDescription>
+              Catat uang kas kecil yang diambil dari laci untuk keperluan operasional kafe.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="nominal-kas" className="text-xs font-semibold">Nominal Pengeluaran (Rp)</Label>
+              <Input
+                id="nominal-kas"
+                type="number"
+                placeholder="Contoh: 25000"
+                value={nominalKas}
+                onChange={(e) => setNominalKas(e.target.value)}
+                className="h-10 text-sm font-bold"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Kategori</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {KATEGORI_KAS_KECIL.map((kat) => (
+                  <button
+                    key={kat}
+                    type="button"
+                    onClick={() => setKategoriKas(kat)}
+                    className={cn(
+                      "rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors",
+                      kategoriKas === kat
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {kat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="keterangan-kas" className="text-xs font-semibold">Keterangan / Keperluan</Label>
+              <Input
+                id="keterangan-kas"
+                placeholder="Contoh: Beli es batu kristal 2 karung"
+                value={keteranganKas}
+                onChange={(e) => setKeteranganKas(e.target.value)}
+                className="h-10 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setKasKeluarBuka(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={loadingKas}
+              onClick={simpanKasKeluar}
+            >
+              {loadingKas ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Kas Keluar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ===== DIALOG STRUK ===== */}
       <DialogStruk
