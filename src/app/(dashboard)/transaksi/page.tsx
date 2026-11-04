@@ -58,6 +58,7 @@ interface Menu {
   nama: string;
   harga: number;
   kategori_id: string | null;
+  gambar_url?: string | null;
 }
 
 interface ItemKeranjang {
@@ -242,7 +243,7 @@ export default function TransaksiPage() {
   const muatData = useCallback(async () => {
     setLoading(true);
     const [menuRes, katRes, promoRes, setRes] = await Promise.all([
-      supabase.from("menu").select("id, nama, harga, kategori_id").eq("aktif", true).order("nama"),
+      supabase.from("menu").select("id, nama, harga, kategori_id, gambar_url").eq("aktif", true).order("nama"),
       supabase.from("menu_kategori").select("id, nama, urutan").order("urutan"),
       supabase.from("promo").select("id, nama, tipe, nilai, syarat_min").eq("aktif", true).order("nama"),
       supabase.from("settings").select("key, value").in("key", ["ppn_persen", "biaya_layanan_persen"]),
@@ -884,15 +885,29 @@ export default function TransaksiPage() {
               <button
                 key={m.id}
                 onClick={() => tambahMenu(m)}
-                className="flex min-h-[72px] flex-col justify-between rounded-lg border border-border bg-card p-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                className="group flex min-h-[72px] items-center gap-2.5 rounded-lg border border-border bg-card p-2 text-left transition-colors hover:border-primary/40 hover:bg-accent/30 active:scale-[0.98]"
               >
-                <div className="flex items-start gap-1.5">
-                  <Coffee className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-[13px] font-bold leading-tight">{m.nama}</span>
+                {m.gambar_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={m.gambar_url}
+                    alt={m.nama}
+                    className="h-12 w-12 shrink-0 rounded-md object-cover bg-muted border border-border/50"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted border border-border/50 text-muted-foreground">
+                    <Coffee className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 flex flex-col justify-between self-stretch py-0.5">
+                  <span className="line-clamp-2 text-[12px] font-bold leading-tight group-hover:text-primary transition-colors">
+                    {m.nama}
+                  </span>
+                  <span className="text-xs font-extrabold tabular-nums text-primary mt-1">
+                    {formatRupiah(m.harga)}
+                  </span>
                 </div>
-                <span className="mt-1 text-sm font-extrabold tabular-nums text-primary">
-                  {formatRupiah(m.harga)}
-                </span>
               </button>
             ))}
           </div>

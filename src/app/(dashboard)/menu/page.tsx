@@ -305,7 +305,20 @@ export default function HalamanMenu() {
                 !m.aktif && "opacity-60",
               )}
             >
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-3">
+                {m.gambar_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={m.gambar_url}
+                    alt={m.nama}
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover border border-border/60 bg-muted"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted text-muted-foreground">
+                    <Coffee className="h-6 w-6" />
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-bold tracking-tight">
                     {m.nama}
@@ -315,11 +328,11 @@ export default function HalamanMenu() {
                       {m.kategori_nama}
                     </p>
                   )}
+                  <p className="mt-1 text-lg font-extrabold tabular-nums text-primary">
+                    Rp {formatRupiah(m.harga)}
+                  </p>
                 </div>
               </div>
-              <p className="mt-3 text-xl font-extrabold tabular-nums text-primary">
-                Rp {formatRupiah(m.harga)}
-              </p>
               <div className="mt-3 flex gap-2">
                 <Button
                   variant="outline"
