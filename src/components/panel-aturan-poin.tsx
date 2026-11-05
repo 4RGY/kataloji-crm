@@ -234,7 +234,7 @@ export function PanelAturanPoin({ peran }: Props) {
           </div>
         </div>
         {dapatUbah ? (
-          <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => setFormTerbuka((v) => !v)}>
+          <Button size="sm" variant="outline" className="h-11 gap-1.5" onClick={() => setFormTerbuka((v) => !v)}>
             <Plus className="h-3.5 w-3.5" />
             Atur periode
           </Button>
@@ -259,7 +259,7 @@ export function PanelAturanPoin({ peran }: Props) {
                 value={form.mode}
                 onValueChange={(v) => setForm({ ...form, mode: v as ModeAturan })}
               >
-                <SelectTrigger className="h-10">
+                <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -285,7 +285,7 @@ export function PanelAturanPoin({ peran }: Props) {
                   value={form.nominal}
                   onChange={(e) => setForm({ ...form, nominal: e.target.value })}
                   placeholder="20000"
-                  className="h-10 tabular-nums"
+                  className="h-11 tabular-nums"
                 />
                 <p className="text-xs text-muted-foreground">
                   Contoh: 20000 = 1 poin per Rp20.000.
@@ -299,7 +299,7 @@ export function PanelAturanPoin({ peran }: Props) {
                 type="date"
                 value={form.mulai}
                 onChange={(e) => setForm({ ...form, mulai: e.target.value })}
-                className="h-10"
+                className="h-11"
               />
             </div>
             <div className="space-y-1.5">
@@ -310,7 +310,7 @@ export function PanelAturanPoin({ peran }: Props) {
                 value={form.selesai}
                 min={form.mulai ? hariKedua(form.mulai) : undefined}
                 onChange={(e) => setForm({ ...form, selesai: e.target.value })}
-                className="h-10"
+                className="h-11"
               />
               <p className="text-xs text-muted-foreground">
                 Kosongkan bila masih berlaku sampai saat ini.
@@ -323,7 +323,7 @@ export function PanelAturanPoin({ peran }: Props) {
                 value={form.keterangan}
                 onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
                 placeholder="Contoh: promo loyalitas bulan ini"
-                className="h-10"
+                className="h-11"
               />
             </div>
           </div>
@@ -334,10 +334,10 @@ export function PanelAturanPoin({ peran }: Props) {
               tetap memakai aturan yang berlaku saat tanggal transaksinya.
             </p>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="h-9" onClick={() => setFormTerbuka(false)} disabled={menyimpan}>
+              <Button variant="ghost" size="sm" className="h-11" onClick={() => setFormTerbuka(false)} disabled={menyimpan}>
                 Batal
               </Button>
-              <Button size="sm" className="h-9" onClick={simpan} disabled={menyimpan}>
+              <Button size="sm" className="h-11" onClick={simpan} disabled={menyimpan}>
                 {menyimpan ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />

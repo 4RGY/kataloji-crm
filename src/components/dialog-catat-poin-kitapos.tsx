@@ -207,7 +207,7 @@ export function DialogCatatPoinKitapos({
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-8 text-xs"
+                    className="h-11 pl-8 text-xs"
                     placeholder="Cari nama atau nomor WhatsApp..."
                     value={cari}
                     onChange={(e) => setCari(e.target.value)}
@@ -245,7 +245,7 @@ export function DialogCatatPoinKitapos({
             </Label>
             <Input
               id="nominal"
-              className="h-10 text-base font-bold tabular-nums"
+              className="h-11 text-base font-bold tabular-nums"
               placeholder="0"
               value={nominal ? nominal.toLocaleString("id-ID") : ""}
               onChange={(e) => setNominalStr(e.target.value)}
@@ -272,7 +272,7 @@ export function DialogCatatPoinKitapos({
             </Label>
             <Input
               id="struk"
-              className="h-8 text-xs font-mono"
+              className="h-11 text-xs font-mono"
               placeholder="cth. KP-261105-001"
               value={noStruk}
               onChange={(e) => setNoStruk(e.target.value)}

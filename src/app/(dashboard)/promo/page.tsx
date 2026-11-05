@@ -290,7 +290,7 @@ export default function HalamanPromo() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9"
+                  className="h-11"
                   onClick={() => bukaEdit(p)}
                 >
                   <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -299,7 +299,7 @@ export default function HalamanPromo() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 text-destructive hover:text-destructive"
+                  className="h-11 text-destructive hover:text-destructive"
                   onClick={() => setHapusPromo(p)}
                 >
                   <Trash2 className="mr-1 h-3.5 w-3.5" />

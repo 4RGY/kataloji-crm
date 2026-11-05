@@ -218,7 +218,7 @@ export default function HalamanLaporanPenjualan() {
               type="button"
               onClick={() => setPeriode({ jenis: p.jenis, tanggal: tanggal || undefined })}
               className={
-                "h-8 rounded-md px-2.5 text-xs font-semibold transition-colors " +
+                "h-11 rounded-md px-2.5 text-xs font-semibold transition-colors " +
                 (periode.jenis === p.jenis
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted")
@@ -242,7 +242,7 @@ export default function HalamanLaporanPenjualan() {
           <button
             type="button"
             onClick={muatUlang}
-            className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
+            className="ml-1 inline-flex h-11 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted"
           >
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             Muat ulang
@@ -251,7 +251,7 @@ export default function HalamanLaporanPenjualan() {
             type="button"
             onClick={unduh}
             disabled={sedangUnduh}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+            className="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60"
           >
             {sedangUnduh ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />

@@ -309,7 +309,7 @@ export default function HalamanPencocokan() {
                         setPilih((prev) => ({ ...prev, [t.id]: e.target.value }))
                       }
                       disabled={selesai}
-                      className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm"
+                      className="h-11 w-full rounded-md border border-border bg-card px-2 text-sm"
                       aria-label="Pilih pelanggan untuk transaksi ini"
                     >
                       <option value="">
@@ -333,7 +333,7 @@ export default function HalamanPencocokan() {
                       ) : (
                         <Button
                           size="sm"
-                          className="h-9"
+                          className="h-11"
                           onClick={() => cocokkan(t.id)}
                           disabled={!pilih[t.id] || menyimpan === t.id}
                         >

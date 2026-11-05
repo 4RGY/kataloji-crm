@@ -458,7 +458,7 @@ export default function ImporMajooPage() {
                 transaksi menunggu pencocokan pelanggan. Poinnya ditahan sampai
                 dihubungkan.
               </p>
-              <Button asChild variant="outline" size="sm" className="h-9">
+              <Button asChild variant="outline" size="sm" className="h-11">
                 <a href="/pencocokan">Buka pencocokan</a>
               </Button>
             </div>

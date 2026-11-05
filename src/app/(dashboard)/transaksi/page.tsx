@@ -831,7 +831,7 @@ export default function TransaksiPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold"
+              className="h-11 gap-1.5 text-xs font-semibold"
               onClick={() => setKasKeluarBuka(true)}
             >
               <Wallet className="h-3.5 w-3.5 text-muted-foreground" />
@@ -846,14 +846,14 @@ export default function TransaksiPage() {
                 placeholder="Cari menu"
                 value={cari}
                 onChange={(e) => setCari(e.target.value)}
-                className="h-10 pl-9"
+                className="h-11 pl-9"
               />
             </div>
             {/* Fitur 4: Tab Terlaris */}
             <Button
               variant={filterKategori === "terlaris" ? "default" : "outline"}
               size="sm"
-              className="h-10 font-bold"
+              className="h-11 font-bold"
               onClick={() => setFilterKategori("terlaris")}
             >
               <Flame className="mr-1 h-4 w-4 text-orange-500" />
@@ -862,7 +862,7 @@ export default function TransaksiPage() {
             <Button
               variant={filterKategori === "semua" ? "default" : "outline"}
               size="sm"
-              className="h-10"
+              className="h-11"
               onClick={() => setFilterKategori("semua")}
             >
               Semua
@@ -872,7 +872,7 @@ export default function TransaksiPage() {
                 key={k.id}
                 variant={filterKategori === k.id ? "default" : "outline"}
                 size="sm"
-                className="h-10"
+                className="h-11"
                 onClick={() => setFilterKategori(k.id)}
               >
                 {k.nama}
@@ -946,7 +946,7 @@ export default function TransaksiPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 flex-1"
+                  className="h-11 flex-1"
                   onClick={() => setCariTerbuka(true)}
                 >
                   <Search className="mr-1 h-3.5 w-3.5" />
@@ -955,7 +955,7 @@ export default function TransaksiPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8"
+                  className="h-11"
                   onClick={() => setPelangganBaruTerbuka(true)}
                 >
                   <UserPlus className="h-3.5 w-3.5" />
@@ -971,7 +971,7 @@ export default function TransaksiPage() {
                 type="button"
                 variant={tipePesanan === "dine_in" ? "default" : "outline"}
                 size="sm"
-                className="h-8 text-xs font-semibold"
+                className="h-11 text-xs font-semibold"
                 onClick={() => setTipePesanan("dine_in")}
               >
                 Dine In
@@ -980,7 +980,7 @@ export default function TransaksiPage() {
                 type="button"
                 variant={tipePesanan === "takeaway" ? "default" : "outline"}
                 size="sm"
-                className="h-8 text-xs font-semibold"
+                className="h-11 text-xs font-semibold"
                 onClick={() => setTipePesanan("takeaway")}
               >
                 Take Away
@@ -1214,7 +1214,7 @@ export default function TransaksiPage() {
                       key={m}
                       variant={metodeBayar === m ? "default" : "outline"}
                       size="sm"
-                      className="h-9 capitalize"
+                      className="h-11 capitalize"
                       onClick={() => {
                         setMetodeBayar(m);
                         if (m !== "tunai") setJumlahBayar(0);
@@ -1232,7 +1232,7 @@ export default function TransaksiPage() {
                       onChange={(e) => setJumlahBayar(parseInt(e.target.value.replace(/[^0-9]/g, "") || "0", 10))}
                       placeholder={`Diterima: ${formatRupiah(total)}`}
                       inputMode="numeric"
-                      className="h-10 text-base font-bold tabular-nums"
+                      className="h-11 text-base font-bold tabular-nums"
                     />
                     <div className="flex flex-wrap gap-1">
                       <Button
@@ -1321,7 +1321,7 @@ export default function TransaksiPage() {
                     <button
                       type="button"
                       onClick={() => downloadStrukRiwayat(t)}
-                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="flex items-center gap-1 rounded-md border border-border px-3 h-11 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       title="Unduh struk"
                     >
                       <Download className="h-3 w-3" />
@@ -1477,7 +1477,7 @@ export default function TransaksiPage() {
                 placeholder="Contoh: Es sedikit, gula aren setengah"
                 value={teksCatatan}
                 onChange={(e) => setTeksCatatan(e.target.value)}
-                className="h-10 text-sm"
+                className="h-11 text-sm"
               />
             </div>
           </div>
@@ -1535,7 +1535,7 @@ export default function TransaksiPage() {
                   <div className="ml-3 flex shrink-0 items-center gap-1.5">
                     <Button
                       size="sm"
-                      className="h-8 gap-1 font-semibold"
+                      className="h-11 gap-1 font-semibold"
                       onClick={() => pulihkanBill(b)}
                     >
                       <Play className="h-3.5 w-3.5" />
@@ -1586,7 +1586,7 @@ export default function TransaksiPage() {
                 placeholder="Contoh: 25000"
                 value={nominalKas}
                 onChange={(e) => setNominalKas(e.target.value)}
-                className="h-10 text-sm font-bold"
+                className="h-11 text-sm font-bold"
               />
             </div>
             <div className="space-y-1">
@@ -1616,7 +1616,7 @@ export default function TransaksiPage() {
                 placeholder="Contoh: Beli es batu kristal 2 karung"
                 value={keteranganKas}
                 onChange={(e) => setKeteranganKas(e.target.value)}
-                className="h-10 text-sm"
+                className="h-11 text-sm"
               />
             </div>
           </div>

@@ -366,7 +366,7 @@ export default function HalamanLogTransaksi() {
                 value={cari}
                 onChange={(e) => setCari(e.target.value)}
                 placeholder="Struk, kode, atau nama"
-                className="h-9 pl-9"
+                className="h-11 pl-9"
                 aria-label="Cari transaksi"
               />
             </div>
@@ -378,7 +378,7 @@ export default function HalamanLogTransaksi() {
             <select
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+              className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
               aria-label="Filter sumber"
             >
               <option value="">Semua sumber</option>
@@ -396,7 +396,7 @@ export default function HalamanLogTransaksi() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
+              className="h-11 w-full rounded-md border border-border bg-background px-2 text-sm"
               aria-label="Filter status pencocokan"
             >
               <option value="">Semua status</option>
@@ -415,7 +415,7 @@ export default function HalamanLogTransaksi() {
               type="date"
               value={dari}
               onChange={(e) => setDari(e.target.value)}
-              className="h-9"
+              className="h-11"
               aria-label="Tanggal awal"
             />
           </div>
@@ -427,7 +427,7 @@ export default function HalamanLogTransaksi() {
               type="date"
               value={sampai}
               onChange={(e) => setSampai(e.target.value)}
-              className="h-9"
+              className="h-11"
               aria-label="Tanggal akhir"
             />
           </div>

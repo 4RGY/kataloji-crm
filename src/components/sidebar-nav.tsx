@@ -207,7 +207,7 @@ export function SidebarNav() {
             type="button"
             onClick={() => setDialogPoinOpen(true)}
             title="Catat Poin KITAPOS"
-            className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-transform active:scale-[0.98] hover:opacity-95 lg:justify-start lg:px-3"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-transform active:scale-[0.98] hover:opacity-95 lg:justify-start lg:px-3"
           >
             <Sparkles className="h-4 w-4 shrink-0" />
             <span className="hidden lg:inline truncate">Catat Poin KITAPOS</span>
@@ -245,7 +245,7 @@ export function SidebarNav() {
                         href={item.href}
                         title={item.label}
                         className={cn(
-                          "group relative flex h-8 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
+                          "group relative flex h-11 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
                           active
                             ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-semibold"
                             : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -273,7 +273,7 @@ export function SidebarNav() {
               type="button"
               onClick={() => setBukaPosManual(!bukaPos)}
               title="Modul POS Cadangan"
-              className="flex h-8 w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              className="flex h-11 w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
             >
               <span className="flex items-center gap-2.5">
                 <ReceiptText className="h-4 w-4 shrink-0 text-sidebar-foreground/70" />
@@ -301,7 +301,7 @@ export function SidebarNav() {
                       href={item.href}
                       title={item.label}
                       className={cn(
-                        "group relative flex h-7 items-center gap-2.5 rounded-md px-2 text-xs font-medium outline-none transition-colors",
+                        "group relative flex h-11 items-center gap-2.5 rounded-md px-2 text-xs font-medium outline-none transition-colors",
                         active
                           ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold"
                           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
