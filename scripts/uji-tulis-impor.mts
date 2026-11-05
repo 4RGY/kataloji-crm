@@ -10,6 +10,8 @@
 // Lalu baris uji dihapus supaya database bersih kembali.
 // ============================================================
 
+import "./muat-env.mts";
+
 const { getKlienAdmin } = await import("../src/lib/supabase/admin.ts");
 const { parseMajoo } = await import("../src/lib/impor-majoo.ts");
 const { tulisImporMajoo } = await import("../src/lib/tulis-impor-majoo.ts");

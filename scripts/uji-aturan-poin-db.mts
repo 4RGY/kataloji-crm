@@ -7,6 +7,7 @@
 // tidak ninggalin sampah di produksi. Semua baris uji bermuatan
 // marker "D#####-" (kode_majoo/external_ref) dan nama "Uji D#####".
 // ============================================================
+import "./muat-env.mts";
 import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();
