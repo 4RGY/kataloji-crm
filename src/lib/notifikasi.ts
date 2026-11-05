@@ -13,7 +13,7 @@
  * hanya pengingat, bukan catatan yang perlu dipertanggungjawabkan.
  */
 
-import { selisihHari, lencanaPelanggan, type DataLencana } from "./pelanggan-tampilan";
+import { selisihHari, lencanaPelanggan, ultahBulanIni, type DataLencana } from "./pelanggan-tampilan";
 import { AMBANG_HANGUS_HARI } from "./campaign";
 
 export type JenisNotif = "hangus" | "sepi" | "ultah";
@@ -89,7 +89,7 @@ export function susunNotifikasi(daftar: SumberNotif[], hariIni: Date): Notif[] {
     });
   }
 
-  const ultah = daftar.filter((p) => lencanaPelanggan(p, hariIni).jenis === "ultah");
+  const ultah = daftar.filter((p) => ultahBulanIni(p.tgl_lahir, hariIni));
   if (ultah.length > 0) {
     hasil.push({
       id: `ultah-${ultah.length}-${hariIni.getMonth()}`,

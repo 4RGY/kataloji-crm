@@ -12,7 +12,7 @@
  */
 
 import { normalisasiWhatsapp } from "./pelanggan";
-import { lencanaPelanggan, selisihHari, type DataLencana } from "./pelanggan-tampilan";
+import { lencanaPelanggan, selisihHari, ultahBulanIni, type DataLencana } from "./pelanggan-tampilan";
 
 /** Pelanggan seperlunya untuk campaign. */
 export interface TargetCampaign extends DataLencana {
@@ -90,6 +90,12 @@ export function pilihSegmen<T extends TargetCampaign>(
       if (hari === null || hari >= 0) return false;
       return Math.abs(hari) <= AMBANG_HANGUS_HARI;
     });
+  }
+
+  // Segmen ultah mencakup siapa pun yang lahir di bulan ini,
+  // tanpa terhalang status kunjungan atau lencana lainnya.
+  if (kode === "ultah") {
+    return daftar.filter((p) => ultahBulanIni(p.tgl_lahir, hariIni));
   }
 
   return daftar.filter((p) => lencanaPelanggan(p, hariIni).jenis === kode);

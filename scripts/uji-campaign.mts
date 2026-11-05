@@ -139,6 +139,15 @@ sama(
   pilihSegmen(ORANG, "ultah", HARI_INI).map((p) => p.nama),
   ["Anggara"],
 );
+sama(
+  "pelanggan belum transaksi yang ultah bulan ini tetap masuk segmen ultah",
+  pilihSegmen(
+    [{ ...ORANG[0], id: "u0", nama: "MemberBaru", kunjungan: 0, tgl_lahir: "2004-09-09", terakhirIso: null }],
+    "ultah",
+    HARI_INI,
+  ).map((p) => p.nama),
+  ["MemberBaru"],
+);
 sama("daftar kosong tidak menimbulkan galat", pilihSegmen([], "hangus", HARI_INI).length, 0);
 sama(
   "memilih segmen tidak mengubah daftar asal",
@@ -302,6 +311,14 @@ sama("nol pelanggan berarti nol notifikasi", susunNotifikasi([], HARI_INI).lengt
 sama(
   "satu orang memakai namanya, bukan angka",
   susunNotifikasi([SUMBER[0]], HARI_INI)[0].judul.includes("Anggara"),
+  true,
+);
+sama(
+  "pelanggan belum transaksi tetap memicu notifikasi ultah",
+  susunNotifikasi(
+    [{ ...SUMBER[0], kunjungan: 0, tgl_lahir: "2004-09-09", hangusPada: null, poin: 0 }],
+    HARI_INI,
+  ).some((n) => n.jenis === "ultah"),
   true,
 );
 sama(
