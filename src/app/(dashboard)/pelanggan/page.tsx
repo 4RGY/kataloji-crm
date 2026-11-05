@@ -13,6 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { DialogKonfirmasi } from "@/components/dialog-konfirmasi";
+import { DialogCatatPoinKitapos } from "@/components/dialog-catat-poin-kitapos";
 import { createClient } from "@/lib/supabase/client";
 import { ambilSemua } from "@/lib/supabase/ambil-semua";
 import { NILAI_POIN } from "@/lib/poin";
@@ -59,6 +60,7 @@ import {
   Phone,
   RefreshCw,
   Search,
+  Sparkles,
   Star,
   UserPlus,
   X,
@@ -141,6 +143,14 @@ export default function PelangganPage() {
   const [formTerbuka, setFormTerbuka] = useState(false);
   const [form, setForm] = useState(KOSONG);
   const [menyimpan, setMenyimpan] = useState(false);
+
+  // Dialog catat poin KITAPOS
+  const [dialogPoinBuka, setDialogPoinBuka] = useState(false);
+  const [targetPoinPelanggan, setTargetPoinPelanggan] = useState<{
+    id: string;
+    nama: string;
+    whatsapp: string;
+  } | null>(null);
 
   // Ambil pelanggan + transaksinya. setState-nya hanya terjadi setelah await,
   // bukan sinkron di body effect, jadi tidak melanggar set-state-in-effect.
@@ -455,6 +465,17 @@ export default function PelangganPage() {
           <RefreshCw className={memuat ? "animate-spin" : undefined} />
         </Button>
         <Button
+          variant="outline"
+          className="h-11 gap-2 font-semibold"
+          onClick={() => {
+            setTargetPoinPelanggan(null);
+            setDialogPoinBuka(true);
+          }}
+        >
+          <Sparkles className="h-4 w-4 text-primary" />
+          Catat Poin KITAPOS
+        </Button>
+        <Button
           className="h-11 gap-2 font-semibold"
           onClick={() => setFormTerbuka(true)}
         >
@@ -716,6 +737,10 @@ export default function PelangganPage() {
             sedangArsip={mengarsip === terpilih.id}
             onArsip={() => setCalonArsip(terpilih)}
             onKembalikan={() => void kembalikan(terpilih)}
+            onCatatPoin={(p) => {
+              setTargetPoinPelanggan(p);
+              setDialogPoinBuka(true);
+            }}
           />
         )}
       </div>
@@ -823,6 +848,16 @@ export default function PelangganPage() {
           if (calonArsip) void arsipkan(calonArsip, alasan);
         }}
       />
+
+      {/* `key` mengikat isian dialog ke pemilihan pelanggan: memilih orang lain
+          otomatis mereset form, tanpa setState di dalam useEffect. */}
+      <DialogCatatPoinKitapos
+        key={targetPoinPelanggan?.id ?? "kitapos-tanpa-pelanggan"}
+        open={dialogPoinBuka}
+        onOpenChange={setDialogPoinBuka}
+        pelangganAwal={targetPoinPelanggan}
+        onBerhasil={muatUlang}
+      />
     </div>
   );
 }
@@ -845,6 +880,7 @@ function PanelDetail({
   sedangArsip,
   onArsip,
   onKembalikan,
+  onCatatPoin,
 }: {
   pelanggan: BarisPelanggan;
   ledger: BarisLedger[];
@@ -856,6 +892,7 @@ function PanelDetail({
   sedangArsip: boolean;
   onArsip: () => void;
   onKembalikan: () => void;
+  onCatatPoin?: (pelanggan: { id: string; nama: string; whatsapp: string }) => void;
 }) {
   const hangus = hangusTerdekat(ledger, hariIni);
   const ultah = tanggalUltah(pelanggan.tgl_lahir, hariIni);
@@ -923,6 +960,24 @@ function PanelDetail({
               ? ` Sebagian poin hangus ${tanggalSingkat(hangus + "T00:00:00")} kalau tidak dipakai.`
               : " Tidak ada poin yang mendekati hangus."}
           </p>
+
+          {onCatatPoin && (
+            <Button
+              size="sm"
+              variant="default"
+              className="mt-3 w-full gap-2 text-xs font-bold"
+              onClick={() =>
+                onCatatPoin({
+                  id: pelanggan.id,
+                  nama: pelanggan.nama,
+                  whatsapp: pelanggan.whatsapp,
+                })
+              }
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Catat Belanja KITAPOS (+Poin)
+            </Button>
+          )}
         </div>
 
         {/* Ringkasan belanja */}

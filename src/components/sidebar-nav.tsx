@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { menuUntukPeran } from "@/lib/staf";
+import { menuUntukPeran, type MenuKhusus } from "@/lib/staf";
 import {
   LayoutDashboard,
   Users,
@@ -20,11 +20,14 @@ import {
   Coffee,
   Tag,
   ScrollText,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LonceNotifikasi } from "@/components/lonceng-notifikasi";
+import { DialogCatatPoinKitapos } from "@/components/dialog-catat-poin-kitapos";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -36,17 +39,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * Menu navigasi, dikelompokkan menurut jenis pekerjaannya.
- *
- * Dipisah supaya kasir tidak perlu menyisir tujuh menu untuk menemukan yang
- * dipakai sehari-hari. Kelompok Operasional adalah pekerjaan yang menyentuh
- * transaksi dan pelanggan langsung, Pemasaran yang sifatnya menawarkan dan
- * mengukur, dan Sistem yang menyangkut aturan serta akun.
- *
- * Urutan di dalam tiap kelompok disengaja mengikuti alur kerja harian:
- * mencatat transaksi dulu, baru melihat pelanggannya, lalu loyalitasnya.
+ * Menu utama: FOKUS MURNI CRM & LOYALITAS.
+ * Modul operasional POS kasir disembunyikan di dropdown cadangan.
  */
-const KELOMPOK_NAV: {
+const KELOMPOK_CRM: {
   judul: string | null;
   menu: { href: string; label: string; icon: typeof LayoutDashboard }[];
 }[] = [
@@ -55,13 +51,10 @@ const KELOMPOK_NAV: {
     menu: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    judul: "Operasional",
+    judul: "CRM & Loyalitas",
     menu: [
-      { href: "/transaksi", label: "Transaksi", icon: ReceiptText },
       { href: "/pelanggan", label: "Pelanggan", icon: Users },
-      { href: "/loyalitas", label: "Loyalitas", icon: Gift },
-      { href: "/menu", label: "Menu", icon: Coffee },
-      { href: "/promo", label: "Promo", icon: Tag },
+      { href: "/loyalitas", label: "Loyalitas & Poin", icon: Gift },
     ],
   },
   {
@@ -73,31 +66,42 @@ const KELOMPOK_NAV: {
   },
   {
     judul: "Sistem",
-    // Menu admin diselipkan ke kelompok Sistem supaya tidak perlu kelompok
-    // tersendiri hanya untuk satu tautan.
     menu: [{ href: "/pengaturan", label: "Pengaturan", icon: Settings }],
   },
 ];
 
-const MENU_REKAP = {
-  href: "/rekap-kasir",
-  label: "Rekap kasir",
-  icon: ClipboardList,
-};
+interface ItemPosCadangan {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roleKey: keyof MenuKhusus | null;
+}
+
+const MENU_POS_CADANGAN: ItemPosCadangan[] = [
+  { href: "/transaksi", label: "Kasir POS", icon: ReceiptText, roleKey: null },
+  { href: "/menu", label: "Katalog Menu", icon: Coffee, roleKey: "menu" },
+  { href: "/promo", label: "Promo POS", icon: Tag, roleKey: "promo" },
+  {
+    href: "/laporan-penjualan",
+    label: "Laporan Penjualan",
+    icon: BarChart3,
+    roleKey: "penjualan",
+  },
+  {
+    href: "/rekap-kasir",
+    label: "Rekap Kasir",
+    icon: ClipboardList,
+    roleKey: "rekap",
+  },
+  {
+    href: "/log-transaksi",
+    label: "Log Transaksi",
+    icon: ScrollText,
+    roleKey: "logTransaksi",
+  },
+];
 
 const MENU_STAF = { href: "/staf", label: "Staf", icon: UserCog };
-
-const MENU_LOG_TRANSAKSI = {
-  href: "/log-transaksi",
-  label: "Log Transaksi",
-  icon: ScrollText,
-};
-
-const MENU_PENJUALAN = {
-  href: "/laporan-penjualan",
-  label: "Laporan penjualan",
-  icon: BarChart3,
-};
 
 const LABEL_ROLE: Record<string, string> = {
   admin: "Admin",
@@ -111,7 +115,6 @@ interface Profil {
   email: string;
 }
 
-/** "Wahyu Admin" -> "WA"; satu kata -> dua huruf pertama */
 function inisial(nama: string): string {
   const bagian = nama.trim().split(/\s+/).filter(Boolean);
   if (bagian.length === 0) return "?";
@@ -125,10 +128,13 @@ export function SidebarNav() {
   const supabase = createClient();
 
   const [profil, setProfil] = useState<Profil | null>(null);
+  const sedangDiRutePos = MENU_POS_CADANGAN.some(
+    (m) => pathname === m.href || pathname.startsWith(m.href),
+  );
+  const [bukaPosManual, setBukaPosManual] = useState<boolean | null>(null);
+  const bukaPos = bukaPosManual !== null ? bukaPosManual : sedangDiRutePos;
+  const [dialogPoinOpen, setDialogPoinOpen] = useState(false);
 
-  // Identitas di sidebar diambil dari sesi yang sedang login, bukan
-  // ditulis tetap. Sebelumnya nama dan peran hardcode "Wahyu / Admin",
-  // sehingga kasir pun tampil sebagai Admin.
   const ambilProfil = useCallback(async () => {
     const {
       data: { user },
@@ -168,79 +174,126 @@ export function SidebarNav() {
 
   const namaTampil = profil?.nama ?? "Memuat";
   const roleTampil = profil ? LABEL_ROLE[profil.role] ?? profil.role : "";
-
-  // Peran dibaca dari hasil profil di database, bukan dari email atau
-  // tebakan sesi, karena peran adalah data yang hanya boleh ditentukan
-  // server. Aturan menu ada di src/lib/staf.ts supaya bisa diuji dan supaya
-  // syaratnya sama persis dengan yang dipakai halamannya.
   const hakMenu = menuUntukPeran(profil?.role);
 
   return (
-    <aside
-      className="texture-grain fixed inset-y-4 left-4 z-40 flex w-16 flex-col rounded-2xl border border-sidebar-border bg-sidebar shadow-xl lg:w-60"
-      aria-label="Navigasi utama"
-    >
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-4 lg:px-5">
-        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-          <Image
-            src="/brand/logo-removebg.png"
-            alt="Kataloji Coffee and Eatery"
-            width={40}
-            height={40}
-            loading="eager"
-            className="h-full w-full object-contain"
-          />
-        </span>
-        <span className="hidden font-heading text-base font-extrabold leading-tight tracking-tight text-sidebar-foreground lg:block">
-          Kataloji
-        </span>
-      </div>
-
-      <div className="mx-4 h-px bg-sidebar-border lg:mx-5" />
-
-      {/* Nav utama. Rapat: tanpa judul kelompok, jarak antar item kecil.
-          Tujuannya muat tanpa scroll di layar laptop biasa. */}
-      <nav
-        className="scrollbar-tersembunyi flex-1 space-y-2 overflow-y-auto px-3 py-3 lg:px-3"
-        aria-label="Menu"
+    <>
+      <aside
+        className="texture-grain fixed inset-y-4 left-4 z-40 flex w-16 flex-col rounded-2xl border border-sidebar-border bg-sidebar shadow-xl lg:w-60"
+        aria-label="Navigasi utama"
       >
-        {KELOMPOK_NAV.map((kelompok, iKelompok) => {
-          // Log Transaksi adalah pekerjaan harian yang menyentuh transaksi,
-          // jadi ikut Operasional. Staf dan Rekap tetap di Sistem.
-          const menu =
-            kelompok.judul === "Operasional"
-              ? [
-                  ...kelompok.menu,
-                  ...(hakMenu.penjualan ? [MENU_PENJUALAN] : []),
-                  ...(hakMenu.logTransaksi ? [MENU_LOG_TRANSAKSI] : []),
-                ]
-              : kelompok.judul === "Sistem"
-                ? [
-                    ...kelompok.menu,
-                    ...(hakMenu.rekap ? [MENU_REKAP] : []),
-                    ...(hakMenu.staf ? [MENU_STAF] : []),
-                  ]
+        {/* Logo */}
+        <div className="flex h-16 items-center gap-3 px-4 lg:px-5">
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+            <Image
+              src="/brand/logo-removebg.png"
+              alt="Kataloji Coffee and Eatery"
+              width={40}
+              height={40}
+              loading="eager"
+              className="h-full w-full object-contain"
+            />
+          </span>
+          <span className="hidden font-heading text-base font-extrabold leading-tight tracking-tight text-sidebar-foreground lg:block">
+            Kataloji CRM
+          </span>
+        </div>
+
+        <div className="mx-4 h-px bg-sidebar-border lg:mx-5" />
+
+        {/* Tombol Cepat: Catat Poin KITAPOS */}
+        <div className="px-3 pt-3 lg:px-4">
+          <button
+            type="button"
+            onClick={() => setDialogPoinOpen(true)}
+            title="Catat Poin KITAPOS"
+            className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-transform active:scale-[0.98] hover:opacity-95 lg:justify-start lg:px-3"
+          >
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span className="hidden lg:inline truncate">Catat Poin KITAPOS</span>
+          </button>
+        </div>
+
+        {/* Nav utama CRM */}
+        <nav
+          className="scrollbar-tersembunyi flex-1 space-y-2 overflow-y-auto px-3 py-3 lg:px-3"
+          aria-label="Menu"
+        >
+          {KELOMPOK_CRM.map((kelompok, iKelompok) => {
+            const menu =
+              kelompok.judul === "Sistem" && hakMenu.staf
+                ? [...kelompok.menu, MENU_STAF]
                 : kelompok.menu;
 
-          // Kelompok Pemasaran disembunyikan seluruhnya dari kasir, bukan
-          // disisakan sebagai judul tanpa isi. Judul kosong justru
-          // memberitahu ada sesuatu yang tidak boleh dia buka, dan itu
-          // mengganggu tanpa memberi manfaat.
-          if (kelompok.judul === "Pemasaran" && !hakMenu.pemasaran) return null;
+            if (kelompok.judul === "Pemasaran" && !hakMenu.pemasaran) return null;
 
-          return (
-            <div key={kelompok.judul ?? "utama"}>
-              {/* Judul kelompok dihapus (rapat). Pemisah tipis antar kelompok saja. */}
-              {iKelompok > 0 && (
-                <div className="mx-2 my-1 h-px bg-sidebar-border" />
-              )}
+            return (
+              <div key={kelompok.judul ?? "utama"}>
+                {iKelompok > 0 && (
+                  <div className="mx-2 my-1 h-px bg-sidebar-border" />
+                )}
 
-              <div className="space-y-1">
-                {menu.map((item) => {
+                <div className="space-y-1">
+                  {menu.map((item) => {
+                    const active =
+                      pathname === item.href ||
+                      (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        title={item.label}
+                        className={cn(
+                          "group relative flex h-8 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
+                          active
+                            ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-semibold"
+                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+                        )}
+                        <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                        <span className="hidden lg:inline">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Pemisah ke Modul POS Cadangan */}
+          <div className="mx-2 my-2 h-px bg-sidebar-border" />
+
+          {/* Dropdown / Accordion POS Cadangan (Default Tutup) */}
+          <div className="pt-0.5">
+            <button
+              type="button"
+              onClick={() => setBukaPosManual(!bukaPos)}
+              title="Modul POS Cadangan"
+              className="flex h-8 w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            >
+              <span className="flex items-center gap-2.5">
+                <ReceiptText className="h-4 w-4 shrink-0 text-sidebar-foreground/70" />
+                <span className="hidden lg:inline">POS Cadangan</span>
+              </span>
+              <ChevronDown
+                className={cn(
+                  "hidden h-3.5 w-3.5 transition-transform duration-200 lg:block",
+                  bukaPos && "rotate-180",
+                )}
+              />
+            </button>
+
+            {bukaPos && (
+              <div className="mt-1 space-y-1 pl-0 lg:pl-2 animate-in fade-in-50 duration-150">
+                {MENU_POS_CADANGAN.filter(
+                  (item) => item.roleKey === null || hakMenu[item.roleKey],
+                ).map((item) => {
                   const active =
-                    pathname === item.href ||
-                    (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                    pathname === item.href || pathname.startsWith(item.href);
                   const Icon = item.icon;
                   return (
                     <Link
@@ -248,79 +301,87 @@ export function SidebarNav() {
                       href={item.href}
                       title={item.label}
                       className={cn(
-                        "group relative flex h-8 items-center gap-3 rounded-lg px-2.5 text-sm font-medium outline-none transition-colors",
+                        "group relative flex h-7 items-center gap-2.5 rounded-md px-2 text-xs font-medium outline-none transition-colors",
                         active
-                          ? "bg-sidebar-accent/60 text-sidebar-accent-foreground font-semibold"
-                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
                       )}
                     >
                       {active && (
-                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+                        <span className="absolute left-0 top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
                       )}
-                      <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                      <span className="hidden lg:inline">{item.label}</span>
+                      <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                      <span className="hidden lg:inline truncate">{item.label}</span>
                     </Link>
                   );
                 })}
               </div>
-            </div>
-          );
-        })}
-      </nav>
+            )}
+          </div>
+        </nav>
 
-      {/* Notifikasi + Tema + User */}
-      <div className="space-y-3 border-t border-sidebar-border p-3 lg:p-4">
-        <LonceNotifikasi />
+        {/* Notifikasi + Tema + User */}
+        <div className="space-y-3 border-t border-sidebar-border p-3 lg:p-4">
+          <LonceNotifikasi />
 
-        <ThemeToggle className="hidden lg:flex" />
+          <ThemeToggle className="hidden lg:flex" />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-lg p-2 text-left outline-none transition-colors hover:bg-sidebar-accent">
-              <Avatar className="h-8 w-8 border border-sidebar-border">
-                <AvatarFallback className="bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-                  {inisial(namaTampil)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden min-w-0 flex-1 lg:block">
-                <span className="block truncate text-sm font-semibold text-sidebar-foreground">
-                  {namaTampil}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex w-full items-center gap-3 rounded-lg p-2 text-left outline-none transition-colors hover:bg-sidebar-accent">
+                <Avatar className="h-8 w-8 border border-sidebar-border">
+                  <AvatarFallback className="bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
+                    {inisial(namaTampil)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden min-w-0 flex-1 lg:block">
+                  <span className="block truncate text-sm font-semibold text-sidebar-foreground">
+                    {namaTampil}
+                  </span>
+                  <span className="block text-[11px] text-sidebar-foreground/70">
+                    {roleTampil || "…"}
+                  </span>
                 </span>
-                <span className="block text-[11px] text-sidebar-foreground/70">
-                  {roleTampil || "…"}
-                </span>
-              </span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-52">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              {profil?.email || "…"}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/pengaturan")}>
-              <Settings className="h-4 w-4" aria-hidden />
-              Pengaturan akun
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => {
-                // Toast dipanggil setelah redirect supaya tidak hilang
-                // saat halaman login selesai dimuat.
-                handleLogout().then(() => {
-                  toast.success("Sampai jumpa, sampai shift berikutnya!");
-                });
-              }}
-            >
-              <LogOut className="h-4 w-4" aria-hidden />
-              Keluar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="lg:hidden" />
-            <div className="p-1.5 lg:hidden">
-              <ThemeToggle />
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </aside>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-52">
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {profil?.email || "…"}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push("/pengaturan")}>
+                <Settings className="h-4 w-4" aria-hidden />
+                Pengaturan akun
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => {
+                  handleLogout().then(() => {
+                    toast.success("Sampai jumpa, sampai shift berikutnya!");
+                  });
+                }}
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+                Keluar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="lg:hidden" />
+              <div className="p-1.5 lg:hidden">
+                <ThemeToggle />
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+
+      {/* Dialog Shortcut: Catat Poin Belanja KITAPOS.
+          `key` diikat ke state buka/tutup supaya isian form direset tiap kali
+          dialog dibuka ulang, tanpa perlu setState di dalam useEffect. */}
+      <DialogCatatPoinKitapos
+        key={dialogPoinOpen ? "kitapos-buka" : "kitapos-tutup"}
+        open={dialogPoinOpen}
+        onOpenChange={setDialogPoinOpen}
+        onBerhasil={() => router.refresh()}
+      />
+    </>
   );
 }
