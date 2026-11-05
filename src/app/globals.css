@@ -56,7 +56,7 @@
   --card-foreground: oklch(0.357 0.033 57.2);
   --popover: oklch(0.994 0.006 84.6);
   --popover-foreground: oklch(0.357 0.033 57.2);
-  --primary: oklch(0.701 0.076 40.2);          /* terracotta #C88F7B */
+  --primary: oklch(0.501 0.078 40.2);          /* terracotta pekat #8F5A44 */
   --primary-foreground: oklch(0.994 0.006 84.6);
   --secondary: oklch(0.917 0.026 85);          /* warm sand */
   --secondary-foreground: oklch(0.309 0.032 56.4);
@@ -67,8 +67,8 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.894 0.025 78);             /* cream line */
   --input: oklch(0.894 0.025 78);
-  --ring: oklch(0.701 0.076 40.2);             /* terracotta */
-  --chart-1: oklch(0.701 0.076 40.2);          /* terracotta */
+  --ring: oklch(0.501 0.078 40.2);             /* terracotta pekat */
+  --chart-1: oklch(0.551 0.098 40.2);          /* terracotta chart */
   --chart-2: oklch(0.655 0.078 127.8);         /* sage */
   --chart-3: oklch(0.833 0.146 103.5);         /* mustard */
   --chart-4: oklch(0.662 0.131 108.0);         /* olive */
@@ -96,7 +96,7 @@
   --secondary: oklch(0.357 0.033 57.2);
   --secondary-foreground: oklch(0.917 0.026 85);
   --muted: oklch(0.357 0.033 57.2);
-  --muted-foreground: oklch(0.68 0.03 65);
+  --muted-foreground: oklch(0.74 0.03 65);
   --accent: oklch(0.357 0.033 57.2);
   --accent-foreground: oklch(0.917 0.026 85);
   --destructive: oklch(0.704 0.191 22.216);
