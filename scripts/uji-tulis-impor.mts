@@ -79,7 +79,30 @@ console.log("=== CEK JUMLAH DI DB ===");
 console.log("pelanggan (kode_majoo):", jumlahPelanggan?.length);
 console.log("transaksi (external_ref):", jumlahTransaksi?.length);
 
+// 4b) Nilai. Sebelumnya suite ini hanya mencetak angka, tidak menilai, jadi
+//     kalau idempotensi rusak (baris tergandakan) hasilnya tetap exit 0.
+let gagal = 0;
+let lulus = 0;
+function cek(nama: string, kondisi: boolean, detail = "") {
+  console.log(`${kondisi ? "PASS" : "FAIL"}  ${nama}${detail ? " -> " + detail : ""}`);
+  if (kondisi) lulus++;
+  else gagal++;
+}
+
+cek("tulis #1 membuat 1 pelanggan", jumlahPelanggan?.length === 1, `ada ${jumlahPelanggan?.length}`);
+cek("tulis #1 membuat 1 transaksi", jumlahTransaksi?.length === 1, `ada ${jumlahTransaksi?.length}`);
+cek("tulis #2 idempoten (tidak menggandakan)", jumlahPelanggan?.length === 1 && jumlahTransaksi?.length === 1,
+    `pelanggan ${jumlahPelanggan?.length}, transaksi ${jumlahTransaksi?.length}`);
+cek("tulis #2 melaporkan lewati, bukan buat baru",
+    (ringkas2?.pelanggan?.dilewati ?? 0) >= 1 && (ringkas2?.pelanggan?.dibuat ?? -1) === 0,
+    `pelanggan dibuat=${ringkas2?.pelanggan?.dibuat}, dilewati=${ringkas2?.pelanggan?.dilewati}`);
+cek("tulis #2 tidak menambah transaksi baru",
+    (ringkas2?.transaksi?.dibuat ?? -1) === 0 && (ringkas2?.transaksi?.gagal ?? -1) === 0,
+    `transaksi dibuat=${ringkas2?.transaksi?.dibuat}, gagal=${ringkas2?.transaksi?.gagal}`);
+
 // 5) Bersihkan baris uji
 await admin.from("pelanggan").delete().eq("kode_majoo", KODE_UJI);
 await admin.from("transaksi").delete().eq("external_ref", REF_UJI);
 console.log("=== BERSIH: baris uji dihapus ===");
+console.log(`\n=== ${lulus} LULUS, ${gagal} GAGAL ===`);
+process.exit(gagal === 0 ? 0 : 1);

@@ -18,5 +18,5 @@ for (const [label, tgl, harusLolos] of kasus) {
   if (!ok) gagal++;
   console.log(`${ok ? "OK  " : "GAGAL"} ${label} -> ${tgl || "(kosong)"} :: ${err.filter((e) => e.toLowerCase().includes("tanggal")).join(" | ") || "lolos"}`);
 }
-console.log(`=== ${kasus.length - gagal} lulus, ${gagal} gagal ===`);
+console.log(`=== ${kasus.length - gagal} LULUS, ${gagal} GAGAL ===`);
 process.exitCode = gagal === 0 ? 0 : 1;

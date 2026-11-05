@@ -25,6 +25,8 @@ SUITES=(
   "scripts/uji-impor-tanpa-timpa.mts"
   "scripts/uji-tulis-impor.mts"
   "scripts/uji-aturan-poin.mts"
+  "scripts/uji-aturan-poin-db.mts"
+  "scripts/uji-import-e2e.mts"
 )
 
 TOTAL=${#SUITES[@]}

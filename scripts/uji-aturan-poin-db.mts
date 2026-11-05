@@ -12,6 +12,7 @@ import { getKlienAdmin } from "../src/lib/supabase/admin.ts";
 
 const admin = getKlienAdmin();
 let gagal = 0;
+let lulus = 0;
 const MARK = "D" + String(Date.now()).slice(-5); // "D#####", unik per-jalan.
 const PEL = "Uji " + MARK;                        // nama pelanggan uji.
 
@@ -22,7 +23,8 @@ const aturanIds: string[] = [];
 
 function cek(nama: string, kondisi: boolean, detail = "") {
   console.log(`${kondisi ? "PASS" : "FAIL"}  ${nama}${detail ? " -> " + detail : ""}`);
-  if (!kondisi) gagal++;
+  if (kondisi) lulus++;
+  else gagal++;
 }
 
 /** Hapus semua baris uji yang cocok dengan pola marker (aman utk pre + post). */
@@ -230,5 +232,5 @@ const fPel = await admin.from("pelanggan").select("id", { count: "exact", head: 
 const fTrx = await admin.from("transaksi").select("id", { count: "exact", head: true }).ilike("external_ref", "D____-%");
 const fAt = await admin.from("aturan_poin").select("id", { count: "exact", head: true }).ilike("keterangan", `uji ${MARK}`);
 console.log(`\nsisa -> pelanggan:${fPel.count} transaksi:${fTrx.count} aturan:${fAt.count}`);
-console.log(`\n=== ${gagal === 0 ? "SEMUA LULUS" : gagal + " GAGAL"} (${pelangganIds.length} pelanggan, ${transaksiIds.length} transaksi diuji) ===`);
+console.log(`\n=== ${lulus} LULUS, ${gagal} GAGAL ===`);
 process.exit(gagal === 0 ? 0 : 1);

@@ -23,6 +23,15 @@ const SERVICE_KEY = ENV["SUPABASE_SERVICE_ROLE_KEY"];
 // sandi tidak pernah ikut ter-commit ke git.
 const SANDI_UJI = ENV["SANDI_UJI"];
 
+let gagal = 0;
+let lulus = 0;
+
+function cek(nama: string, kondisi: boolean, detail = "") {
+  console.log(`${kondisi ? "PASS" : "FAIL"}  ${nama}${detail ? " -> " + detail : ""}`);
+  if (kondisi) lulus++;
+  else gagal++;
+}
+
 async function main() {
   // Tandai awal run: residue yang dihapus di akhir = baris created ATAS ini.
   // Data user (created sebelumnya) tidak pernah tersentuh.
@@ -96,7 +105,7 @@ async function main() {
   const resTransaksiPreview = await postImpor("preview", fileTransaksi, "detail_penjualan.xlsx");
 
   // 3b. Apply
-  await postImpor("apply", filePelanggan, "data_pelanggan.xlsx");
+  const applyPel = await postImpor("apply", filePelanggan, "data_pelanggan.xlsx");
   const applyTrans1 = await postImpor("apply", fileTransaksi, "detail_penjualan.xlsx");
 
   // 3c. Idempoten: apply ulang file yang sama
@@ -122,6 +131,24 @@ async function main() {
   console.log("preview transaksi siap:", jumlahPreview?.jumlah, "| dilewati:", JSON.stringify(jumlahPreview?.dilewati));
   console.log("apply ke-1:", JSON.stringify(ring1));
   console.log("apply ke-2 (harus 0 baru):", JSON.stringify(ring2));
+
+  // Verifikasi inti. Bentuk ringkasan: {transaksi:{dibuat,dilewati,...}}.
+  // Data berkas uji ini sudah pernah diimpor di run sebelumnya, jadi jalur yang
+  // benar adalah SEMUA baris dilewati (idempoten), bukan dibuat lagi.
+  const siap = jumlahPreview?.transaksi ?? jumlahPreview?.jumlah ?? 0;
+  const ringkas1Trx = ring1?.transaksi ?? {};
+  const ringkas2Trx = ring2?.transaksi ?? {};
+
+  cek("preview membaca baris transaksi", Array.isArray(siap) && siap.length > 0,
+      `siap=${Array.isArray(siap) ? siap.length + " baris" : JSON.stringify(siap)?.slice(0, 60)}`);
+  cek("apply ke-1 tidak menggandakan data lama", (ringkas1Trx.dibuat ?? -1) === 0,
+      `dibuat=${ringkas1Trx.dibuat}, dilewati=${ringkas1Trx.dilewati}`);
+  cek("apply ke-2 idempoten (0 baru)", (ringkas2Trx.dibuat ?? -1) === 0,
+      `dibuat=${ringkas2Trx.dibuat}, dilewati=${ringkas2Trx.dilewati}`);
+  cek("impor pelanggan & transaksi sukses", applyPel.status === 200 && applyTrans1.status === 200,
+      `pelanggan ${applyPel.status}, transaksi ${applyTrans1.status}`);
+  cek("pencocokan bisa dibaca", resCocok.status === 200, `status ${resCocok.status}`);
+  cek("tidak ada galat impor", (ringkas1Trx.gagal ?? -1) === 0, `gagal=${ringkas1Trx.gagal}`);
 
   // 5. Bersihkan residue run ini. Hanya baris yang lahir SETELAH RUN_START
   //    (data user lahir sebelumnya, jadi tidak pernah masuk kumpulan ini).
@@ -161,10 +188,16 @@ async function main() {
 
   const sisa = (await restGet(`transaksi?created_at=gt.${ts}&select=id`)).length;
   const sisaPel = (await restGet(`pelanggan?created_at=gt.${ts}&select=id`)).length;
-  if (sisa === 0 && sisaPel === 0)
+  if (sisa === 0 && sisaPel === 0) {
     console.log("Residue bersih: DB produksi kembali ke data user.");
-  else
+    cek("residu uji bersih", true, `transaksi ${sisa}, pelanggan ${sisaPel}`);
+    console.log(`\n=== ${lulus} LULUS, ${gagal} GAGAL ===`);
+  } else {
     console.log(`PERHATIAN: masih tersisa transaksi=${sisa} pelanggan=${sisaPel} sejak RUN_START.`);
+    cek("residu uji bersih", false, `transaksi ${sisa}, pelanggan ${sisaPel}`);
+    console.log(`\n=== ${lulus} LULUS, ${gagal} GAGAL ===`);
+  }
+  process.exitCode = gagal === 0 ? 0 : 1;
 }
 
 main().catch((e) => {
