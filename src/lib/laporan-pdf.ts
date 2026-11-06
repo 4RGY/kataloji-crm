@@ -40,6 +40,15 @@ export interface DataPdf {
   sebaranPoin: { label: string; jumlah: number }[];
   setia: { nama: string; kunjungan: number; omzet: number }[];
   jumlahPelangganDatang: number;
+
+  /** Peringkat pelanggan yang paling banyak menukar poin reward. */
+  topRedeem?: { nama: string; kaliTukar: number; poinDipakai: number; nilaiRupiah: number }[];
+  /** Ringkasan dinamika perolehan dan penukaran poin. */
+  pergerakanPoin?: {
+    poinDidapat: number;
+    poinDipakai: number;
+    nilaiPotonganDipakai: number;
+  };
 }
 
 // Warna brand
@@ -185,6 +194,22 @@ export function buatPdfLaporan(data: DataPdf): Blob {
     kanan: [1, 2],
   }));
 
+  // Ringkasan pergerakan poin
+  const pergerakan = data.pergerakanPoin ?? {
+    poinDidapat: 0,
+    poinDipakai: 0,
+    nilaiPotonganDipakai: 0,
+  };
+  y = bagianTabel("Ringkasan Pergerakan Poin", () => ({
+    head: [["Aktivitas Poin Periode Ini", "Poin", "Nilai Rupiah"]],
+    body: [
+      ["Poin didapat pelanggan (earned)", `+${pergerakan.poinDidapat.toLocaleString("id-ID")}`, rupiah(pergerakan.poinDidapat * 1000)],
+      ["Poin ditukarkan di kasir (redeemed)", `-${pergerakan.poinDipakai.toLocaleString("id-ID")}`, rupiah(pergerakan.nilaiPotonganDipakai)],
+      ["Saldo poin beredar saat ini", `${data.poinBeredar.toLocaleString("id-ID")}`, rupiah(data.nilaiPoinBeredar)],
+    ],
+    kanan: [1, 2],
+  }));
+
   // Sebaran saldo poin
   y = bagianTabel("Sebaran Saldo Poin", () => {
     if (data.jumlahPelanggan === 0) {
@@ -202,16 +227,36 @@ export function buatPdfLaporan(data: DataPdf): Blob {
   });
 
   // Pelanggan setia
-  y = bagianTabel("Pelanggan Paling Sering Datang", () => {
-    if (data.jumlahPelangganDatang < AMBANG_SETIA_LAPORAN) {
-      return {
-        teks: `Ditahan: baru ${data.jumlahPelangganDatang} pelanggan datang. Peringkat baru bisa dipercaya setelah ${AMBANG_SETIA_LAPORAN} pelanggan datang.`,
-      };
+  y = bagianTabel("Pelanggan Paling Sering Datang (Setia)", () => {
+    if (data.setia.length === 0) {
+      return { teks: "Belum ada kunjungan pelanggan beridentitas pada periode ini." };
     }
     return {
-      head: [["No", "Pelanggan", "Kunjungan", "Omzet"]],
-      body: data.setia.map((s, i) => [String(i + 1), s.nama, `${s.kunjungan} hari`, rupiah(s.omzet)]),
-      kanan: [2, 3],
+      head: [["No", "Pelanggan", "Kunjungan", "Total Belanja", "Rata-rata / Kunjungan"]],
+      body: data.setia.map((s, i) => {
+        const aov = s.kunjungan > 0 ? Math.round(s.omzet / s.kunjungan) : 0;
+        return [String(i + 1), s.nama, `${s.kunjungan} hari`, rupiah(s.omzet), rupiah(aov)];
+      }),
+      kanan: [2, 3, 4],
+    };
+  });
+
+  // Poin digunakan terbanyak
+  const daftarRedeem = data.topRedeem ?? [];
+  y = bagianTabel("Poin Digunakan Terbanyak", () => {
+    if (daftarRedeem.length === 0) {
+      return { teks: "Belum ada penukaran poin reward pada periode ini." };
+    }
+    return {
+      head: [["No", "Pelanggan", "Kali Tukar", "Poin Ditukar", "Nilai Potongan"]],
+      body: daftarRedeem.map((r, i) => [
+        String(i + 1),
+        r.nama,
+        `${r.kaliTukar}x`,
+        `${r.poinDipakai} poin`,
+        rupiah(r.nilaiRupiah),
+      ]),
+      kanan: [2, 3, 4],
     };
   });
 

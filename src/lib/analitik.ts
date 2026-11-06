@@ -15,6 +15,7 @@ export interface TransaksiAnalitik {
   total: number;
   diskon: number;
   poin_dipakai: number;
+  poin_didapat?: number;
   pelanggan_id: string | null;
   created_at: string;
   /** Tanggal transaksi di Majoo (H+1), null untuk transaksi manual. */

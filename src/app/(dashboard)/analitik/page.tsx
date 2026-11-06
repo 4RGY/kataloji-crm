@@ -9,19 +9,14 @@ import {
   AMBANG_HARI,
   AMBANG_POLA,
   hariBeroperasi,
-  jamTeramai,
-  labelJam,
   periksaKeyakinan,
   ringkasPelanggan,
   sebaranPoinPelanggan,
   sebaranHari,
-  sebaranJam,
   tinggiBatang,
   ultahBulanIni,
-  menuTerlaris,
   pelangganSetia,
   nilaiBersih,
-  AMBANG_MENU,
   type PelangganAnalitik,
   type TransaksiAnalitik,
 } from "@/lib/analitik";
@@ -111,7 +106,7 @@ export default function HalamanAnalitik() {
       ambilSemua<TransaksiAnalitik>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("total, diskon, poin_dipakai, pelanggan_id, created_at, tanggal_majoo, items, source")
+          .select("total, diskon, poin_dipakai, poin_didapat, pelanggan_id, created_at, tanggal_majoo, items, source")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -174,21 +169,14 @@ export default function HalamanAnalitik() {
     setMemuat(false);
   }
 
-  // sebaranJam mengembalikan {baris, dihitung, dilewati}: hanya transaksi
-  // yang jam kedatangannya diketahui yang dihitung. Transaksi impor Majoo
-  // hanya punya tanggal, jadi jamnya bukan jam ramai dan sengaja dilewati.
-  const jamHasil = useMemo(() => sebaranJam(transaksi, NILAI_POIN), [transaksi]);
-  const jam = jamHasil.baris;
   const hari = useMemo(() => sebaranHari(transaksi, NILAI_POIN), [transaksi]);
   const pel = useMemo(() => ringkasPelanggan(transaksi, NILAI_POIN), [transaksi]);
   const ultah = useMemo(() => ultahBulanIni(pelanggan, kini), [pelanggan, kini]);
-  const menu = useMemo(() => menuTerlaris(transaksi, 5), [transaksi]);
   const setia = useMemo(() => pelangganSetia(transaksi, NILAI_POIN, 5), [transaksi]);
   const namaPelanggan = useMemo(
     () => new Map(pelanggan.map((p) => [p.id, p.nama])),
     [pelanggan],
   );
-  const yakinMenu = periksaKeyakinan(menu.reduce((s, m) => s + m.qty, 0), AMBANG_MENU, "item terjual");
   const yakinSetia = periksaKeyakinan(setia.length, 3, "pelanggan yang datang");
 
   const [periodeUnduh, setPeriodeUnduh] = useState<Periode>({ jenis: "bulan_ini" });
@@ -227,6 +215,30 @@ export default function HalamanAnalitik() {
       jumlah: k.jumlah,
     }));
 
+    // Top pelanggan yang menukarkan poin di periode ini
+    const petaRedeem = new Map<string, { kali: number; poin: number }>();
+    for (const t of dipilih) {
+      if (!t.pelanggan_id || !t.poin_dipakai || t.poin_dipakai <= 0) continue;
+      const curr = petaRedeem.get(t.pelanggan_id) ?? { kali: 0, poin: 0 };
+      petaRedeem.set(t.pelanggan_id, {
+        kali: curr.kali + 1,
+        poin: curr.poin + t.poin_dipakai,
+      });
+    }
+
+    const topRedeemP = [...petaRedeem.entries()]
+      .map(([pelangganId, data]) => ({
+        nama: namaPelanggan.get(pelangganId) ?? "Pelanggan",
+        kaliTukar: data.kali,
+        poinDipakai: data.poin,
+        nilaiRupiah: data.poin * NILAI_POIN,
+      }))
+      .sort((a, b) => b.poinDipakai - a.poinDipakai)
+      .slice(0, 5);
+
+    const poinDidapatPeriode = dipilih.reduce((s, t) => s + (t.poin_didapat ?? 0), 0);
+    const poinDipakaiPeriode = dipilih.reduce((s, t) => s + (t.poin_dipakai ?? 0), 0);
+
     const { buatPdfLaporan } = await import("@/lib/laporan-pdf");
     const blob = buatPdfLaporan({
       periodeLabel: rentang.label,
@@ -250,6 +262,12 @@ export default function HalamanAnalitik() {
         omzet: s.omzet,
       })),
       jumlahPelangganDatang: setiaP.length,
+      topRedeem: topRedeemP,
+      pergerakanPoin: {
+        poinDidapat: poinDidapatPeriode,
+        poinDipakai: poinDipakaiPeriode,
+        nilaiPotonganDipakai: poinDipakaiPeriode * NILAI_POIN,
+      },
     });
 
     const url = URL.createObjectURL(blob);
@@ -266,9 +284,7 @@ export default function HalamanAnalitik() {
 
   const yakinPola = periksaKeyakinan(transaksi.length, AMBANG_POLA);
   const yakinHari = periksaKeyakinan(hariBeroperasi(transaksi), AMBANG_HARI, "hari jualan");
-  const puncak = jamTeramai(jam);
 
-  const jamTertinggi = Math.max(...jam.map((j) => j.jumlah), 0);
   const hariTertinggi = Math.max(...hari.map((h) => h.omzet), 0);
 
   // Sebaran saldo poin pelanggan. Halaman ini mengukur kesehatan program
@@ -554,63 +570,21 @@ export default function HalamanAnalitik() {
         </div>
       </div>
 
-      {/* Menu terlaris dan pelanggan paling sering datang. Keduanya ditahan
-          sampai datanya cukup, sama seperti bagian lain halaman ini. */}
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
-        <section
-          aria-label="Menu terlaris"
-          className="rounded-xl border border-border bg-card p-6"
-        >
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            Menu terlaris
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {yakinMenu.cukup
-              ? `Dari ${yakinMenu.jumlah} porsi terjual, diurutkan jumlah porsi`
-              : "Diurutkan setelah datanya cukup, supaya tidak menyimpulkan dari sedikit struk."}
-          </p>
-          {!yakinMenu.cukup || menu.length === 0 ? (
-            <div className="mt-4">
-              <Tertahan
-                pesan={`Baru ${yakinMenu.jumlah} dari ${yakinMenu.ambang} porsi terjual.`}
-                progres={(yakinMenu.jumlah / yakinMenu.ambang) * 100}
-              />
-            </div>
-          ) : (
-            <ol className="mt-4 space-y-2.5">
-              {menu.map((m, i) => (
-                <li key={m.nama} className="space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="truncate font-semibold">
-                      <span className="mr-2 tabular-nums text-muted-foreground">{i + 1}.</span>
-                      {m.nama}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {m.qty} porsi, {m.persen}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${tinggiBatang(m.qty, menu[0].qty)}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-
+      {/* Pelanggan paling sering datang */}
+      <div className="mt-4">
         <section
           aria-label="Pelanggan paling sering datang"
-          className="rounded-xl border border-border bg-card p-6"
+          className="rounded-xl border border-border bg-card p-6 lg:p-7"
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            Pelanggan paling sering datang
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Dihitung per hari kunjungan, sejalan dengan aturan poin per kunjungan.
-          </p>
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Pelanggan paling sering datang
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Dihitung per hari kunjungan unik, sejalan dengan frekuensi retensi pelanggan.
+            </p>
+          </div>
+
           {!yakinSetia.cukup ? (
             <div className="mt-4">
               <Tertahan
@@ -619,93 +593,42 @@ export default function HalamanAnalitik() {
               />
             </div>
           ) : (
-            <ol className="mt-4 space-y-2.5">
-              {setia.map((s, i) => (
-                <li
-                  key={s.pelangganId}
-                  className="flex items-baseline justify-between gap-3 text-sm"
-                >
-                  <span className="truncate font-semibold">
-                    <span className="mr-2 tabular-nums text-muted-foreground">{i + 1}.</span>
-                    {namaPelanggan.get(s.pelangganId) ?? "Pelanggan"}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">
-                    {s.kunjungan} kunjungan, {rupiah.format(s.omzet)}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <div className="mt-5 divide-y divide-border/60">
+              {setia.map((s, i) => {
+                const rataRata = s.kunjungan > 0 ? Math.round(s.omzet / s.kunjungan) : 0;
+                return (
+                  <div
+                    key={s.pelangganId}
+                    className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold tabular-nums text-muted-foreground">
+                        {i + 1}
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {namaPelanggan.get(s.pelangganId) ?? "Pelanggan"}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs tabular-nums text-muted-foreground sm:justify-end">
+                      <span>
+                        <strong className="font-medium text-foreground">{s.kunjungan}</strong> kunjungan
+                      </span>
+                      <span aria-hidden className="text-border">|</span>
+                      <span>
+                        Total <strong className="font-medium text-foreground">{rupiah.format(s.omzet)}</strong>
+                      </span>
+                      <span aria-hidden className="text-border">|</span>
+                      <span>
+                        Rata-rata <strong className="font-medium text-foreground">{rupiah.format(rataRata)}</strong> / kunjungan
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </section>
       </div>
-
-      {/* Jam ramai memakai lebar penuh: sumbunya 16 kolom, dipadatkan ke
-          setengah lebar membuat batangnya terlalu rapat untuk dibaca. */}
-      <section
-        aria-label="Sebaran jam"
-        className="mt-4 rounded-xl border border-border bg-card p-6 lg:p-7"
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            Sebaran per jam
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {puncak
-              ? `Teramai ${labelJam(puncak.jam)}, ${puncak.jumlah} transaksi`
-              : "Belum ada jam yang menonjol"}
-          </p>
-        </div>
-
-        {/* Keterbukaan soal data yang tidak ikut dihitung. Tanpa kalimat ini,
-            grafik yang tipis terlihat seperti kedai yang sepi, padahal
-            transaksinya ada dan hanya jamnya yang tidak tercatat. */}
-        {jamHasil.dilewati > 0 && (
-          <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            {jamHasil.dihitung === 0
-              ? `Belum ada transaksi yang jam kedatangannya tercatat. ${jamHasil.dilewati} transaksi hanya punya tanggal (impor laporan), jadi jamnya tidak ikut dihitung.`
-              : `${jamHasil.dilewati} dari ${jamHasil.dilewati + jamHasil.dihitung} transaksi tidak ikut dihitung karena hanya punya tanggal (impor laporan), bukan jam kedatangan.`}
-          </p>
-        )}
-
-        {jamTertinggi === 0 ? (
-          <div className="mt-4">
-            <Tertahan pesan="Belum ada transaksi yang jam kedatangannya tercatat." />
-          </div>
-        ) : (
-          <div className="mt-6 flex items-end gap-1.5">
-            {jam.map((j) => {
-              const tinggi = tinggiBatang(j.jumlah, jamTertinggi);
-              const puncakIni = puncak?.jam === j.jam;
-              return (
-                <div key={j.jam} className="flex flex-1 flex-col items-center gap-2">
-                  <div className="flex h-28 w-full items-end">
-                    <div
-                      className={
-                        "w-full rounded-t transition-[height] " +
-                        (j.jumlah === 0
-                          ? "h-px bg-border"
-                          : puncakIni
-                            ? "bg-primary"
-                            : "bg-primary/30")
-                      }
-                      style={j.jumlah > 0 ? { height: `${Math.max(8, tinggi)}%` } : undefined}
-                      title={`${labelJam(j.jam)}: ${j.jumlah} transaksi`}
-                    />
-                  </div>
-                  <span
-                    className={
-                      "text-[11px] tabular-nums " +
-                      (puncakIni ? "font-bold text-foreground" : "text-muted-foreground")
-                    }
-                  >
-                    {j.jam}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
 
       <div className="mt-4">
         <section
