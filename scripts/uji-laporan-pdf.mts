@@ -1,4 +1,4 @@
-// Uji PDF laporan: hasilkan file nyata lalu periksa isinya.
+// Uji PDF laporan loyalitas: hasilkan file nyata lalu periksa isinya.
 import { writeFileSync, readFileSync } from "node:fs";
 import { buatPdfLaporan } from "../src/lib/laporan-pdf.ts";
 
@@ -7,11 +7,28 @@ const data = {
   dibuatPada: "14 Okt 2026, 10.00",
   jumlahTransaksi: 4,
   omzet: 245000,
-  jam: Array.from({ length: 15 }, (_, i) => ({ jam: 7 + i, jumlah: i === 11 ? 3 : 0 })),
-  hari: [{ nama: "Senin", omzet: 150000 }, { nama: "Selasa", omzet: 95000 }],
-  menu: [{ nama: "Kopi Susu", qty: 12, persen: 60 }, { nama: "Es Teh", qty: 8, persen: 40 }],
-  totalItemTerjual: 20,
-  setia: [{ nama: "Budi Santoso", kunjungan: 4, omzet: 300000 }, { nama: "Siti", kunjungan: 2, omzet: 80000 }, { nama: "Andi", kunjungan: 1, omzet: 20000 }],
+  hari: [
+    { nama: "Senin", omzet: 150000 },
+    { nama: "Selasa", omzet: 95000 },
+  ],
+  tertaut: 3,
+  tanpaPelanggan: 1,
+  persenTertaut: 75,
+  jumlahPelangganAktif: 3,
+  poinBeredar: 12,
+  nilaiPoinBeredar: 12000,
+  jumlahPelanggan: 5,
+  sebaranPoin: [
+    { label: "belum ada poin", jumlah: 1 },
+    { label: "1 sampai 4 poin", jumlah: 2 },
+    { label: "5 sampai 9 poin", jumlah: 1 },
+    { label: "10 poin ke atas", jumlah: 1 },
+  ],
+  setia: [
+    { nama: "Budi Santoso", kunjungan: 4, omzet: 300000 },
+    { nama: "Siti", kunjungan: 2, omzet: 80000 },
+    { nama: "Andi", kunjungan: 1, omzet: 20000 },
+  ],
   jumlahPelangganDatang: 3,
 };
 
@@ -28,7 +45,7 @@ cek("ukuran wajar (> 2 KB)", buf.length > 2000, "(" + buf.length + " byte)");
 
 // Teks di dalam PDF tidak selalu utuh (font terkompresi), jadi cek juga versi tanpa kompresi.
 const teks = readFileSync(out).toString("latin1");
-cek("memuat judul", teks.includes("Laporan Analitik") || teks.includes("Analitik"));
+cek("memuat judul", teks.includes("Laporan Loyalitas") || teks.includes("Loyalitas"));
 cek("halaman dihitung (ada /Type /Page)", /\/Type\s*\/Page[^s]/.test(teks));
 
 console.log("\n=== " + lulus + " LULUS, " + gagal + " GAGAL ===");
