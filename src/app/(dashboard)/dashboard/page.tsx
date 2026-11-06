@@ -60,11 +60,7 @@ interface Transaksi {
   /** Tanggal transaksi di Majoo (H+1: kemarin), null untuk transaksi manual. */
   tanggal_majoo: string | null;
   pelanggan_id: string | null;
-  /** Metode bayar; null untuk transaksi lama yang belum mencatatnya. */
-  metode_bayar: string | null;
-  /** Rincian menu `{nama, qty}`; hanya ada pada transaksi yang mencatatnya. */
-  items: unknown;
-  /** Asal transaksi: crm_manual | majoo_import | majoo_parallel | csv_import. */
+  /** Asal transaksi: crm_manual | crm_pos | majoo_import | majoo_parallel | csv_import. */
   source?: string | null;
 }
 
@@ -135,7 +131,7 @@ export default function DashboardPage() {
       ambilSemua<Transaksi>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id, metode_bayar, items, source")
+          .select("id, total, diskon, poin_dipakai, poin_didapat, created_at, tanggal_majoo, pelanggan_id, source")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -636,8 +632,7 @@ export default function DashboardPage() {
 
           {/* Papan loyalitas (lebar penuh). Dashboard ini mengukur
               pertumbuhan keanggotaan dan perputaran poin, bukan operasional
-              kedai, jadi bagian yang tadinya dipakai untuk jam ramai dan
-              metode bayar dipindahkan ke angka loyalitas. */}
+              kedai, jadi ruangnya dipakai untuk angka loyalitas. */}
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
             {/* Pelanggan setia */}
             <section aria-label="Pelanggan paling setia">
