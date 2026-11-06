@@ -213,11 +213,19 @@ export default function HalamanAnalitik() {
     }
 
     // Hitung ulang dari transaksi yang sudah disaring, supaya PDF hanya memuat periode itu.
-    const jamP = sebaranJam(dipilih, NILAI_POIN).baris;
     const hariP = sebaranHari(dipilih, NILAI_POIN);
-    const menuP = menuTerlaris(dipilih, 5);
     const setiaP = pelangganSetia(dipilih, NILAI_POIN, 5);
     const omzetP = dipilih.reduce((s, t) => s + nilaiBersih(t, NILAI_POIN), 0);
+    const pelP = ringkasPelanggan(dipilih, NILAI_POIN);
+
+    // Poin yang dilaporkan adalah saldo yang berlaku sekarang, bukan hasil
+    // hitung ulang dari periode, karena angka itulah yang dipakai kasir saat
+    // menukar poin.
+    const poinBeredarP = pelanggan.reduce((s, p) => s + (p.poin ?? 0), 0);
+    const sebaranPoinP = sebaranPoinPelanggan(pelanggan).map((k) => ({
+      label: k.label,
+      jumlah: k.jumlah,
+    }));
 
     const { buatPdfLaporan } = await import("@/lib/laporan-pdf");
     const blob = buatPdfLaporan({
@@ -225,10 +233,17 @@ export default function HalamanAnalitik() {
       dibuatPada: kini.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
       jumlahTransaksi: dipilih.length,
       omzet: omzetP,
-      jam: jamP,
       hari: hariP.map((h) => ({ nama: h.nama, omzet: h.omzet })),
-      menu: menuP.map((m) => ({ nama: m.nama, qty: m.qty, persen: m.persen })),
-      totalItemTerjual: menuP.reduce((s, m) => s + m.qty, 0),
+      tertaut: pelP.berpelanggan,
+      tanpaPelanggan: pelP.tanpaPelanggan,
+      persenTertaut: Math.round(pelP.persenTertaut),
+      jumlahPelangganAktif: new Set(
+        dipilih.map((t) => t.pelanggan_id).filter((x): x is string => Boolean(x)),
+      ).size,
+      poinBeredar: poinBeredarP,
+      nilaiPoinBeredar: poinBeredarP * NILAI_POIN,
+      jumlahPelanggan: pelanggan.length,
+      sebaranPoin: sebaranPoinP,
       setia: setiaP.map((s) => ({
         nama: namaPelanggan.get(s.pelangganId) ?? "Pelanggan",
         kunjungan: s.kunjungan,
@@ -243,7 +258,7 @@ export default function HalamanAnalitik() {
     // Tanggal lokal, bukan toISOString: di WIB, 1 Okt 00.00 jadi 30 Sep di UTC.
     const p = (n: number) => String(n).padStart(2, "0");
     const d = rentang.dari;
-    a.download = `laporan-analitik-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.pdf`;
+    a.download = `laporan-loyalitas-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
   }

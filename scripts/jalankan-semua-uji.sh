@@ -20,6 +20,7 @@ SUITES=(
   "scripts/uji-banding-penjualan.mts"
   "scripts/uji-banding-penjualan-pdf.mts"
   "scripts/uji-laporan-pdf.mts"
+  "scripts/uji-pdf-loyalitas.mts"
   "scripts/uji-periode-laporan.mts"
   "scripts/uji-impor-metode.mts"
   "scripts/uji-impor-tanpa-timpa.mts"

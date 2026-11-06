@@ -1,9 +1,11 @@
 /**
- * Pembuat PDF laporan analitik - Kataloji CRM
+ * Pembuat PDF laporan loyalitas - Kataloji CRM
  *
  * Layout premium A4 dengan brand identity Kataloji.
- * Format direset total: header bermerek, kartu ringkasan,
- * tabel bersih dengan warna brand, footer halaman.
+ * Isinya sengaja diarahkan ke program loyalitas: siapa yang datang lagi,
+ * berapa poin yang beredar, siapa yang mendekati hadiah, dan siapa yang
+ * poinnya berisiko hangus. Bagian operasional kedai (jam ramai, menu
+ * terlaris) tidak lagi dilaporkan di sini karena bukan tujuan CRM.
  */
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -17,10 +19,25 @@ export interface DataPdf {
   dibuatPada: string;
   jumlahTransaksi: number;
   omzet: number;
-  jam: { jam: number; jumlah: number }[];
   hari: { nama: string; omzet: number }[];
-  menu: { nama: string; qty: number; persen: number }[];
-  totalItemTerjual: number;
+
+  // ---- Bagian loyalitas ----
+  /** Berapa transaksi yang tertaut ke pelanggan terdaftar. */
+  tertaut: number;
+  /** Berapa transaksi yang tidak diketahui siapa pelakunya. */
+  tanpaPelanggan: number;
+  /** Persen transaksi tertaut, 0 sampai 100. */
+  persenTertaut: number;
+  /** Pelanggan yang tercatat pada periode ini. */
+  jumlahPelangganAktif: number;
+  /** Saldo poin seluruh pelanggan saat laporan dibuat. */
+  poinBeredar: number;
+  /** Nilai rupiah dari poin beredar. */
+  nilaiPoinBeredar: number;
+  /** Jumlah pelanggan terdaftar seluruhnya. */
+  jumlahPelanggan: number;
+  /** Sebaran pelanggan menurut saldo poin. */
+  sebaranPoin: { label: string; jumlah: number }[];
   setia: { nama: string; kunjungan: number; omzet: number }[];
   jumlahPelangganDatang: number;
 }
@@ -39,7 +56,6 @@ const W = {
 };
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
-const jamLabel = (j: number) => `${String(j).padStart(2, "0")}.00`;
 
 type TabelTerakhir = { lastAutoTable: { finalY: number } };
 function posisiAkhir(doc: jsPDF): number {
@@ -86,7 +102,7 @@ export function buatPdfLaporan(data: DataPdf): Blob {
   doc.addImage(LOGO_PDF_BASE64, "PNG", lx + 1, ly + 1, 12, 12);
 
   teks(doc, "Kataloji Coffee and Eatery", lx + 20, ly + 5, { size: 15, bold: true, warna: W.cream });
-  teks(doc, "Laporan Analitik", lx + 20, ly + 12, { size: 10, warna: [180, 165, 150] });
+  teks(doc, "Laporan Loyalitas Pelanggan", lx + 20, ly + 12, { size: 10, warna: [180, 165, 150] });
 
   teks(doc, data.periodeLabel, lebar - margin, ly + 5, { size: 9, warna: [180, 165, 150], align: "right" });
   teks(doc, `Dibuat ${data.dibuatPada}`, lebar - margin, ly + 11, { size: 8, warna: [160, 145, 130], align: "right" });
@@ -94,23 +110,34 @@ export function buatPdfLaporan(data: DataPdf): Blob {
   y = 50;
 
   // ============ KARTU RINGKASAN ============
-  const kartuW = (isiLebar - 6) / 2;
+  // Empat kartu dua baris. Ukuran dan posisinya dihitung dari lebar isi
+  // supaya tetap rapi kalau margin diubah, bukan dari angka tetap.
+  const kolom = 2;
+  const jeda = 6;
+  const kartuW = (isiLebar - jeda * (kolom - 1)) / kolom;
   const kartuH = 20;
 
-  kartu(doc, margin, y, kartuW, kartuH, W.cream);
-  doc.setFillColor(W.terracotta[0], W.terracotta[1], W.terracotta[2]);
-  doc.rect(margin, y, kartuW, 1.2, "F");
-  teks(doc, "Total Transaksi", margin + 4, y + 7, { size: 7.5, warna: W.muted });
-  teks(doc, String(data.jumlahTransaksi), margin + 4, y + 15, { size: 14, bold: true, warna: W.terracotta });
+  const kartuRingkas: { label: string; nilai: string; warna: [number, number, number] }[] = [
+    { label: "Transaksi Tertaut", nilai: `${data.tertaut}`, warna: W.terracotta },
+    { label: "Pelanggan Aktif", nilai: `${data.jumlahPelangganAktif}`, warna: W.sage },
+    { label: "Poin Beredar", nilai: data.poinBeredar.toLocaleString("id-ID"), warna: W.mustard },
+    { label: "Nilai Poin Beredar", nilai: rupiah(data.nilaiPoinBeredar), warna: W.espresso },
+  ];
 
-  const kx2 = margin + kartuW + 6;
-  kartu(doc, kx2, y, kartuW, kartuH, W.cream);
-  doc.setFillColor(W.sage[0], W.sage[1], W.sage[2]);
-  doc.rect(kx2, y, kartuW, 1.2, "F");
-  teks(doc, "Omzet Bersih", kx2 + 4, y + 7, { size: 7.5, warna: W.muted });
-  teks(doc, rupiah(data.omzet), kx2 + 4, y + 15, { size: 14, bold: true, warna: W.sage });
+  kartuRingkas.forEach((k, i) => {
+    const kolomKe = i % kolom;
+    const barisKe = Math.floor(i / kolom);
+    const x = margin + kolomKe * (kartuW + jeda);
+    const ky = y + barisKe * (kartuH + jeda);
 
-  y += kartuH + 10;
+    kartu(doc, x, ky, kartuW, kartuH, W.cream);
+    doc.setFillColor(k.warna[0], k.warna[1], k.warna[2]);
+    doc.rect(x, ky, kartuW, 1.2, "F");
+    teks(doc, k.label.toUpperCase(), x + 4, ky + 7, { size: 7.5, warna: W.muted });
+    teks(doc, k.nilai, x + 4, ky + 15, { size: 14, bold: true, warna: k.warna });
+  });
+
+  y += kartuH * 2 + jeda + 10;
 
   // ============ BAGIAN TABEL ============
   function bagianTabel(judul: string, bangun: () => Isi): number {
@@ -145,35 +172,32 @@ export function buatPdfLaporan(data: DataPdf): Blob {
     return posisiAkhir(doc) + 8;
   }
 
-  // Jam ramai
-  y = bagianTabel("Jam Ramai", () => {
-    const aktif = data.jam.filter((j) => j.jumlah > 0);
-    if (aktif.length === 0) return { teks: "Belum ada transaksi pada jam buka." };
-    return {
-      head: [["Jam", "Transaksi"]],
-      body: data.jam.map((j) => [jamLabel(j.jam), String(j.jumlah)]),
-      kanan: [1],
-    };
-  });
-
-  // Omzet per hari
-  y = bagianTabel("Omzet per Hari", () => ({
-    head: [["Hari", "Omzet Bersih"]],
-    body: data.hari.map((h) => [h.nama, rupiah(h.omzet)]),
-    kanan: [1],
+  // Keterikatan transaksi ke pelanggan. Ini angka paling menentukan di
+  // program loyalitas: transaksi tanpa identitas tidak menghasilkan data
+  // apa pun tentang siapa yang datang.
+  y = bagianTabel("Transaksi Beridentitas", () => ({
+    head: [["Keterangan", "Transaksi", "Porsi"]],
+    body: [
+      ["Tertaut ke pelanggan", `${data.tertaut}`, `${data.persenTertaut}%`],
+      ["Tanpa identitas", `${data.tanpaPelanggan}`, `${100 - data.persenTertaut}%`],
+      ["Total", `${data.jumlahTransaksi}`, "100%"],
+    ],
+    kanan: [1, 2],
   }));
 
-  // Menu terlaris
-  y = bagianTabel("Menu Terlaris", () => {
-    if (data.totalItemTerjual < AMBANG_MENU_LAPORAN) {
-      return {
-        teks: `Ditahan: baru ${data.totalItemTerjual} item terjual. Peringkat menu baru bisa dipercaya setelah ${AMBANG_MENU_LAPORAN} item terjual.`,
-      };
+  // Sebaran saldo poin
+  y = bagianTabel("Sebaran Saldo Poin", () => {
+    if (data.jumlahPelanggan === 0) {
+      return { teks: "Belum ada pelanggan terdaftar." };
     }
     return {
-      head: [["No", "Menu", "Terjual", "Porsi"]],
-      body: data.menu.map((m, i) => [String(i + 1), m.nama, String(m.qty), `${m.persen}%`]),
-      kanan: [2, 3],
+      head: [["Rentang Poin", "Pelanggan", "Porsi"]],
+      body: data.sebaranPoin.map((s) => [
+        s.label,
+        `${s.jumlah}`,
+        `${Math.round((s.jumlah / Math.max(1, data.jumlahPelanggan)) * 100)}%`,
+      ]),
+      kanan: [1, 2],
     };
   });
 
@@ -191,6 +215,18 @@ export function buatPdfLaporan(data: DataPdf): Blob {
     };
   });
 
+  // Omzet per hari
+  y = bagianTabel("Omzet per Hari", () => {
+    if (data.hari.length === 0) {
+      return { teks: "Belum ada omzet pada periode ini." };
+    }
+    return {
+      head: [["Hari", "Omzet Bersih"]],
+      body: data.hari.map((h) => [h.nama, rupiah(h.omzet)]),
+      kanan: [1],
+    };
+  });
+
   // ============ FOOTER ============
   const halaman = doc.getNumberOfPages();
   for (let i = 1; i <= halaman; i++) {
@@ -199,7 +235,7 @@ export function buatPdfLaporan(data: DataPdf): Blob {
     doc.setDrawColor(W.border[0], W.border[1], W.border[2]);
     doc.setLineWidth(0.3);
     doc.line(margin, tinggiPage - 14, lebar - margin, tinggiPage - 14);
-    teks(doc, "Kataloji Coffee and Eatery - Laporan Analitik", margin, tinggiPage - 9, {
+    teks(doc, "Kataloji Coffee and Eatery - Laporan Loyalitas Pelanggan", margin, tinggiPage - 9, {
       size: 7.5,
       warna: W.muted,
     });
