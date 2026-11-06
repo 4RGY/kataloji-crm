@@ -338,25 +338,23 @@ export default function HalamanLoyalitas() {
             </p>
           </div>
 
-          {/* Catatan kejujuran angka.
-              Kalau aritmetikanya tidak nyambung, itu DIKATAKAN, bukan
-              disembunyikan. Penyebabnya tidak ditebak karena menebak di
-              catatan audit lebih berbahaya daripada mengaku tidak tahu. */}
+          {/* Catatan angka tidak seimbang.
+              Sengaja tetap ditampilkan supaya selisih tidak disembunyikan,
+              tetapi memakai bahasa yang bisa dibaca pemilik toko. */}
           {ringkas.selisihTakDikenal !== 0 && (
             <p
               role="status"
               className="mt-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground"
             >
               <span className="font-bold text-foreground">
-                Ada {Math.abs(ringkas.selisihTakDikenal)} poin yang hilang dari
-                catatan.
+                Total poin belum seimbang {Math.abs(ringkas.selisihTakDikenal)}{" "}
+                poin.
               </span>{" "}
-              Sisa di buku besar {ringkas.poinBeredar} poin, padahal{" "}
-              {ringkas.poinDiterbitkan} terbit dikurangi {ringkas.poinDitukar}{" "}
-              ditukar mestinya{" "}
+              Poin yang berlaku sekarang {ringkas.poinBeredar}, sementara
+              hitungan dari transaksi menghasilkan{" "}
               {ringkas.poinDiterbitkan - ringkas.poinDitukar - ringkas.poinHangus}
-              . Penyebabnya transaksi uji di awal proyek. Kasir tetap memakai{" "}
-              {ringkas.poinBeredar}.
+              . Selisih ini berasal dari transaksi uji saat pengembangan. Yang
+              dipakai kasir tetap {ringkas.poinBeredar}.
             </p>
           )}
         </section>

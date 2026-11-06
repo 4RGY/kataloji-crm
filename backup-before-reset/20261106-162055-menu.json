@@ -1,0 +1,142 @@
+[
+ {
+  "id": "6e60a324-8cd1-4730-840b-635ceb76a5ba",
+  "nama": "Espresso",
+  "harga": 18000,
+  "gambar_url": null,
+  "kategori_id": "2e186692-9c17-4ef3-971f-00356e15d9b5",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "f06fa6c0-b2c4-4944-9648-8eb341c6aa35",
+  "nama": "Cappuccino",
+  "harga": 25000,
+  "gambar_url": null,
+  "kategori_id": "2e186692-9c17-4ef3-971f-00356e15d9b5",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "918ce14b-0bdc-47a0-80b1-2a262438fba7",
+  "nama": "Caffe Latte",
+  "harga": 28000,
+  "gambar_url": null,
+  "kategori_id": "2e186692-9c17-4ef3-971f-00356e15d9b5",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "26c6b26e-3536-4288-97c5-0e7ac8888680",
+  "nama": "Americano",
+  "harga": 22000,
+  "gambar_url": null,
+  "kategori_id": "2e186692-9c17-4ef3-971f-00356e15d9b5",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "1e042c98-e887-4ea1-905f-e35096131f8b",
+  "nama": "Mont Blanc",
+  "harga": 32000,
+  "gambar_url": null,
+  "kategori_id": "2e186692-9c17-4ef3-971f-00356e15d9b5",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "548175d9-6f3a-499c-a470-9e630a049c1b",
+  "nama": "Caramel Macchiato",
+  "harga": 30000,
+  "gambar_url": null,
+  "kategori_id": "2e186692-9c17-4ef3-971f-00356e15d9b5",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "064d394c-c919-4ad1-af01-a11842fef64f",
+  "nama": "Matcha Latte",
+  "harga": 28000,
+  "gambar_url": null,
+  "kategori_id": "d5ccf403-cb46-46eb-9f97-8390c5d4dcd4",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "626cbba5-4880-4a25-aaa9-c41213c8e803",
+  "nama": "Chocolate",
+  "harga": 25000,
+  "gambar_url": null,
+  "kategori_id": "d5ccf403-cb46-46eb-9f97-8390c5d4dcd4",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "59659685-3bf3-45ea-a9b0-d07548a018dc",
+  "nama": "Lemon Tea",
+  "harga": 20000,
+  "gambar_url": null,
+  "kategori_id": "d5ccf403-cb46-46eb-9f97-8390c5d4dcd4",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "b2a2e336-eaca-4482-8958-f4d3297c287f",
+  "nama": "Nasi Goreng Kataloji",
+  "harga": 35000,
+  "gambar_url": null,
+  "kategori_id": "ed6ce0f7-8415-49e7-a1a6-2be00b25b309",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "437799a6-f61f-4ea0-bd7f-6220127eebc8",
+  "nama": "Spaghetti Aglio Olio",
+  "harga": 38000,
+  "gambar_url": null,
+  "kategori_id": "ed6ce0f7-8415-49e7-a1a6-2be00b25b309",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "619a13f2-712d-422f-9335-c57866382e35",
+  "nama": "Croissant",
+  "harga": 18000,
+  "gambar_url": null,
+  "kategori_id": "67627b4d-66bc-469c-8e51-1eeec38e952e",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "f2ee8516-567b-422a-a962-97369f46ed8c",
+  "nama": "Kentang Goreng",
+  "harga": 22000,
+  "gambar_url": null,
+  "kategori_id": "67627b4d-66bc-469c-8e51-1eeec38e952e",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ },
+ {
+  "id": "be23e730-8d2e-4c86-b38d-0272d87d0aea",
+  "nama": "Cheesecake",
+  "harga": 30000,
+  "gambar_url": null,
+  "kategori_id": "67627b4d-66bc-469c-8e51-1eeec38e952e",
+  "aktif": true,
+  "created_at": "2026-10-17T11:51:43.509674+00:00",
+  "updated_at": "2026-10-17T11:51:43.509674+00:00"
+ }
+]

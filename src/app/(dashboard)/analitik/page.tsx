@@ -13,7 +13,7 @@ import {
   labelJam,
   periksaKeyakinan,
   ringkasPelanggan,
-  sebaranBelanja,
+  sebaranPoinPelanggan,
   sebaranHari,
   sebaranJam,
   tinggiBatang,
@@ -118,7 +118,7 @@ export default function HalamanAnalitik() {
       ambilSemua<PelangganAnalitik>((dari, sampai) =>
         supabase
           .from("pelanggan")
-          .select("id, nama, tgl_lahir, created_at")
+          .select("id, nama, tgl_lahir, created_at, poin")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -180,7 +180,6 @@ export default function HalamanAnalitik() {
   const jamHasil = useMemo(() => sebaranJam(transaksi, NILAI_POIN), [transaksi]);
   const jam = jamHasil.baris;
   const hari = useMemo(() => sebaranHari(transaksi, NILAI_POIN), [transaksi]);
-  const belanja = useMemo(() => sebaranBelanja(transaksi, NILAI_POIN), [transaksi]);
   const pel = useMemo(() => ringkasPelanggan(transaksi, NILAI_POIN), [transaksi]);
   const ultah = useMemo(() => ultahBulanIni(pelanggan, kini), [pelanggan, kini]);
   const menu = useMemo(() => menuTerlaris(transaksi, 5), [transaksi]);
@@ -256,7 +255,18 @@ export default function HalamanAnalitik() {
 
   const jamTertinggi = Math.max(...jam.map((j) => j.jumlah), 0);
   const hariTertinggi = Math.max(...hari.map((h) => h.omzet), 0);
-  const belanjaTertinggi = Math.max(...belanja.map((b) => b.jumlah), 0);
+
+  // Sebaran saldo poin pelanggan. Halaman ini mengukur kesehatan program
+  // loyalitas, jadi yang ditampilkan adalah poin yang berlaku sekarang, bukan
+  // besar belanja per struk.
+  const sebaranPoin = useMemo(
+    () => sebaranPoinPelanggan(pelanggan),
+    [pelanggan],
+  );
+  const poinTersimpan = useMemo(
+    () => pelanggan.reduce((s, p) => s + (p.poin ?? 0), 0),
+    [pelanggan],
+  );
 
   if (bolehLihat === false) {
     return (
@@ -409,31 +419,33 @@ export default function HalamanAnalitik() {
 
         <div className="flex flex-col gap-4">
           <section
-            aria-label="Besar belanja"
+            aria-label="Sebaran poin pelanggan"
             className="flex-1 rounded-xl border border-border bg-card p-6"
           >
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Besar belanja
+              Sebaran poin pelanggan
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {transaksi.length} struk
+              {poinTersimpan > 0
+                ? `${poinTersimpan.toLocaleString("id-ID")} poin tersimpan di ${pelanggan.length} pelanggan`
+                : "Belum ada poin yang tersimpan"}
             </p>
-            {belanjaTertinggi === 0 ? (
+            {poinTersimpan === 0 ? (
               <div className="mt-4">
-                <Tertahan pesan="Belum ada transaksi untuk dikelompokkan." />
+                <Tertahan pesan="Belum ada poin yang dikumpulkan pelanggan." />
               </div>
             ) : (
               <>
-                {/* Satu batang bertumpuk: lebih ringkas daripada daftar, dan
-                    proporsinya langsung terbaca tanpa membaca angka. */}
+                {/* Satu batang bertumpuk: kelompok pemilik poin langsung terbaca
+                    proporsinya tanpa harus membaca angkanya satu per satu. */}
                 <div
                   className="mt-4 flex h-6 overflow-hidden rounded-md"
                   role="img"
-                  aria-label={belanja
-                    .map((k) => `${k.label} ${k.jumlah} struk`)
+                  aria-label={sebaranPoin
+                    .map((k) => `${k.label} ${k.jumlah} pelanggan`)
                     .join(", ")}
                 >
-                  {belanja.map((k, i) => (
+                  {sebaranPoin.map((k, i) => (
                     <div
                       key={k.label}
                       className={
@@ -446,13 +458,15 @@ export default function HalamanAnalitik() {
                           "bg-foreground/18",
                         ][i % 5]
                       }
-                      style={{ width: `${(k.jumlah / transaksi.length) * 100}%` }}
-                      title={`${k.label}: ${k.jumlah} struk`}
+                      style={{
+                        width: `${(k.jumlah / Math.max(1, pelanggan.length)) * 100}%`,
+                      }}
+                      title={`${k.label}: ${k.jumlah} pelanggan`}
                     />
                   ))}
                 </div>
                 <ul className="mt-3 space-y-1.5">
-                  {belanja.map((k, i) => (
+                  {sebaranPoin.map((k, i) => (
                     <li key={k.label} className="flex items-center gap-2 text-xs">
                       <span
                         aria-hidden
@@ -471,14 +485,18 @@ export default function HalamanAnalitik() {
                         {k.label}
                       </span>
                       <span className="shrink-0 tabular-nums text-muted-foreground">
-                        {Math.round((k.jumlah / transaksi.length) * 100)}%
+                        {Math.round((k.jumlah / Math.max(1, pelanggan.length)) * 100)}%
                       </span>
-                      <span className="w-5 shrink-0 text-right font-semibold tabular-nums">
+                      <span className="w-6 shrink-0 text-right font-semibold tabular-nums">
                         {k.jumlah}
                       </span>
                     </li>
                   ))}
                 </ul>
+                <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                  Pelanggan berpoin besar adalah yang paling dekat ke hadiah,
+                  sekaligus yang paling dirugikan kalau poinnya hangus.
+                </p>
               </>
             )}
           </section>

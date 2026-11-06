@@ -11,27 +11,16 @@ import { namaPanggilan } from "@/lib/staf";
 import { catatGalat } from "@/lib/pesan-galat";
 import {
   hitungPapanLoyalitas,
+  pelangganPalingSetia,
   hitungPoinDiberikan,
   rataPerStruk,
-  ringkasJamTeramai,
-  jamKedatanganDiketahui,
-  sebaranJam,
   type BarisLedger,
 } from "@/lib/dashboard-tampilan";
 import { RefreshCw, ShieldAlert, Star } from "lucide-react";
 import { LoaderBrand } from "@/components/loader-brand";
 import { Button } from "@/components/ui/button";
-import {
-  menuTeratas,
-  komposisiMetode,
-  trenOmzet,
-} from "@/lib/dashboard-grafik";
-import {
-  GrafikTrenOmzet,
-  DonutMetode,
-  BatangMenuHorizontal,
-  GrafikJamRamai,
-} from "@/components/grafik-dashboard";
+import { trenOmzet } from "@/lib/dashboard-grafik";
+import { GrafikTrenOmzet } from "@/components/grafik-dashboard";
 
 type RangeKey = "today" | "yesterday" | "3d" | "7d" | "30d" | "all" | "custom";
 
@@ -82,6 +71,8 @@ interface Transaksi {
 interface PelangganRingkas {
   id: string;
   created_at: string;
+  /** Dipakai untuk menampilkan nama di daftar pelanggan paling setia. */
+  nama: string;
 }
 
 export default function DashboardPage() {
@@ -151,7 +142,7 @@ export default function DashboardPage() {
       ambilSemua<PelangganRingkas>((dari, sampai) =>
         supabase
           .from("pelanggan")
-          .select("id, created_at")
+          .select("id, created_at, nama")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -318,13 +309,7 @@ export default function DashboardPage() {
     }));
   }, [tersaring]);
 
-  // ---- menu teratas, komposisi metode bayar, dan tren omzet ----
-  // Ketiganya dihitung dari data yang sudah diambil untuk grafik omzet,
-  // jadi tidak ada permintaan jaringan tambahan.
-  const menu = useMemo(() => menuTeratas(tersaring), [tersaring]);
-
-  const metode = useMemo(() => komposisiMetode(tersaring), [tersaring]);
-
+  // ---- tren omzet ----
   // Titik tren memakai nilai NETTO yang sama dengan kartu omzet
   // (total - diskon - nilai poin dipakai). Kalau memakai total mentah,
   // angka puncak di grafik akan berbeda dari kartu di atasnya.
@@ -349,19 +334,9 @@ export default function DashboardPage() {
     return trenOmzet(baris, hariUnik[0], hariUnik[hariUnik.length - 1]);
   }, [seri, tersaring]);
 
-  // Sebaran transaksi per jam pada periode terpilih. Dihitung dari data yang
-  // sudah diambil untuk grafik omzet, jadi tidak ada permintaan tambahan.
-  const batangJam = useMemo(() => sebaranJam(tersaring), [tersaring]);
-
-  const ringkasJam = useMemo(() => ringkasJamTeramai(batangJam), [batangJam]);
-
-  // Berapa transaksi yang jam kedatangannya tidak tercatat (hasil impor
-  // laporan hanya membawa tanggal). Disebutkan di kartu supaya grafik yang
-  // tipis tidak terbaca sebagai kedai sepi.
-  const jamTakTercatat = useMemo(
-    () => tersaring.filter((t) => !jamKedatanganDiketahui(t)).length,
-    [tersaring],
-  );
+  // Sebaran transaksi per jam tidak lagi ditampilkan di dashboard karena
+  // halaman ini fokus ke loyalitas pelanggan, bukan operasional kedai.
+  // Perhitungannya dihapus supaya tidak ada kode yang jalan tanpa dipakai.
 
   // Papan loyalitas sengaja memakai SELURUH buku besar, bukan yang tersaring
   // periode. Poin beredar adalah saldo yang berlaku hari ini; kalau dibatasi
@@ -378,6 +353,18 @@ export default function DashboardPage() {
       ),
     [ledger, transaksi, pelanggan],
   );
+
+  // Daftar pelanggan paling setia mengikuti PERIODE terpilih, bukan seluruh
+  // riwayat, karena pemilik memakainya untuk memilih siapa yang diberi promo
+  // sekarang.
+  const setia = useMemo(() => {
+    const peta = new Map(pelanggan.map((p) => [p.id, p.nama]));
+    return pelangganPalingSetia(
+      tersaring.map((t) => ({ pelanggan_id: t.pelanggan_id, total: t.total })),
+      peta,
+      5,
+    );
+  }, [tersaring, pelanggan]);
 
   const period = useMemo(() => {
     if (range === "custom") {
@@ -523,10 +510,8 @@ export default function DashboardPage() {
             Akun Anda belum terdaftar sebagai staf
           </p>
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            Login berhasil, tetapi peran Anda belum dikenali sehingga seluruh
-            data sengaja dikunci. Data di sistem tidak hilang. Minta admin
-            menambahkan akun ini lewat menu Staf, atau menjalankan berkas
-            backfill-profile.sql di Supabase untuk akun lama.
+            Masuk berhasil, tetapi peran akun ini belum diatur sehingga data
+            sengaja dikunci. Minta admin mengatur perannya lewat menu Staf.
           </p>
         </div>
       ) : (
@@ -649,134 +634,148 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* Jam ramai + papan loyalitas. Ditaruh di bawah grafik omzet
-              supaya bagian bawah halaman terisi dan pemilik langsung dapat
-              dua hal yang bisa ditindak: kapan orang datang, dan berapa poin
-              yang masih beredar. */}
-          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-            {/* Jam ramai */}
-            <section aria-label="Jam ramai">
-              <div className="h-full rounded-xl border border-border bg-card shadow-brand">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Jam ramai
-                  </p>
-                  <p className="text-xs text-muted-foreground">{ringkasJam}</p>
-                </div>
-
-                <div className="p-6">
-                  {/* Keterbukaan: transaksi impor tidak punya jam kedatangan,
-                      jadi grafiknya bisa tipis walau transaksinya banyak. */}
-                  {jamTakTercatat > 0 && (
-                    <p className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                      {jamTakTercatat === tersaring.length
-                        ? `${jamTakTercatat} transaksi hanya punya tanggal (impor laporan), jadi jam kedatangannya belum tercatat.`
-                        : `${jamTakTercatat} dari ${tersaring.length} transaksi tidak ikut dihitung karena hanya punya tanggal (impor laporan), bukan jam kedatangan.`}
-                    </p>
-                  )}
-                  <GrafikJamRamai data={batangJam} />
-
-                  <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-                    Setiap batang satu jam pada rentang operasional. Dipakai
-                    untuk menyusun jam staf dan memilih jam promo.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Papan loyalitas */}
-            <section aria-label="Papan loyalitas">
+          {/* Papan loyalitas (lebar penuh). Dashboard ini mengukur
+              pertumbuhan keanggotaan dan perputaran poin, bukan operasional
+              kedai, jadi bagian yang tadinya dipakai untuk jam ramai dan
+              metode bayar dipindahkan ke angka loyalitas. */}
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+            {/* Pelanggan setia */}
+            <section aria-label="Pelanggan paling setia">
               <div className="h-full rounded-xl border border-border bg-card shadow-brand">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                   <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                     <Star className="h-3 w-3" aria-hidden />
-                    Papan loyalitas
-                  </p>
-                  <p className="text-xs text-muted-foreground">Saat ini</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-px bg-border/60">
-                  {[
-                    {
-                      label: "Poin beredar",
-                      nilai: papan.poinBeredar.toLocaleString("id-ID"),
-                      keterangan: `senilai ${rupiah.format(papan.nilaiPoinBeredar)}`,
-                    },
-                    {
-                      label: "Pelanggan",
-                      nilai: papan.pelangganTerdaftar.toLocaleString("id-ID"),
-                      keterangan: "terdaftar",
-                    },
-                    {
-                      label: "Pelanggan ulang",
-                      nilai: papan.pelangganUlang.toLocaleString("id-ID"),
-                      keterangan: "datang lebih dari sekali",
-                    },
-                    {
-                      label: "Akan hangus",
-                      nilai: papan.akanHangus.toLocaleString("id-ID"),
-                      keterangan: `dalam 60 hari, senilai ${rupiah.format(papan.nilaiAkanHangus)}`,
-                    },
-                  ].map((s) => (
-                    <div key={s.label} className="bg-card px-5 py-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
-                        {s.label}
-                      </p>
-                      <p className="mt-1 text-2xl font-extrabold tracking-tight tabular-nums">
-                        {s.nilai}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {s.keterangan}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <p className="border-t border-border px-6 py-3 text-xs leading-relaxed text-muted-foreground">
-                  Poin beredar adalah potongan yang belum dipakai pelanggan,
-                  jadi angkanya bisa dibaca sebagai kewajiban kedai.
-                </p>
-              </div>
-            </section>
-          </div>
-
-          {/* Menu teratas + metode bayar. Dua hal yang paling sering
-              ditanyakan pemilik: apa yang paling laku, dan bagaimana
-              pelanggan membayar. */}
-          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-            <section aria-label="Menu teratas">
-              <div className="h-full rounded-xl border border-border bg-card shadow-brand">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Menu paling sering dipesan
+                    Pelanggan paling setia
                   </p>
                   <p className="text-xs text-muted-foreground">{period}</p>
                 </div>
+
                 <div className="p-6">
-                  <BatangMenuHorizontal
-                    daftar={menu.daftar}
-                    totalPorsi={menu.totalPorsi}
-                    cukupData={menu.cukupData}
-                  />
+                  {setia.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Belum ada pelanggan yang datang lebih dari sekali pada
+                      periode ini.
+                    </p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {setia.map((s, i) => (
+                        <li key={s.nama} className="flex items-center gap-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold tabular-nums text-secondary-foreground">
+                            {i + 1}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                            {s.nama}
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="block text-sm font-bold tabular-nums">
+                              {s.kunjungan}x
+                            </span>
+                            <span className="block text-[11px] tabular-nums text-muted-foreground">
+                              {rupiahRingkas.format(s.belanja)}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mt-5 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                    Diurutkan dari jumlah kunjungan. Pelanggan yang datang
+                    berulang adalah yang paling layak diberi promo.
+                  </p>
                 </div>
               </div>
             </section>
 
-            <section aria-label="Metode bayar">
+            {/* Pelanggan baru vs ulang + poin per periode */}
+            <section aria-label="Pertumbuhan pelanggan">
               <div className="h-full rounded-xl border border-border bg-card shadow-brand">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Metode bayar
+                    Pertumbuhan keanggotaan
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {tersaring.length} transaksi
-                  </p>
+                  <p className="text-xs text-muted-foreground">{period}</p>
                 </div>
+
                 <div className="p-6">
-                  <DonutMetode irisan={metode} />
-                  <p className="mt-4 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
-                    Dipakai untuk menimbang biaya layanan penyedia pembayaran
-                    terhadap uang tunai.
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Pelanggan baru
+                      </p>
+                      <p className="mt-1 text-2xl font-extrabold tabular-nums">
+                        {metrik.pelangganBaru.toLocaleString("id-ID")}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        pertama kali belanja
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Pelanggan ulang
+                      </p>
+                      <p className="mt-1 text-2xl font-extrabold tabular-nums">
+                        {papan.pelangganUlang.toLocaleString("id-ID")}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        pernah belanja lagi
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex items-center gap-4 border-t border-border pt-5">
+                    <div className="flex-1">
+                      <div
+                        className="flex h-3 overflow-hidden rounded-full bg-muted"
+                        role="img"
+                        aria-label={`${papan.persenUlang} persen pelanggan kembali belanja`}
+                      >
+                        <div
+                          className="bg-primary transition-[width]"
+                          style={{ width: `${papan.persenUlang}%` }}
+                        />
+                      </div>
+                    </div>
+                    <p className="shrink-0 text-right">
+                      <span className="block text-xl font-extrabold tabular-nums">
+                        {papan.persenUlang}%
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        kembali belanja
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Poin diberikan
+                      </p>
+                      <p className="mt-1 text-lg font-bold tabular-nums">
+                        {metrik.poinDiberikan.toLocaleString("id-ID")}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        senilai{" "}
+                        {rupiahRingkas.format(metrik.poinDiberikan * NILAI_POIN)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Poin ditukar
+                      </p>
+                      <p className="mt-1 text-lg font-bold tabular-nums">
+                        {metrik.poinDitukar.toLocaleString("id-ID")}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        senilai{" "}
+                        {rupiahRingkas.format(metrik.poinDitukar * NILAI_POIN)}{" "}
+                        potongan
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-5 border-t border-border pt-3 text-xs leading-relaxed text-muted-foreground">
+                    Poin ditukar menunjukkan program loyalitas benar-benar
+                    dipakai, bukan hanya dikumpulkan.
                   </p>
                 </div>
               </div>
@@ -797,13 +796,16 @@ export default function DashboardPage() {
               </div>
               <div className="bg-card px-6 py-5">
                 <p className="text-xs font-semibold text-muted-foreground">
-                  Poin ditukar
+                  Transaksi dikenali
                 </p>
                 <p className="mt-1.5 text-xl font-bold tabular-nums">
-                  {metrik.poinDitukar.toLocaleString("id-ID")}
+                  {tersaring.length > 0
+                    ? Math.round((metrik.pelangganUnik / tersaring.length) * 100)
+                    : 0}
+                  %
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Senilai {rupiahRingkas.format(metrik.poinDitukar * NILAI_POIN)} potongan
+                  Transaksi tanpa identitas tidak menambah poin
                 </p>
               </div>
             </div>

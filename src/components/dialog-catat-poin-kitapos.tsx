@@ -123,7 +123,7 @@ export function DialogCatatPoinKitapos({
         biaya_layanan: 0,
         total: nominal,
         poin_dipakai: 0,
-        source: "kitapos",
+        source: "crm_pos",
         metode_bayar: "qris",
         external_ref: externalRef,
         items: [

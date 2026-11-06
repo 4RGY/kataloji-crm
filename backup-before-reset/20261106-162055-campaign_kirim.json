@@ -1,0 +1,18 @@
+[
+ {
+  "id": "15d531c9-ca57-4e6f-bf11-70e4c402f028",
+  "pelanggan_id": "dfef4751-19b6-4c9c-a7b9-95ec9751926f",
+  "segmen": "baru",
+  "pesan": "Halo Dedi Kurniawan, terima kasih sudah mampir ke Kataloji. Poin pertamamu sudah masuk, sekarang 1 poin. Sampai ketemu lagi.",
+  "dikirim_oleh": "18bdfad4-39ad-48ff-9408-4446220cede7",
+  "dikirim_pada": "2026-10-10T08:42:23.652168+00:00"
+ },
+ {
+  "id": "e3c36eb4-2d19-405a-be4a-69b90f8ce94a",
+  "pelanggan_id": "dfef4751-19b6-4c9c-a7b9-95ec9751926f",
+  "segmen": "semua",
+  "pesan": "Halo Dedi Kurniawan, poin Kataloji kamu ada 1 (senilai Rp 1.000) dan hangus 3 Oktober. Mampir sebelum tanggal itu ya, bisa langsung dipakai potong harga.",
+  "dikirim_oleh": "18bdfad4-39ad-48ff-9408-4446220cede7",
+  "dikirim_pada": "2026-10-21T14:20:05.487019+00:00"
+ }
+]

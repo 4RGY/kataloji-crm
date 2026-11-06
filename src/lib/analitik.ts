@@ -52,6 +52,8 @@ export interface PelangganAnalitik {
   nama: string;
   tgl_lahir: string | null;
   created_at: string;
+  /** Saldo poin yang berlaku, dipakai untuk sebaran poin pelanggan. */
+  poin: number | null;
 }
 
 /** Berapa transaksi sebelum sebuah pola layak dibaca. */
@@ -243,6 +245,37 @@ export function sebaranBelanja(
     if (!k) continue;
     k.jumlah += 1;
     k.omzet += n;
+  }
+  return hasil;
+}
+
+/**
+ * Kelompok rentang saldo poin, dipatok pada angka yang berarti bagi program
+ * loyalitas: belum punya poin, mendekati tukar, dan seterusnya. Dipakai untuk
+ * melihat berapa pelanggan yang sudah dekat ke hadiah.
+ */
+export const BATAS_POIN: { label: string; bawah: number; atas: number | null }[] = [
+  { label: "belum ada poin", bawah: 0, atas: 1 },
+  { label: "1 sampai 4 poin", bawah: 1, atas: 5 },
+  { label: "5 sampai 9 poin", bawah: 5, atas: 10 },
+  { label: "10 poin ke atas", bawah: 10, atas: null },
+];
+
+/**
+ * Sebaran pelanggan menurut saldo poin yang berlaku sekarang.
+ *
+ * Poin yang dihitung adalah kolom `poin` pada pelanggan, yaitu angka yang
+ * dipakai kasir saat menukar, bukan hasil hitung ulang dari transaksi. Kalau
+ * memakai hitungan ulang, angkanya bisa berbeda dari yang dilihat pelanggan.
+ */
+export function sebaranPoinPelanggan(
+  pelanggan: { poin: number | null }[],
+): Kelompok[] {
+  const hasil: Kelompok[] = BATAS_POIN.map((b) => ({ ...b, jumlah: 0, omzet: 0 }));
+  for (const p of pelanggan || []) {
+    const saldo = Math.max(0, p.poin ?? 0);
+    const k = hasil.find((x) => saldo >= x.bawah && (x.atas === null || saldo < x.atas));
+    if (k) k.jumlah += 1;
   }
   return hasil;
 }

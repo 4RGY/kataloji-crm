@@ -181,8 +181,19 @@ export interface PapanLoyalitas {
   nilaiPoinBeredar: number;
   pelangganTerdaftar: number;
   pelangganUlang: number;
+  /** Jumlah pelanggan yang muncul di transaksi periode ini. */
+  pelangganBertransaksi: number;
+  /** Persentase pelanggan bertransaksi yang datang lebih dari sekali. */
+  persenUlang: number;
   akanHangus: number;
   nilaiAkanHangus: number;
+}
+
+/** Satu baris daftar pelanggan paling setia. */
+export interface BarisSetia {
+  nama: string;
+  kunjungan: number;
+  belanja: number;
 }
 
 /**
@@ -250,15 +261,53 @@ export function hitungPapanLoyalitas(
   }
   let pelangganUlang = 0;
   for (const n of perPelanggan.values()) if (n > 1) pelangganUlang++;
+  const pelangganBertransaksi = perPelanggan.size;
+  const persenUlang =
+    pelangganBertransaksi > 0
+      ? Math.round((pelangganUlang / pelangganBertransaksi) * 100)
+      : 0;
 
   return {
     poinBeredar,
     nilaiPoinBeredar: poinBeredar * nilaiPoin,
     pelangganTerdaftar: jumlahPelanggan,
     pelangganUlang,
+    pelangganBertransaksi,
+    persenUlang,
     akanHangus,
     nilaiAkanHangus: akanHangus * nilaiPoin,
   };
+}
+
+/**
+ * Pelanggan yang paling sering datang pada sekumpulan transaksi.
+ *
+ * Dihitung dari kunjungan (jumlah transaksi), bukan besar belanja, karena
+ * yang dicari adalah kebiasaan kembali, bukan sekali belanja besar. Nama
+ * diambil dari peta id -> nama supaya daftar bisa langsung dibaca.
+ */
+export function pelangganPalingSetia(
+  transaksi: { pelanggan_id: string | null; total: number }[],
+  namaPelanggan: Map<string, string>,
+  batas = 5,
+): BarisSetia[] {
+  const per: Map<string, BarisSetia> = new Map();
+  for (const t of transaksi) {
+    if (!t.pelanggan_id) continue;
+    const nama = namaPelanggan.get(t.pelanggan_id);
+    if (!nama) continue;
+    const ada = per.get(t.pelanggan_id);
+    if (ada) {
+      ada.kunjungan += 1;
+      ada.belanja += t.total;
+    } else {
+      per.set(t.pelanggan_id, { nama, kunjungan: 1, belanja: t.total });
+    }
+  }
+  return [...per.values()]
+    .filter((b) => b.kunjungan > 1)
+    .sort((a, b) => b.kunjungan - a.kunjungan || b.belanja - a.belanja)
+    .slice(0, batas);
 }
 
 /**

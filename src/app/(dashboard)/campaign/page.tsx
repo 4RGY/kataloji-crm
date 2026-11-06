@@ -619,10 +619,9 @@ function IsiCampaign() {
 
             {!tabelSiap && (
               <p className="mt-4 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-                Catatan pengiriman belum aktif karena tabel campaign_kirim
-                belum dipasang. Pesan tetap bisa dikirim, tetapi tanda sudah
-                dikirim tidak tersimpan. Jalankan supabase/campaign.sql untuk
-                mengaktifkannya.
+                Pesan tetap bisa dikirim, tetapi tanda sudah dikirim belum
+                tersimpan sehingga pelanggan yang sama bisa menerima pesan
+                berulang. Hubungi pengembang untuk mengaktifkan pencatatannya.
               </p>
             )}
           </section>

@@ -1,0 +1,92 @@
+[
+ {
+  "id": "f861c5a1-c9ed-4b22-a091-7dc66306584a",
+  "transaksi_id": "a75b21de-3b40-46c0-a04d-effa89950286",
+  "menu_id": "26c6b26e-3536-4288-97c5-0e7ac8888680",
+  "nama": "Americano",
+  "qty": 1,
+  "harga_satuan": 22000,
+  "subtotal": 22000,
+  "created_at": "2026-10-17T12:24:57.101412+00:00"
+ },
+ {
+  "id": "c0e36b6f-1037-4b27-bbe8-a8601ceddc1c",
+  "transaksi_id": "a75b21de-3b40-46c0-a04d-effa89950286",
+  "menu_id": "548175d9-6f3a-499c-a470-9e630a049c1b",
+  "nama": "Caramel Macchiato",
+  "qty": 1,
+  "harga_satuan": 30000,
+  "subtotal": 30000,
+  "created_at": "2026-10-17T12:24:57.101412+00:00"
+ },
+ {
+  "id": "284cb26b-b243-48f7-a8ec-54a95151a945",
+  "transaksi_id": "bbfcd167-b800-4576-9989-fdaa6c73aed6",
+  "menu_id": "26c6b26e-3536-4288-97c5-0e7ac8888680",
+  "nama": "Americano",
+  "qty": 1,
+  "harga_satuan": 22000,
+  "subtotal": 22000,
+  "created_at": "2026-10-17T12:36:43.977759+00:00"
+ },
+ {
+  "id": "585d1320-787d-45c5-9a16-e7cd1464a839",
+  "transaksi_id": "bbfcd167-b800-4576-9989-fdaa6c73aed6",
+  "menu_id": "918ce14b-0bdc-47a0-80b1-2a262438fba7",
+  "nama": "Caffe Latte",
+  "qty": 1,
+  "harga_satuan": 28000,
+  "subtotal": 28000,
+  "created_at": "2026-10-17T12:36:43.977759+00:00"
+ },
+ {
+  "id": "df9022d3-6a68-46b9-abf6-76fab4e25841",
+  "transaksi_id": "0ae5ceb7-cf37-474c-b951-3d789d204c28",
+  "menu_id": "918ce14b-0bdc-47a0-80b1-2a262438fba7",
+  "nama": "Caffe Latte",
+  "qty": 4,
+  "harga_satuan": 28000,
+  "subtotal": 112000,
+  "created_at": "2026-10-18T08:44:21.737707+00:00"
+ },
+ {
+  "id": "978843d1-e3ef-4278-8466-e0e6f269d097",
+  "transaksi_id": "e50b4a0e-3151-41a2-8416-a380c078773f",
+  "menu_id": "6e60a324-8cd1-4730-840b-635ceb76a5ba",
+  "nama": "Espresso",
+  "qty": 2,
+  "harga_satuan": 18000,
+  "subtotal": 36000,
+  "created_at": "2026-10-18T08:51:24.054741+00:00"
+ },
+ {
+  "id": "b3e309e1-baf8-4903-8aa6-9e281801aafa",
+  "transaksi_id": "0f2d2504-d67f-4d09-b15e-f4f9578145f3",
+  "menu_id": "548175d9-6f3a-499c-a470-9e630a049c1b",
+  "nama": "Caramel Macchiato",
+  "qty": 2,
+  "harga_satuan": 30000,
+  "subtotal": 60000,
+  "created_at": "2026-10-18T10:07:45.419998+00:00"
+ },
+ {
+  "id": "75ad462f-2cb1-4ca4-9cb2-3c75a8a0965e",
+  "transaksi_id": "9a4a9272-f772-46f9-bdae-56e9b8846dec",
+  "menu_id": "f06fa6c0-b2c4-4944-9648-8eb341c6aa35",
+  "nama": "Cappuccino",
+  "qty": 1,
+  "harga_satuan": 25000,
+  "subtotal": 25000,
+  "created_at": "2026-10-18T10:11:12.456986+00:00"
+ },
+ {
+  "id": "a44077ef-235c-4293-b38d-97a84cde755a",
+  "transaksi_id": "f433d6a5-894c-4716-b446-2d52f4346299",
+  "menu_id": "626cbba5-4880-4a25-aaa9-c41213c8e803",
+  "nama": "Chocolate",
+  "qty": 1,
+  "harga_satuan": 25000,
+  "subtotal": 25000,
+  "created_at": "2026-10-21T14:19:22.64915+00:00"
+ }
+]
