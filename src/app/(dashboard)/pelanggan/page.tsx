@@ -951,9 +951,9 @@ function PanelDetail({
           <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary">
             Poin aktif
           </p>
-          <p className="mt-1 text-3xl font-extrabold leading-none tracking-tight">
+          <p className="mt-1 flex items-baseline gap-1.5 text-3xl font-extrabold leading-none tracking-tight">
             {pelanggan.poin}
-            <span className="ml-1.5 text-sm font-semibold text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               poin
             </span>
           </p>
