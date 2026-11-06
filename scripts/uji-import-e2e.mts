@@ -133,16 +133,19 @@ async function main() {
   console.log("apply ke-2 (harus 0 baru):", JSON.stringify(ring2));
 
   // Verifikasi inti. Bentuk ringkasan: {transaksi:{dibuat,dilewati,...}}.
-  // Data berkas uji ini sudah pernah diimpor di run sebelumnya, jadi jalur yang
-  // benar adalah SEMUA baris dilewati (idempoten), bukan dibuat lagi.
+  // Jalur pertama boleh membuat baris (database mungkin masih kosong), yang
+  // wajib adalah TIDAK ADA galat dan hitungannya konsisten. Idempotensi diuji
+  // oleh jalur kedua: mengimpor ulang berkas yang sama harus nol baris baru.
   const siap = jumlahPreview?.transaksi ?? jumlahPreview?.jumlah ?? 0;
   const ringkas1Trx = ring1?.transaksi ?? {};
   const ringkas2Trx = ring2?.transaksi ?? {};
+  const dibuat1 = ringkas1Trx.dibuat ?? -1;
+  const dilewati1 = ringkas1Trx.dilewati ?? -1;
 
   cek("preview membaca baris transaksi", Array.isArray(siap) && siap.length > 0,
       `siap=${Array.isArray(siap) ? siap.length + " baris" : JSON.stringify(siap)?.slice(0, 60)}`);
-  cek("apply ke-1 tidak menggandakan data lama", (ringkas1Trx.dibuat ?? -1) === 0,
-      `dibuat=${ringkas1Trx.dibuat}, dilewati=${ringkas1Trx.dilewati}`);
+  cek("apply ke-1 memproses seluruh baris preview", dibuat1 + dilewati1 === (Array.isArray(siap) ? siap.length : -99),
+      `dibuat=${dibuat1} + dilewati=${dilewati1}`);
   cek("apply ke-2 idempoten (0 baru)", (ringkas2Trx.dibuat ?? -1) === 0,
       `dibuat=${ringkas2Trx.dibuat}, dilewati=${ringkas2Trx.dilewati}`);
   cek("impor pelanggan & transaksi sukses", applyPel.status === 200 && applyTrans1.status === 200,

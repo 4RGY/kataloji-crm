@@ -55,11 +55,13 @@ import {
   ArchiveRestore,
   CalendarDays,
   Clock3,
+  ExternalLink,
   Loader2,
   MessageCircle,
   Phone,
   RefreshCw,
   Search,
+  Send,
   Sparkles,
   Star,
   UserPlus,
@@ -68,6 +70,7 @@ import {
 import { toast } from "sonner";
 import { catatGalat, pesanGalat } from "@/lib/pesan-galat";
 import { labelPencatat } from "@/lib/jejak-pencatat";
+import { URL_PORTAL_MEMBER } from "@/lib/portal-member";
 
 interface Pelanggan {
   id: string;
@@ -978,6 +981,48 @@ function PanelDetail({
               Catat Belanja KITAPOS (+Poin)
             </Button>
           )}
+
+          {/* Kartu member digital ada di situs publik, bukan di CRM. Nomor
+              WhatsApp pada tautan dibiarkan apa adanya karena halaman itu
+              yang menormalkan sendiri, sama seperti pencarian manual
+              pelanggan dari halaman depan situs. */}
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5 px-2 text-xs font-semibold"
+              asChild
+            >
+              <a
+                href={`${URL_PORTAL_MEMBER}/member?wa=${pelanggan.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Kartu member
+              </a>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5 px-2 text-xs font-semibold"
+              asChild
+            >
+              <a
+                href={`https://wa.me/${nomorWa}?text=${encodeURIComponent(
+                  `Halo ${pelanggan.nama}, ini kartu member Kataloji Anda. ` +
+                    `Poin Anda saat ini ${pelanggan.poin}. ` +
+                    `Cek dan tunjukkan di kasir lewat tautan berikut: ` +
+                    `${URL_PORTAL_MEMBER}/member?wa=${pelanggan.whatsapp}`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Kirim kartu
+              </a>
+            </Button>
+          </div>
         </div>
 
         {/* Ringkasan belanja */}
