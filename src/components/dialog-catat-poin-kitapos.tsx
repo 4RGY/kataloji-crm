@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,16 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { normalisasiWhatsapp, formatWhatsapp } from "@/lib/pelanggan";
 import { toast } from "sonner";
-import { ReceiptText, Sparkles, Search, User, TicketMinus, Wallet } from "lucide-react";
-
-interface PelangganSimple {
-  id: string;
-  nama: string;
-  whatsapp: string;
-  poin?: number;
-}
+import { ReceiptText, Sparkles, TicketMinus, Wallet, ArrowDownRight, ArrowUpRight, Hash } from "lucide-react";
+import { KitaposPemilihPelanggan, type PelangganSimple } from "@/components/kitapos-pemilih-pelanggan";
 
 interface Props {
   open: boolean;
@@ -48,7 +41,6 @@ export function DialogCatatPoinKitapos({
 }: Props) {
   const supabase = createClient();
   const [daftarPelanggan, setDaftarPelanggan] = useState<PelangganSimple[]>([]);
-  const [cari, setCari] = useState("");
   const [pelangganTerpilih, setPelangganTerpilih] = useState<PelangganSimple | null>(
     pelangganAwal ?? null,
   );
@@ -101,18 +93,6 @@ export function DialogCatatPoinKitapos({
       return () => clearTimeout(timer);
     }
   }, [activeTab, pelangganTerpilihId, refreshPelanggan]);
-
-  const hasilCari = useMemo(() => {
-    const q = cari.trim().toLowerCase();
-    if (!q) return daftarPelanggan.slice(0, 5);
-    const qWa = normalisasiWhatsapp(q);
-    return daftarPelanggan.filter(
-      (p) =>
-        p.nama.toLowerCase().includes(q) ||
-        (qWa && p.whatsapp.includes(qWa)) ||
-        p.whatsapp.includes(q),
-    ).slice(0, 5);
-  }, [daftarPelanggan, cari]);
 
   const nominal = parseInt(nominalStr.replace(/\D/g, ""), 10) || 0;
   const poinDidapat = Math.floor(nominal / POIN_PER_RUPIAH);
@@ -212,10 +192,13 @@ export function DialogCatatPoinKitapos({
 
     setMenyimpan(true);
     try {
+      const ditukar = poinTukar;
+      const nilaiDitukar = nilaiRupiahTukar;
+      const nama = pelangganTerpilih.nama;
       const response = await fetch("/api/poin/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pelanggan_id: pelangganTerpilih.id, poin: poinTukar }),
+        body: JSON.stringify({ pelanggan_id: pelangganTerpilih.id, poin: ditukar }),
       });
       const hasil = (await response.json()) as {
         ok?: boolean;
@@ -225,18 +208,25 @@ export function DialogCatatPoinKitapos({
       if (!response.ok || !hasil.ok) {
         throw new Error(hasil.error ?? "Penukaran poin gagal diproses.");
       }
-      if (typeof hasil.saldo_poin === "number") {
-        setPelangganTerpilih((saatIni) =>
-          saatIni?.id === pelangganTerpilih.id
-            ? { ...saatIni, poin: hasil.saldo_poin! }
-            : saatIni,
-        );
+      if (typeof hasil.saldo_poin !== "number") {
+        throw new Error("Poin sudah tercatat, tapi saldo belum berhasil dibaca ulang. Muat ulang data pelanggan.");
       }
+      setPelangganTerpilih((saatIni) =>
+        saatIni?.id === pelangganTerpilih.id
+          ? { ...saatIni, poin: hasil.saldo_poin! }
+          : saatIni,
+      );
+      setDaftarPelanggan((saatIni) =>
+        saatIni.map((p) => p.id === pelangganTerpilih.id
+          ? { ...p, poin: hasil.saldo_poin! }
+          : p),
+      );
+      setPoinTukar(0);
+      await refreshPelanggan();
 
       toast.success(
-        `Berhasil menukar ${poinTukar} poin! Potongan Rp ${nilaiRupiahTukar.toLocaleString("id-ID")} untuk ${pelangganTerpilih.nama}.`,
+        `${ditukar} poin ditukar, potongan Rp ${nilaiDitukar.toLocaleString("id-ID")}. Saldo ${nama} sekarang ${hasil.saldo_poin} poin.`,
       );
-      onOpenChange(false);
       if (onBerhasil) onBerhasil();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal menukar poin.";
@@ -246,105 +236,63 @@ export function DialogCatatPoinKitapos({
     }
   }
 
-  const pelangganCard = pelangganTerpilih ? (
-    <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-2.5">
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-          <User className="h-3.5 w-3.5" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-xs font-bold text-foreground">
-            {pelangganTerpilih.nama}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            {formatWhatsapp(pelangganTerpilih.whatsapp)}
-          </p>
-        </div>
-      </div>
-      {!pelangganAwal && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => setPelangganTerpilih(null)}
-        >
-          Ganti
-        </Button>
-      )}
-    </div>
-  ) : null;
+  function pilihPelanggan(p: PelangganSimple) {
+    setPelangganTerpilih(p);
+    setPoinTukar(0);
+  }
 
-  const cariPelangganUI = (
-    <div className="space-y-2">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="h-11 pl-8 text-xs"
-          placeholder="Cari nama atau nomor WhatsApp..."
-          value={cari}
-          onChange={(e) => setCari(e.target.value)}
-        />
-      </div>
-      <div className="max-h-36 overflow-y-auto rounded-md border border-border divide-y divide-border/60">
-        {hasilCari.length === 0 ? (
-          <p className="p-2.5 text-center text-xs text-muted-foreground">
-            Pelanggan tidak ditemukan.
-          </p>
-        ) : (
-          hasilCari.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="flex w-full items-center justify-between p-2 text-left text-xs transition-colors hover:bg-muted"
-              onClick={() => setPelangganTerpilih(p)}
-            >
-              <span className="font-semibold">{p.nama}</span>
-              <span className="text-[11px] text-muted-foreground">
-                {formatWhatsapp(p.whatsapp)}
-              </span>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
-  );
+  function lepasPelanggan() {
+    setPelangganTerpilih(null);
+    setPoinTukar(0);
+  }
+
+  function inputPelangganUI() {
+    return (
+      <KitaposPemilihPelanggan
+        daftar={daftarPelanggan}
+        terpilih={pelangganTerpilih}
+        onPilih={pilihPelanggan}
+        onLepas={lepasPelanggan}
+        bolehLepas={!pelangganAwal}
+      />
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px]">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ReceiptText className="h-5 w-5" />
+      <DialogContent className="max-h-[min(88dvh,760px)] overflow-y-auto border-border bg-background p-0 sm:max-w-[520px]">
+        <DialogHeader className="border-b border-border px-6 pb-4 pt-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <ReceiptText className="h-5 w-5" aria-hidden />
             </div>
-            <div>
-              <DialogTitle className="text-base font-bold">Poin Pelanggan</DialogTitle>
-              <DialogDescription className="text-xs">
-                Catat belanja untuk tambah poin, atau tukar poin untuk potongan belanja.
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-bold tracking-tight">Poin KITAPOS</DialogTitle>
+              <DialogDescription className="mt-1 text-[13px] leading-relaxed">
+                Catat transaksi KITAPOS atau tukarkan poin pelanggan.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "earn" | "redeem")} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "earn" | "redeem")} className="w-full px-6 pt-4">
+          <TabsList className="grid h-11 w-full grid-cols-2 rounded-lg bg-secondary/70 p-1">
             <TabsTrigger value="earn">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               Catat Poin
             </TabsTrigger>
             <TabsTrigger value="redeem">
-              <TicketMinus className="mr-1.5 h-3.5 w-3.5" />
+              <ArrowDownRight className="mr-1.5 h-3.5 w-3.5" aria-hidden />
               Tukar Poin
             </TabsTrigger>
           </TabsList>
 
           {/* ===== TAB CATAT POIN (EARN) ===== */}
-          <TabsContent value="earn" className="space-y-4 py-2">
+          <TabsContent value="earn" className="space-y-5 pb-6 pt-5">
             {/* Pilih Pelanggan */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Pelanggan</Label>
-              {pelangganTerpilih ? pelangganCard : cariPelangganUI}
+              {inputPelangganUI()}
             </div>
 
             {/* Nominal Belanja */}
@@ -354,7 +302,9 @@ export function DialogCatatPoinKitapos({
               </Label>
               <Input
                 id="nominal"
-                className="h-11 text-base font-bold tabular-nums"
+                className="h-12 text-lg font-bold tabular-nums"
+                inputMode="numeric"
+                aria-label="Total belanja struk KITAPOS dalam rupiah"
                 placeholder="0"
                 value={nominal ? nominal.toLocaleString("id-ID") : ""}
                 onChange={(e) => setNominalStr(e.target.value)}
@@ -365,7 +315,7 @@ export function DialogCatatPoinKitapos({
                   <button
                     key={val}
                     type="button"
-                    className="rounded-md border border-border bg-muted/60 px-2 py-1 text-[11px] font-medium transition-colors hover:bg-muted"
+                    className="rounded-md border border-border bg-card px-3 py-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-40"
                     onClick={() => tambahNominal(val)}
                   >
                     +{val / 1000}rb
@@ -389,10 +339,10 @@ export function DialogCatatPoinKitapos({
             </div>
 
             {/* Kotak Perhitungan Poin */}
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                  <Sparkles className="h-3.5 w-3.5" /> Poin Didapat
+                  <Hash className="h-3.5 w-3.5" aria-hidden /> Poin didapat
                 </span>
                 <span className="text-base font-black text-primary tabular-nums">
                   +{poinDidapat} Poin
@@ -407,21 +357,21 @@ export function DialogCatatPoinKitapos({
           </TabsContent>
 
           {/* ===== TAB TUKAR POIN (REDEEM) ===== */}
-          <TabsContent value="redeem" className="space-y-4 py-2">
+          <TabsContent value="redeem" className="space-y-5 pb-6 pt-5">
             {/* Pilih Pelanggan */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Pelanggan</Label>
-              {pelangganTerpilih ? pelangganCard : cariPelangganUI}
+              {inputPelangganUI()}
             </div>
 
             {/* Info Poin Tersedia */}
             {pelangganTerpilih && (
-              <div className="rounded-lg border border-green/20 bg-green/5 p-3">
+              <div className="rounded-lg border border-border bg-card p-4">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-green">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
                     <Wallet className="h-3.5 w-3.5" /> Poin Tersedia
                   </span>
-                  <span className="text-base font-black text-green tabular-nums">
+                  <span className="text-lg font-bold text-foreground tabular-nums">
                     {poinTersedia} Poin
                   </span>
                 </div>
@@ -486,7 +436,7 @@ export function DialogCatatPoinKitapos({
                   <button
                     key={val}
                     type="button"
-                    className="rounded-md border border-border bg-muted/60 px-2 py-1 text-[11px] font-medium transition-colors hover:bg-muted"
+                    className="rounded-md border border-border bg-card px-3 py-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:opacity-40"
                     onClick={() => setPoinTukar(Math.min(val, poinTersedia))}
                     disabled={val > poinTersedia || menyimpan}
                   >
@@ -498,12 +448,12 @@ export function DialogCatatPoinKitapos({
 
             {/* Kotak Perhitungan Tukar */}
             {pelangganTerpilih && poinTukar > 0 && (
-              <div className="rounded-lg border border-amber/20 bg-amber/5 p-3">
+              <div className="rounded-lg border border-primary/25 bg-primary/5 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-amber">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-primary">
                     <TicketMinus className="h-3.5 w-3.5" /> Nilai Tukar
                   </span>
-                  <span className="text-base font-black text-amber tabular-nums">
+                  <span className="text-lg font-bold text-primary tabular-nums">
                     Rp {nilaiRupiahTukar.toLocaleString("id-ID")}
                   </span>
                 </div>
@@ -521,7 +471,7 @@ export function DialogCatatPoinKitapos({
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="sticky bottom-0 gap-2 border-t border-border bg-background px-6 py-4 sm:gap-0">
           <Button
             type="button"
             variant="outline"
@@ -546,7 +496,7 @@ export function DialogCatatPoinKitapos({
               ? "Menyimpan…"
               : activeTab === "earn"
               ? "Simpan & Tambah Poin"
-              : "Tukar Poin & Potong Tagihan"}
+              : "Tukar Poin"}
           </Button>
         </DialogFooter>
       </DialogContent>

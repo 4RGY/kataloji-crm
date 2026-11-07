@@ -604,32 +604,6 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          {/* Grafik omzet harian */}
-          <section aria-label="Grafik omzet" className="mt-5">
-            <div className="rounded-xl border border-border bg-card shadow-brand">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    Tren omzet harian
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground capitalize">
-                    {period}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
-                    Omzet harian bersih
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <GrafikTrenOmzet titik={titikTren} />
-              </div>
-            </div>
-          </section>
-
           {/* Papan loyalitas (lebar penuh). Dashboard ini mengukur
               pertumbuhan keanggotaan dan perputaran poin, bukan operasional
               kedai, jadi ruangnya dipakai untuk angka loyalitas. */}
@@ -776,6 +750,32 @@ export default function DashboardPage() {
               </div>
             </section>
           </div>
+          {/* Grafik omzet harian */}
+          <section aria-label="Grafik omzet" className="mt-5">
+            <div className="rounded-xl border border-border bg-card shadow-brand">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Tren omzet harian
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground capitalize">
+                    {period}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
+                    Omzet harian bersih
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <GrafikTrenOmzet titik={titikTren} />
+              </div>
+            </div>
+          </section>
+
           {adaData && (
             <div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border bg-border/60 shadow-brand sm:grid-cols-2">
               <div className="bg-card px-6 py-5">

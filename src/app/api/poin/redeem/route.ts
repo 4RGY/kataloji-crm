@@ -5,6 +5,27 @@ import { adaKunciAdmin, getKlienAdmin } from "@/lib/supabase/admin";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ROLES_STAFF = new Set(["admin", "manager", "kasir"]);
 
+/**
+ * Saldo asli menurut ledger.
+ *
+ * `pelanggan.poin` cuma cache. Kalau patch SQL `tukar_poin` belum
+ * terpasang di sebuah environment, cache-nya tidak ikut turun dan UI
+ * menampilkan saldo lama. Jadi angka yang dikembalikan ke klien selalu
+ * diambil dari ledger, lalu cache-nya diperbaiki.
+ */
+async function saldoLedger(
+  admin: ReturnType<typeof getKlienAdmin>,
+  pelangganId: string,
+): Promise<number | null> {
+  const { data, error } = await admin.rpc("saldo_poin", { p_pelanggan_id: pelangganId });
+  if (error) {
+    console.error("[redeem poin] saldo_poin gagal", error.code, error.message);
+    return null;
+  }
+  const angka = typeof data === "number" ? data : Number(data);
+  return Number.isFinite(angka) ? angka : null;
+}
+
 export async function POST(request: Request) {
   const sesi = await createClient();
   const { data: { user } } = await sesi.auth.getUser();
@@ -43,6 +64,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Minimal penukaran adalah 5 poin." }, { status: 400 });
   }
 
+  const saldoSebelum = await saldoLedger(admin, pelanggan_id);
+
   const { data: hasil, error } = await admin.rpc("tukar_poin", {
     p_pelanggan_id: pelanggan_id,
     p_poin: poin,
@@ -56,17 +79,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: pesan }, { status: 400 });
   }
 
-  const { data: pelanggan, error: errorSaldo } = await admin
-    .from("pelanggan")
-    .select("poin")
-    .eq("id", pelanggan_id)
-    .maybeSingle();
-  if (errorSaldo || !pelanggan) {
-    console.error("[redeem poin] saldo baca ulang gagal", errorSaldo?.message);
-    return NextResponse.json({ ok: true, poin_ditukar: hasil, saldo_poin: null });
+  const saldoSesudah = (await saldoLedger(admin, pelanggan_id)) ?? saldoSebelum;
+
+  // Cache boleh basi, ledger tidak. Samakan cache dengan ledger supaya
+  // daftar pelanggan dan panel detail ikut menampilkan angka yang benar.
+  if (saldoSesudah !== null) {
+    const { error: errorCache } = await admin
+      .from("pelanggan")
+      .update({ poin: saldoSesudah })
+      .eq("id", pelanggan_id);
+    if (errorCache) {
+      console.error("[redeem poin] gagal menyamakan cache saldo", errorCache.message);
+    }
   }
 
-  return NextResponse.json({ ok: true, poin_ditukar: hasil, saldo_poin: pelanggan.poin });
+  return NextResponse.json({
+    ok: true,
+    poin_ditukar: typeof hasil === "number" ? hasil : poin,
+    saldo_sebelum: saldoSebelum,
+    saldo_poin: saldoSesudah,
+  });
 }
 
 export const dynamic = "force-dynamic";

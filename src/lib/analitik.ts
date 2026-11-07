@@ -12,6 +12,7 @@
 import { hariLaporanAtauNull } from "./hari-laporan";
 
 export interface TransaksiAnalitik {
+  id: string;
   total: number;
   diskon: number;
   poin_dipakai: number;

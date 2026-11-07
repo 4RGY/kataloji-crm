@@ -9,10 +9,12 @@ import {
   AMBANG_HARI,
   AMBANG_POLA,
   hariBeroperasi,
+  labelJam,
   periksaKeyakinan,
   ringkasPelanggan,
   sebaranPoinPelanggan,
   sebaranHari,
+  sebaranJam,
   tinggiBatang,
   ultahBulanIni,
   pelangganSetia,
@@ -75,8 +77,12 @@ export default function HalamanAnalitik() {
 
   const [transaksi, setTransaksi] = useState<TransaksiAnalitik[]>([]);
   const [pelanggan, setPelanggan] = useState<PelangganAnalitik[]>([]);
+  const [redeemLedger, setRedeemLedger] = useState<{ pelanggan_id: string; poin_keluar: number; created_at: string; transaksi_id: string | null }[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
+  const [periodeUnduh, setPeriodeUnduh] = useState<Periode>({ jenis: "bulan_ini" });
+  const [tanggalUnduh, setTanggalUnduh] = useState("");
+  const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
 
   // Peran dan izin, dibaca dari database. Syaratnya sama dengan sidebar
   // supaya menu dan halaman tidak pernah berbeda pendapat.
@@ -102,11 +108,11 @@ export default function HalamanAnalitik() {
       return { ditolak: true as const, role, t: null, p: null };
     }
 
-    const [t, p] = await Promise.all([
+    const [t, p, r] = await Promise.all([
       ambilSemua<TransaksiAnalitik>((dari, sampai) =>
         supabase
           .from("transaksi")
-          .select("total, diskon, poin_dipakai, poin_didapat, pelanggan_id, created_at, tanggal_majoo, items, source")
+          .select("id, total, diskon, poin_dipakai, poin_didapat, pelanggan_id, created_at, tanggal_majoo, items, source")
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
@@ -117,8 +123,17 @@ export default function HalamanAnalitik() {
           .order("created_at", { ascending: false })
           .range(dari, sampai),
       ),
+      ambilSemua<{ pelanggan_id: string; poin_keluar: number; created_at: string; transaksi_id: string | null }>((dari, sampai) =>
+        supabase
+          .from("point_ledger")
+          .select("pelanggan_id, poin_keluar, created_at, transaksi_id")
+          .eq("tipe", "redeem")
+          .gt("poin_keluar", 0)
+          .order("created_at", { ascending: false })
+          .range(dari, sampai),
+      ),
     ]);
-    return { ditolak: false as const, role, t, p };
+    return { ditolak: false as const, role, t, p, r };
   }, [supabase]);
 
   useEffect(() => {
@@ -133,13 +148,15 @@ export default function HalamanAnalitik() {
         return;
       }
       setBolehLihat(true);
-      const { t, p } = hasil;
-      if (t.error) {
-        catatGalat("muat analitik", t.error);
-        setGalat(pesanGalat(t.error, "Gagal memuat data. Coba muat ulang."));
+      const { t, p, r } = hasil;
+      const errorMuat = t.error ?? p.error ?? r.error;
+      if (errorMuat) {
+        catatGalat("muat analitik", errorMuat);
+        setGalat(pesanGalat(errorMuat, "Gagal memuat data. Coba muat ulang."));
       } else {
         setTransaksi(t.data ?? []);
         setPelanggan(p.data ?? []);
+        setRedeemLedger(r.data ?? []);
         setGalat(null);
       }
       setMemuat(false);
@@ -157,31 +174,49 @@ export default function HalamanAnalitik() {
       setMemuat(false);
       return;
     }
-    const { t, p } = hasil;
-    if (t.error) {
-      catatGalat("muat ulang analitik", t.error);
-      setGalat(pesanGalat(t.error, "Gagal memuat data."));
+    const { t, p, r } = hasil;
+    const errorMuat = t.error ?? p.error ?? r.error;
+    if (errorMuat) {
+      catatGalat("muat ulang analitik", errorMuat);
+      setGalat(pesanGalat(errorMuat, "Gagal memuat data."));
     } else {
       setTransaksi(t.data ?? []);
       setPelanggan(p.data ?? []);
+      setRedeemLedger(r.data ?? []);
       setGalat(null);
     }
     setMemuat(false);
   }
 
-  const hari = useMemo(() => sebaranHari(transaksi, NILAI_POIN), [transaksi]);
-  const pel = useMemo(() => ringkasPelanggan(transaksi, NILAI_POIN), [transaksi]);
-  const ultah = useMemo(() => ultahBulanIni(pelanggan, kini), [pelanggan, kini]);
-  const setia = useMemo(() => pelangganSetia(transaksi, NILAI_POIN, 5), [transaksi]);
-  const namaPelanggan = useMemo(
-    () => new Map(pelanggan.map((p) => [p.id, p.nama])),
-    [pelanggan],
+  const rentangTerpilih = useMemo(() => {
+    const periode: Periode = periodeUnduh.jenis === "tanggal"
+      ? { jenis: "tanggal", tanggal: tanggalUnduh }
+      : periodeUnduh;
+    return rentangPeriode(periode, kini);
+  }, [periodeUnduh, tanggalUnduh, kini]);
+  const transaksiDitampilkan = useMemo(
+    () => rentangTerpilih ? saringPeriode(transaksi, rentangTerpilih) : [],
+    [transaksi, rentangTerpilih],
   );
+  const hari = useMemo(() => sebaranHari(transaksiDitampilkan, NILAI_POIN), [transaksiDitampilkan]);
+  const jamHasil = useMemo(() => sebaranJam(transaksiDitampilkan, NILAI_POIN), [transaksiDitampilkan]);
+  const jam = jamHasil.baris;
+  const pel = useMemo(() => ringkasPelanggan(transaksiDitampilkan, NILAI_POIN), [transaksiDitampilkan]);
+  const ultah = useMemo(() => ultahBulanIni(pelanggan, kini), [pelanggan, kini]);
+  const setia = useMemo(() => pelangganSetia(transaksiDitampilkan, NILAI_POIN, 5), [transaksiDitampilkan]);
+  const namaPelanggan = useMemo(() => new Map(pelanggan.map((p) => [p.id, p.nama])), [pelanggan]);
   const yakinSetia = periksaKeyakinan(setia.length, 3, "pelanggan yang datang");
-
-  const [periodeUnduh, setPeriodeUnduh] = useState<Periode>({ jenis: "bulan_ini" });
-  const [tanggalUnduh, setTanggalUnduh] = useState("");
-  const [galatUnduh, setGalatUnduh] = useState<string | null>(null);
+  const yakinPola = periksaKeyakinan(transaksiDitampilkan.length, AMBANG_POLA);
+  const yakinHari = periksaKeyakinan(hariBeroperasi(transaksiDitampilkan), AMBANG_HARI, "hari jualan");
+  const puncakOmzet = useMemo(() => {
+    const terisi = jam.filter((b) => b.omzet > 0);
+    if (terisi.length === 0) return null;
+    const tertinggi = Math.max(...terisi.map((b) => b.omzet));
+    const puncak = terisi.filter((b) => b.omzet === tertinggi);
+    return puncak.length === 1 ? puncak[0] : null;
+  }, [jam]);
+  const omzetJamTertinggi = Math.max(...jam.map((j) => j.omzet), 0);
+  const hariTertinggi = Math.max(...hari.map((h) => h.omzet), 0);
 
   async function unduhLaporan() {
     const kini = new Date();
@@ -195,7 +230,11 @@ export default function HalamanAnalitik() {
     setGalatUnduh(null);
 
     const dipilih = saringPeriode(transaksi, rentang);
-    if (dipilih.length === 0) {
+    const rentangAdaRedeem = redeemLedger.some((baris) => {
+      const waktu = new Date(baris.created_at).getTime();
+      return waktu >= rentang.dari.getTime() && waktu < rentang.sampai.getTime();
+    });
+    if (dipilih.length === 0 && !rentangAdaRedeem) {
       setGalatUnduh(`Belum ada transaksi di ${rentang.label.toLowerCase()}.`);
       return;
     }
@@ -215,15 +254,25 @@ export default function HalamanAnalitik() {
       jumlah: k.jumlah,
     }));
 
-    // Top pelanggan yang menukarkan poin di periode ini
+    const awal = rentang.dari.getTime();
+    const akhir = rentang.sampai.getTime();
     const petaRedeem = new Map<string, { kali: number; poin: number }>();
-    for (const t of dipilih) {
-      if (!t.pelanggan_id || !t.poin_dipakai || t.poin_dipakai <= 0) continue;
-      const curr = petaRedeem.get(t.pelanggan_id) ?? { kali: 0, poin: 0 };
-      petaRedeem.set(t.pelanggan_id, {
+    const transaksiSudahDiLedger = new Set(
+      redeemLedger.map((baris) => baris.transaksi_id).filter((id): id is string => Boolean(id)),
+    );
+    for (const baris of redeemLedger) {
+      const waktu = new Date(baris.created_at).getTime();
+      if (waktu < awal || waktu >= akhir) continue;
+      const curr = petaRedeem.get(baris.pelanggan_id) ?? { kali: 0, poin: 0 };
+      petaRedeem.set(baris.pelanggan_id, {
         kali: curr.kali + 1,
-        poin: curr.poin + t.poin_dipakai,
+        poin: curr.poin + baris.poin_keluar,
       });
+    }
+    for (const t of dipilih) {
+      if (!t.pelanggan_id || !t.poin_dipakai || t.poin_dipakai <= 0 || transaksiSudahDiLedger.has(t.id)) continue;
+      const curr = petaRedeem.get(t.pelanggan_id) ?? { kali: 0, poin: 0 };
+      petaRedeem.set(t.pelanggan_id, { kali: curr.kali + 1, poin: curr.poin + t.poin_dipakai });
     }
 
     const topRedeemP = [...petaRedeem.entries()]
@@ -237,7 +286,7 @@ export default function HalamanAnalitik() {
       .slice(0, 5);
 
     const poinDidapatPeriode = dipilih.reduce((s, t) => s + (t.poin_didapat ?? 0), 0);
-    const poinDipakaiPeriode = dipilih.reduce((s, t) => s + (t.poin_dipakai ?? 0), 0);
+    const poinDipakaiPeriode = [...petaRedeem.values()].reduce((s, data) => s + data.poin, 0);
 
     const { buatPdfLaporan } = await import("@/lib/laporan-pdf");
     const blob = buatPdfLaporan({
@@ -282,10 +331,7 @@ export default function HalamanAnalitik() {
   }
 
 
-  const yakinPola = periksaKeyakinan(transaksi.length, AMBANG_POLA);
-  const yakinHari = periksaKeyakinan(hariBeroperasi(transaksi), AMBANG_HARI, "hari jualan");
 
-  const hariTertinggi = Math.max(...hari.map((h) => h.omzet), 0);
 
   // Sebaran saldo poin pelanggan. Halaman ini mengukur kesehatan program
   // loyalitas, jadi yang ditampilkan adalah poin yang berlaku sekarang, bukan
@@ -343,14 +389,14 @@ export default function HalamanAnalitik() {
           <h1 className="font-heading text-2xl font-extrabold tracking-tight">Analitik</h1>
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
             {yakinPola.cukup
-              ? `Pola dari ${transaksi.length} transaksi.`
-              : `Baru ${transaksi.length} transaksi. Sebagian pola masih ditahan sampai datanya cukup.`}
+              ? `${transaksiDitampilkan.length} transaksi di ${rentangTerpilih?.label ?? "periode ini"}.`
+              : `Baru ${transaksiDitampilkan.length} transaksi di periode ini. Sebagian pola masih ditahan sampai datanya cukup.`}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <select
-              aria-label="Periode laporan"
+              aria-label="Periode analitik dan laporan"
               className="h-11 rounded-md border border-border bg-background px-3 text-sm"
               value={periodeUnduh.jenis}
               onChange={(e) => {
@@ -373,7 +419,7 @@ export default function HalamanAnalitik() {
                 onChange={(e) => setTanggalUnduh(e.target.value)}
               />
             )}
-            <Button variant="outline" className="h-11 gap-2" onClick={() => void unduhLaporan()} disabled={transaksi.length === 0}>
+            <Button variant="outline" className="h-11 gap-2" onClick={() => void unduhLaporan()} disabled={transaksiDitampilkan.length === 0}>
               <Download className="h-4 w-4" />
               Unduh PDF
             </Button>
@@ -630,6 +676,51 @@ export default function HalamanAnalitik() {
         </section>
       </div>
 
+      <section
+        aria-label="Omzet per jam"
+        className="mt-4 rounded-xl border border-border bg-card p-6 lg:p-7"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Omzet per jam</p>
+          <p className="text-xs text-muted-foreground">
+            {puncakOmzet
+              ? `Puncak jam ${labelJam(puncakOmzet.jam)}, ${rupiah.format(puncakOmzet.omzet)}`
+              : "Belum ada jam yang menonjol"}
+          </p>
+        </div>
+        {jamHasil.dilewati > 0 && (
+          <p className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            {jamHasil.dihitung === 0
+              ? `Belum ada transaksi dengan jam kedatangan tercatat. ${jamHasil.dilewati} transaksi impor hanya mencatat tanggal.`
+              : `${jamHasil.dilewati} transaksi impor hanya mencatat tanggal, jadi tidak masuk grafik jam.`}
+          </p>
+        )}
+        {omzetJamTertinggi === 0 ? (
+          <div className="mt-4"><Tertahan pesan="Belum ada omzet dengan jam kedatangan tercatat pada periode ini." /></div>
+        ) : (
+          <div className="mt-6 flex items-end gap-1.5">
+            {jam.map((j) => {
+              const tinggi = tinggiBatang(j.omzet, omzetJamTertinggi);
+              const puncakIni = puncakOmzet?.jam === j.jam;
+              return (
+                <div key={j.jam} className="flex flex-1 flex-col items-center gap-2">
+                  <div className="flex h-28 w-full items-end">
+                    <div
+                      className={`w-full rounded-t ${j.omzet === 0 ? "h-px bg-border" : puncakIni ? "bg-primary" : "bg-primary/30"}`}
+                      style={j.omzet > 0 ? { height: `${Math.max(8, tinggi)}%` } : undefined}
+                      title={`${labelJam(j.jam)}: ${rupiah.format(j.omzet)} (${j.jumlah} transaksi)`}
+                    />
+                  </div>
+                  <span className={`text-[11px] tabular-nums ${puncakIni ? "font-bold text-foreground" : "text-muted-foreground"}`}>
+                    {j.jam}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <div className="mt-4">
         <section
           aria-label="Sebaran hari"
@@ -640,7 +731,7 @@ export default function HalamanAnalitik() {
               Omzet per hari
             </p>
             <p className="text-xs text-muted-foreground">
-              {hariBeroperasi(transaksi)} hari jualan
+              {hariBeroperasi(transaksiDitampilkan)} hari jualan
             </p>
           </div>
 
